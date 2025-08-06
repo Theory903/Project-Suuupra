@@ -1,70 +1,63 @@
-# Live Tracking Service - Comprehensive TODO
+# **Service PRD: Live Tracking Service**
 
-## 1. 🎯 Overview & Learning Objectives
+## 1. 🎯 The Challenge: Problem Statement & Mission
 
-The **Live Tracking Service** is a high-performance system for real-time GPS tracking, ETA calculation, and route optimization. This service is a fascinating blend of real-time data processing, geospatial databases, and high-performance computing.
+### **Problem Statement**
+> The Suuupra platform needs to provide real-time tracking of its mobile entities, such as delivery drivers and buses. This requires a high-performance system that can ingest a massive volume of GPS data, process it in real-time, and provide accurate location updates and ETA calculations. The challenge is to build a system that is not only scalable and reliable but also provides advanced features like geofencing and route optimization.
 
-### **Why this stack?**
-
-*   **Go**: An excellent choice for the main service due to its high concurrency and performance for network services.
-*   **Rust**: Used for a specific, CPU-intensive task: route optimization. Rust provides the performance of C++ with memory safety, making it ideal for a critical library like our pathfinding engine.
-*   **PostGIS**: A PostgreSQL extension that adds support for geographic objects, allowing for efficient spatial queries.
-*   **Redis**: Used for caching the last known location of tracked entities for low-latency lookups.
-
-### **Learning Focus**:
-
-*   **Geospatial Systems**: Learn how to build a real-time application that deals with geospatial data.
-*   **Polyglot Programming**: Gain experience in building a service with two different languages (Go and Rust), and learn how to make them interoperate.
-*   **Pathfinding Algorithms**: Implement the A* algorithm, a classic and widely used pathfinding algorithm.
-*   **Spatial Indexing**: Learn about Geohashing and how it can be used for efficient nearby searches.
+### **Mission**
+> To build a world-class live tracking system that provides real-time visibility into the location and movement of all mobile entities on the Suuupra platform, enabling us to optimize our operations and provide a better experience for our users.
 
 ---
 
-## 2. 🚀 Implementation Plan (5 Weeks)
+## 2. 🧠 The Gauntlet: Core Requirements & Edge Cases
 
-### **Week 1: Foundation & GPS Ingestion**
+### **Core Functional Requirements (FRs)**
 
-*   **Goal**: Set up the core infrastructure and the data ingestion pipeline for GPS data.
+| FR-ID | Feature | Description |
+|---|---|---|
+| FR-1  | **Real-time Tracking** | The system can ingest and process real-time GPS data from mobile devices. |
+| FR-2  | **Geofencing** | The system can create, manage, and trigger events based on geofences. |
+| FR-3  | **Route Optimization** | The system can calculate the optimal route between two points. |
+| FR-4  | **ETA Calculation** | The system can calculate the estimated time of arrival (ETA) for a given route. |
+| FR-5  | **k-NN Search** | The system can find the k-nearest neighbors to a given point. |
 
-*   **Tasks**:
-    *   [ ] **Project Setup**: Initialize the Go project for the main service and the Rust project for the pathfinding library. Set up PostGIS and Redis.
-    *   [ ] **GPS Data Ingestion**: Create a WebSocket or UDP endpoint in Go to receive GPS coordinates from devices. Store the latest location in Redis and the location history in PostGIS.
+### **Non-Functional Requirements (NFRs)**
 
-### **Week 2: Real-time Tracking & Geofencing**
+| NFR-ID | Requirement | Target | Justification & Key Challenges |
+|---|---|---|---|
+| NFR-1 | **Latency** | <100ms for location updates | Real-time tracking requires low-latency location updates. Challenge: Optimizing the data ingestion and processing pipeline. |
+| NFR-2 | **Scalability** | 1M+ tracked entities | The system must be able to handle a large and growing number of tracked entities. Challenge: Designing a scalable architecture with Go and Rust. |
+| NFR-3 | **Accuracy** | <10m for location | The system must provide accurate location data. Challenge: Handling GPS inaccuracies and signal loss. |
 
-*   **Goal**: Build the core real-time tracking and geofencing features.
+### **Edge Cases & Failure Scenarios**
 
-*   **Tasks**:
-    *   [ ] **Real-time Tracking API**: Implement an API endpoint to get the real-time location of a tracked entity. Use WebSockets to push location updates to clients.
-    *   [ ] **Geofencing**: Implement an API to create, update, and delete geofences (polygons stored in PostGIS). Create a system to trigger events when a tracked entity enters or exits a geofence.
-
-### **Week 3: Routing & ETA Calculation**
-
-*   **Goal**: Implement route optimization and ETA calculation.
-
-*   **Tasks**:
-    *   [ ] **Route Optimization (Rust)**: Load map data (e.g., from OpenStreetMap) into a graph. Implement the A* pathfinding algorithm in Rust and expose it as a C-compatible library.
-    *   [ ] **ETA Calculation (Go)**: Create an API endpoint to calculate the ETA between two points. This will involve calling the Rust pathfinding library to get the optimal route.
-
-### **Week 4: Geospatial Indexing & k-NN**
-
-*   **Goal**: Implement efficient geospatial search.
-
-*   **Tasks**:
-    *   [ ] **k-NN Search**: Implement a k-Nearest Neighbors (k-NN) search to find the closest entities to a given point, using PostGIS's spatial indexes.
-    *   [ ] **Geohashing**: Implement Geohashing to create a grid-based index of locations. Store Geohashes in Redis for low-latency nearby searches.
-
-### **Week 5: Finalization**
-
-*   **Goal**: Integrate all components, test thoroughly, and prepare for deployment.
-
-*   **Tasks**:
-    *   [ ] **Integration & Testing**: Integrate the Go service with the Rust library. Write comprehensive unit, integration, and load tests.
-    *   [ ] **Deployment**: Dockerize the service and prepare it for deployment to Kubernetes.
+*   **GPS Signal Loss:** How does the system handle cases where a device loses its GPS signal? (e.g., use a combination of cellular and Wi-Fi triangulation to estimate the location).
+*   **Map Data Inaccuracy:** What happens if the map data is inaccurate? (e.g., provide a mechanism for users to report map errors).
+*   **Route Recalculation:** How does the system handle cases where a driver deviates from the optimal route? (e.g., automatically recalculate the route and update the ETA).
 
 ---
 
-## 3. 🗄️ Database Schema (PostGIS)
+## 3. 🗺️ The Blueprint: Architecture & Design
+
+### **3.1. System Architecture Diagram**
+
+```mermaid
+graph TD
+    A[Mobile Devices] --> B(Live Tracking Service);
+    B --> C{PostGIS Database};
+    B --> D[Redis];
+    B --> E(Rust Pathfinding Library);
+```
+
+### **3.2. Tech Stack Deep Dive**
+
+| Component | Technology | Version | Justification & Key Considerations |
+|---|---|---|---|
+| **Language/Framework** | `Go`, `Rust` | `1.21`, `1.72` | Go for the main service and Rust for the CPU-intensive pathfinding library. |
+| **Database** | `PostGIS`, `Redis` | `15`, `7+` | PostGIS for geospatial queries and Redis for caching last known locations. |
+
+### **3.3. Database Schema**
 
 ```sql
 -- Enable PostGIS extension
@@ -80,7 +73,7 @@ CREATE TABLE tracked_entities (
 CREATE TABLE location_history (
     id BIGSERIAL PRIMARY KEY,
     entity_id UUID NOT NULL REFERENCES tracked_entities(id),
-    coordinates GEOGRAPHY(POINT, 4326) NOT NULL, -- Store as geography for real-world distance calculations
+    coordinates GEOGRAPHY(POINT, 4326) NOT NULL,
     timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -97,3 +90,88 @@ CREATE TABLE geofences (
 -- Spatial index for efficient geofence queries
 CREATE INDEX geofences_area_idx ON geofences USING GIST (area);
 ```
+
+---
+
+## 4. 🚀 The Quest: Implementation Plan & Milestones
+
+### **Phase 1: Foundation & GPS Ingestion (Week 1)**
+
+*   **Objective:** Set up the core infrastructure and the data ingestion pipeline.
+*   **Key Results:**
+    *   The service can ingest and store real-time GPS data.
+*   **Tasks:**
+    *   [ ] **Project Setup**: Initialize the Go and Rust projects.
+    *   [ ] **GPS Data Ingestion**: Create a WebSocket or UDP endpoint to receive GPS data.
+
+### **Phase 2: Real-time Tracking & Geofencing (Week 2)**
+
+*   **Objective:** Build the core real-time tracking and geofencing features.
+*   **Key Results:**
+    *   The service can provide real-time location updates and trigger geofence events.
+*   **Tasks:**
+    *   [ ] **Real-time Tracking API**: Implement an API to get the real-time location of a tracked entity.
+    *   [ ] **Geofencing**: Implement an API to create, manage, and trigger geofences.
+
+### **Phase 3: Routing & ETA Calculation (Week 3)**
+
+*   **Objective:** Implement route optimization and ETA calculation.
+*   **Key Results:**
+    *   The service can calculate the optimal route and ETA between two points.
+*   **Tasks:**
+    *   [ ] **Route Optimization (Rust)**: Implement the A* pathfinding algorithm in Rust.
+    *   [ ] **ETA Calculation (Go)**: Create an API to calculate the ETA for a given route.
+
+### **Phase 4: Geospatial Indexing & k-NN (Week 4)**
+
+*   **Objective:** Implement efficient geospatial search.
+*   **Key Results:**
+    *   The service can perform k-NN and Geohash-based searches.
+*   **Tasks:**
+    *   [ ] **k-NN Search**: Implement a k-NN search to find the closest entities to a given point.
+    *   [ ] **Geohashing**: Implement Geohashing for low-latency nearby searches.
+
+### **Phase 5: Finalization (Week 5)**
+
+*   **Objective:** Integrate all components, test thoroughly, and prepare for deployment.
+*   **Key Results:**
+    *   The service is fully integrated, tested, and ready for deployment.
+*   **Tasks:**
+    *   [ ] **Integration & Testing**: Integrate the Go service with the Rust library and write comprehensive tests.
+    *   [ ] **Deployment**: Dockerize the service and prepare it for deployment.
+
+---
+
+## 5. 🧪 Testing & Quality Strategy
+
+| Test Type | Tools | Coverage & Scenarios |
+|---|---|---|
+| **Unit Tests** | `Go testing`, `Cargo test` | >90% coverage of all Go and Rust code. |
+| **Integration Tests** | `Testcontainers` | Test the interaction between the Go service, Rust library, PostGIS, and Redis. |
+| **Load Tests** | `k6` | Simulate a high volume of GPS updates and API requests to test the performance and scalability of the service. |
+
+---
+
+## 6. 🔭 The Observatory: Monitoring & Alerting
+
+### **Key Performance Indicators (KPIs)**
+*   **Technical Metrics:** `Location Update Latency`, `ETA Accuracy`, `Route Calculation Time`.
+*   **Business Metrics:** `Number of Tracked Entities`, `Geofence Events per Hour`.
+
+### **Dashboards & Alerts**
+*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per tracked entity and geofence.
+*   **Alerting Rules (Prometheus):**
+    *   `HighLocationUpdateLatency`: Trigger if the p99 location update latency exceeds 100ms.
+    *   `HighEtaErrorRate`: Trigger if the ETA error rate exceeds 10%.
+    *   `RouteCalculationTimeout`: Trigger if the route calculation time exceeds 5 seconds.
+
+---
+
+## 7. 📚 Learning & Knowledge Base
+
+*   **Key Concepts:** `Geospatial Systems`, `Polyglot Programming`, `Pathfinding Algorithms`, `Spatial Indexing`.
+*   **Resources:**
+    *   [PostGIS Documentation](https://postgis.net/docs/)
+    *   [A* Search Algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm)
+
+---

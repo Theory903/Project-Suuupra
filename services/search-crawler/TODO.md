@@ -1,278 +1,155 @@
-# Search Engine & Web Crawler - TODO
 
-## Overview
-Distributed web crawler with intelligent content indexing, PageRank implementation, and advanced search capabilities using Elasticsearch and polite crawling policies.
+# **Service PRD: Search & Crawler Service**
 
-## Timeline: Week 19-24 (6-week sprint)
+## 1. 🎯 The Challenge: Problem Statement & Mission
 
----
+### **Problem Statement**
+> The Suuupra platform needs a powerful and scalable search engine to enable users to discover content across its vast and growing library. A simple database search is not sufficient to provide a good user experience. The challenge is to build a distributed web crawler and search engine that can index a massive amount of content, provide relevant and personalized search results, and scale to handle a high volume of queries.
 
-## Week 19: Crawler Infrastructure & Politeness
-
-### Distributed Crawler Foundation
-- [ ] **Go-based Crawler Core**
-  - [ ] Setup distributed crawler architecture with worker pools
-  - [ ] Implement URL frontier with priority queuing (Redis-based)
-  - [ ] Create robots.txt parser and compliance checker
-  - [ ] Add delay management and rate limiting per domain
-  - [ ] Implement concurrent crawling with proper semaphores
-
-- [ ] **Politeness & Ethics Implementation**
-  - [ ] Create polite crawling policies (crawl-delay, request intervals)
-  - [ ] Implement user-agent identification and rotation
-  - [ ] Add respect for meta robots directives (noindex, nofollow)
-  - [ ] Create domain-specific crawling rules and blacklists
-  - [ ] Implement IP rotation and proxy management
-
-- [ ] **Content Processing Pipeline**
-  - [ ] HTML parsing with content extraction (Go Colly framework)
-  - [ ] Text normalization and cleaning algorithms
-  - [ ] Language detection and charset handling
-  - [ ] Metadata extraction (title, description, keywords)
-  - [ ] Link extraction and URL canonicalization
-
-### Learning Focus: Distributed Systems & Web Standards
-- [ ] Study HTTP protocol and web crawling best practices
-- [ ] Learn about distributed system coordination (leader election, consensus)
-- [ ] Understand web standards (robots.txt, sitemaps, META tags)
+### **Mission**
+> To build a world-class search engine that empowers users to discover the most relevant and engaging content on the Suuupra platform, providing a seamless and intuitive search experience.
 
 ---
 
-## Week 20: Content Analysis & Duplicate Detection
+## 2. 🧠 The Gauntlet: Core Requirements & Edge Cases
 
-### Advanced Content Processing
-- [ ] **Content Quality Assessment**
-  - [ ] Implement content quality scoring algorithms
-  - [ ] Add spam detection using machine learning models
-  - [ ] Create content freshness and authority metrics
-  - [ ] Implement language model-based content classification
-  - [ ] Add structured data extraction (JSON-LD, microdata)
+### **Core Functional Requirements (FRs)**
 
-- [ ] **SimHash & Duplicate Detection**
-  - [ ] Implement SimHash algorithm for near-duplicate detection
-  - [ ] Create shingling for document fingerprinting
-  - [ ] Add Jaccard similarity for content comparison
-  - [ ] Implement bloom filters for URL deduplication
-  - [ ] Create hierarchical clustering for content groups
+| FR-ID | Feature | Description |
+|---|---|---|
+| FR-1  | **Web Crawling** | The system can crawl and index a large volume of web content. |
+| FR-2  | **Content Indexing** | The system can index content in a way that is optimized for search. |
+| FR-3  | **Search & Ranking** | The system can provide relevant and personalized search results. |
+| FR-4  | **Duplicate Detection** | The system can detect and handle duplicate content. |
 
-- [ ] **Content Enrichment**
-  - [ ] Add named entity recognition (NER) for content tagging
-  - [ ] Implement topic modeling using LDA/BERTopic
-  - [ ] Create sentiment analysis for content classification
-  - [ ] Add keyword extraction and TF-IDF computation
-  - [ ] Implement content summarization algorithms
+### **Non-Functional Requirements (NFRs)**
 
-### Learning Focus: Information Retrieval & NLP
-- [ ] Study document similarity algorithms and hashing techniques
-- [ ] Learn about natural language processing pipelines
-- [ ] Understand information extraction and entity recognition
+| NFR-ID | Requirement | Target | Justification & Key Challenges |
+|---|---|---|---|
+| NFR-1 | **Scalability** | 100M+ documents | The system must be able to handle a large and growing volume of content. Challenge: Designing a scalable architecture with a distributed crawler and Elasticsearch. |
+| NFR-2 | **Performance** | <200ms search latency | Search must be fast and responsive. Challenge: Optimizing Elasticsearch queries and indexing. |
+| NFR-3 | **Freshness** | <1 hour for high-priority content | The search index must be kept up-to-date. Challenge: Implementing an efficient and real-time indexing pipeline. |
+
+### **Edge Cases & Failure Scenarios**
+
+*   **Crawler Traps:** How do we prevent the crawler from getting stuck in crawler traps (e.g., calendar pages that generate an infinite number of links)? (e.g., implement a depth limit and a URL blacklist).
+*   **Politeness:** How do we ensure that the crawler is a good citizen of the web and does not overload websites? (e.g., respect `robots.txt` and implement a polite crawling policy).
+*   **Search Relevance:** How do we handle cases where the search results are not relevant to the user's query? (e.g., use techniques like query expansion and learning-to-rank to improve relevance).
 
 ---
 
-## Week 21: Elasticsearch Integration & Indexing
+## 3. 🗺️ The Blueprint: Architecture & Design
 
-### Search Index Architecture
-- [ ] **Elasticsearch Setup & Configuration**
-  - [ ] Design search index schema with proper field mapping
-  - [ ] Configure analyzers for different languages and content types
-  - [ ] Setup index templates and lifecycle management
-  - [ ] Implement index sharding and replication strategies
-  - [ ] Create custom scoring functions and field boosting
+### **3.1. System Architecture Diagram**
 
-- [ ] **Real-time Indexing Pipeline**
-  - [ ] Implement bulk indexing with batch processing
-  - [ ] Create incremental updates for modified content
-  - [ ] Add document versioning and conflict resolution
-  - [ ] Implement index optimization and segment merging
-  - [ ] Create monitoring for indexing performance
-
-- [ ] **Search Features Implementation**
-  - [ ] Add full-text search with relevance scoring
-  - [ ] Implement faceted search and filtering
-  - [ ] Create auto-complete and suggestion features
-  - [ ] Add search result highlighting and snippets
-  - [ ] Implement semantic search using embeddings
-
-### Learning Focus: Information Retrieval Systems
-- [ ] Study inverted indexes and search algorithms
-- [ ] Learn about text analysis and tokenization techniques
-- [ ] Understand relevance scoring and ranking algorithms
-
----
-
-## Week 22: PageRank Implementation & Graph Analysis
-
-### Link Analysis & PageRank
-- [ ] **Graph Construction**
-  - [ ] Build web graph from crawled links
-  - [ ] Implement efficient graph storage (adjacency lists)
-  - [ ] Create graph compression techniques
-  - [ ] Add temporal graph analysis capabilities
-  - [ ] Implement graph partitioning for distributed processing
-
-- [ ] **PageRank Algorithm Implementation**
-  - [ ] Classic PageRank with power iteration method
-  - [ ] Personalized PageRank for topic-specific ranking
-  - [ ] Add damping factor optimization and convergence detection
-  - [ ] Implement distributed PageRank using MapReduce pattern
-  - [ ] Create incremental PageRank updates for dynamic graphs
-
-- [ ] **Advanced Link Analysis**
-  - [ ] Implement HITS algorithm (Hubs and Authorities)
-  - [ ] Add TrustRank for combating web spam
-  - [ ] Create link quality assessment metrics
-  - [ ] Implement anchor text analysis and weighting
-  - [ ] Add temporal link analysis for trend detection
-
-### Learning Focus: Graph Algorithms & Network Analysis
-- [ ] Study random walks and Markov chain theory
-- [ ] Learn about graph centrality measures and their applications
-- [ ] Understand network topology and connectivity patterns
-
----
-
-## Week 23: Search Quality & Ranking
-
-### Query Processing & Ranking
-- [ ] **Query Understanding**
-  - [ ] Implement query parsing and intent detection
-  - [ ] Add query expansion using synonyms and related terms
-  - [ ] Create spell correction and query suggestion
-  - [ ] Implement query categorization (informational, navigational, transactional)
-  - [ ] Add multilingual query processing
-
-- [ ] **Advanced Ranking Features**
-  - [ ] Combine textual relevance with PageRank authority
-  - [ ] Implement click-through rate (CTR) modeling
-  - [ ] Add freshness and recency signals
-  - [ ] Create personalized ranking based on user behavior
-  - [ ] Implement machine learning ranking (Learning-to-Rank)
-
-- [ ] **Search Quality Metrics**
-  - [ ] Implement relevance assessment frameworks
-  - [ ] Add A/B testing infrastructure for ranking experiments
-  - [ ] Create search quality dashboards and monitoring
-  - [ ] Implement user feedback collection and analysis
-  - [ ] Add search result diversification algorithms
-
-### Learning Focus: Machine Learning & Information Retrieval
-- [ ] Study learning-to-rank algorithms and feature engineering
-- [ ] Learn about search quality evaluation metrics
-- [ ] Understand user behavior analysis and personalization
-
----
-
-## Week 24: Performance Optimization & Production
-
-### Scalability & Performance
-- [ ] **Distributed Architecture**
-  - [ ] Implement horizontal scaling for crawlers
-  - [ ] Create load balancing for search requests
-  - [ ] Add caching layers (Redis, CDN) for frequent queries
-  - [ ] Implement search result pre-computation for popular queries
-  - [ ] Create circuit breakers and fallback mechanisms
-
-- [ ] **Performance Optimization**
-  - [ ] Optimize crawler performance with connection pooling
-  - [ ] Implement parallel processing for content analysis
-  - [ ] Add compression for stored content and indexes
-  - [ ] Create efficient memory management for large graphs
-  - [ ] Implement streaming processing for real-time updates
-
-- [ ] **Monitoring & Observability**
-  - [ ] Create comprehensive metrics and alerting
-  - [ ] Implement distributed tracing for crawl operations
-  - [ ] Add search analytics and user behavior tracking
-  - [ ] Create operational dashboards for system health
-  - [ ] Implement log aggregation and analysis
-
-### Learning Focus: High-Performance Systems
-- [ ] Study concurrent programming and parallel processing
-- [ ] Learn about system performance optimization techniques
-- [ ] Understand monitoring and observability best practices
-
----
-
-## Technical Implementation Details
-
-### Core Technologies
-- **Crawler**: Go with Colly framework for high-performance crawling
-- **Content Processing**: Python with NLTK, spaCy for NLP tasks
-- **Search Engine**: Elasticsearch with custom plugins
-- **Graph Processing**: Apache Spark or Go-based custom implementation
-- **Storage**: PostgreSQL for metadata, MongoDB for content
-- **Caching**: Redis for URL frontier and search results
-
-### Key Algorithms to Implement
-1. **Crawling**: Breadth-first search with politeness constraints
-2. **Duplicate Detection**: SimHash, Jaccard similarity, bloom filters
-3. **PageRank**: Power iteration, personalized PageRank variants
-4. **Text Analysis**: TF-IDF, n-gram analysis, language detection
-5. **Ranking**: BM25, learning-to-rank with feature engineering
-
-### Architecture Components
-```
-Web Crawler → Content Processor → Index Builder → Search Engine
-     ↓              ↓                ↓              ↓
-URL Frontier   Duplicate Detector  PageRank    Query Processor
+```mermaid
+graph TD
+    A[Web Crawler] --> B(Content Processor);
+    B --> C(Index Builder);
+    C --> D{Elasticsearch};
+    D --> E(Search Engine);
+    E --> F[API Gateway];
 ```
 
-### Performance Targets
-- **Crawl Rate**: 1000+ pages per second per worker
-- **Index Size**: Support 100M+ documents
-- **Search Latency**: < 200ms for 95th percentile
-- **Freshness**: Updates within 1 hour for high-priority content
+### **3.2. Tech Stack Deep Dive**
+
+| Component | Technology | Version | Justification & Key Considerations |
+|---|---|---|---|
+| **Crawler** | `Go`, `Colly` | `1.21`, `2.x` | High-performance crawling with a simple and flexible API. |
+| **Content Processing** | `Python`, `NLTK`, `spaCy` | `3.11`, `3.x`, `3.x` | Powerful libraries for NLP tasks like text analysis and entity recognition. |
+| **Search Engine** | `Elasticsearch` | `8.x` | A powerful and scalable search engine with advanced features. |
+| **Graph Processing** | `Apache Spark` or `Go` | - | For building the web graph and running PageRank. |
+
+### **3.3. Architecture Components**
+
+*   **URL Frontier:** Manages the list of URLs to be crawled.
+*   **Crawler:** Fetches and parses web pages.
+*   **Content Processor:** Cleans, normalizes, and enriches the crawled content.
+*   **Index Builder:** Builds the search index in Elasticsearch.
+*   **Search Engine:** Provides the search API to clients.
 
 ---
 
-## Advanced Features & Extensions
+## 4. 🚀 The Quest: Implementation Plan & Milestones
 
-### Machine Learning Integration
-- [ ] **Content Classification**
-  - [ ] Implement automatic content categorization
-  - [ ] Add sentiment analysis for content scoring
-  - [ ] Create topic modeling for content clustering
-  - [ ] Implement fake news detection algorithms
+### **Phase 1: Crawler Infrastructure & Politeness (Week 19)**
 
-- [ ] **Search Personalization**
-  - [ ] Create user profile modeling from search history
-  - [ ] Implement collaborative filtering for search recommendations
-  - [ ] Add location-based search personalization
-  - [ ] Create behavioral analysis for query intent prediction
+*   **Objective:** Set up the core crawler infrastructure and implement politeness policies.
+*   **Key Results:**
+    *   The crawler can fetch and parse web pages in a polite manner.
+*   **Tasks:**
+    *   [ ] **Go-based Crawler Core**: Set up the distributed crawler architecture.
+    *   [ ] **Politeness & Ethics Implementation**: Implement polite crawling policies.
+    *   [ ] **Content Processing Pipeline**: Implement the initial content processing pipeline.
 
-### Specialized Search Features
-- [ ] **Vertical Search Engines**
-  - [ ] Image search with computer vision
-  - [ ] Code search with syntax analysis
-  - [ ] Academic paper search with citation analysis
-  - [ ] News search with temporal ranking
+### **Phase 2: Content Analysis & Duplicate Detection (Week 20)**
 
-- [ ] **Advanced Query Types**
-  - [ ] Natural language query processing
-  - [ ] Voice search with speech recognition
-  - [ ] Visual search using image similarity
-  - [ ] Conversational search with context awareness
+*   **Objective:** Implement advanced content analysis and duplicate detection.
+*   **Key Results:**
+    *   The system can assess content quality and detect duplicates.
+*   **Tasks:**
+    *   [ ] **Advanced Content Processing**: Implement content quality assessment and enrichment.
+    *   [ ] **SimHash & Duplicate Detection**: Implement SimHash for near-duplicate detection.
+
+### **Phase 3: Elasticsearch Integration & Indexing (Week 21)**
+
+*   **Objective:** Integrate with Elasticsearch and build the indexing pipeline.
+*   **Key Results:**
+    *   Content is indexed in Elasticsearch and is searchable.
+*   **Tasks:**
+    *   [ ] **Elasticsearch Setup & Configuration**: Design the search index schema.
+    *   [ ] **Real-time Indexing Pipeline**: Implement the real-time indexing pipeline.
+    *   [ ] **Search Features Implementation**: Implement basic search features.
+
+### **Phase 4: PageRank & Ranking (Weeks 22-23)**
+
+*   **Objective:** Implement PageRank and advanced ranking features.
+*   **Key Results:**
+    *   The system can rank search results based on relevance and authority.
+*   **Tasks:**
+    *   [ ] **PageRank Implementation & Graph Analysis**: Implement the PageRank algorithm.
+    *   [ ] **Search Quality & Ranking**: Implement advanced ranking features.
+
+### **Phase 5: Performance & Production (Week 24)**
+
+*   **Objective:** Optimize the system for performance and prepare for production.
+*   **Key Results:**
+    *   The system is scalable, reliable, and ready for deployment.
+*   **Tasks:**
+    *   [ ] **Performance Optimization & Production**: Optimize the crawler and search engine for performance.
 
 ---
 
-## Learning Resources & Concepts
+## 5. 🧪 Testing & Quality Strategy
 
-### Core Computer Science Concepts
-- **Graph Algorithms**: BFS, DFS, shortest paths, centrality measures
-- **Information Retrieval**: Vector space model, probabilistic models
-- **Natural Language Processing**: Tokenization, stemming, entity recognition
-- **Distributed Systems**: Consensus algorithms, fault tolerance, scalability
+| Test Type | Tools | Coverage & Scenarios |
+|---|---|---|
+| **Unit Tests** | `Go testing`, `pytest` | >90% coverage of all crawler and content processing code. |
+| **Integration Tests** | `Testcontainers` | Test the entire pipeline, from crawling to searching. |
+| **Load Tests** | `k6` | Simulate a high volume of crawls and searches to test the scalability of the system. |
 
-### Web Technologies
-- **HTTP Protocol**: Headers, status codes, caching, compression
-- **HTML/CSS Parsing**: DOM manipulation, content extraction
-- **SEO Standards**: Meta tags, structured data, accessibility
-- **Web Security**: robots.txt, rate limiting, ethical crawling
+---
 
-### Search Engine Principles
-- **Indexing**: Inverted indexes, posting lists, compression
-- **Ranking**: Relevance models, authority computation, personalization
-- **Query Processing**: Parsing, expansion, optimization
-- **Evaluation**: Precision, recall, user satisfaction metrics
+## 6. 🔭 The Observatory: Monitoring & Alerting
 
-This comprehensive TODO provides a complete roadmap for building a production-grade search engine with advanced crawling capabilities, sophisticated ranking algorithms, and real-time indexing infrastructure.
+### **Key Performance Indicators (KPIs)**
+*   **Technical Metrics:** `Crawl Rate`, `Index Size`, `Search Latency`, `Freshness`.
+*   **Business Metrics:** `Search Volume`, `Click-Through Rate (CTR)`, `User Satisfaction`.
+
+### **Dashboards & Alerts**
+*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per crawler and index.
+*   **Alerting Rules (Prometheus):**
+    *   `HighCrawlErrorRate`: Trigger if the crawl error rate exceeds 5%.
+    *   `HighSearchLatency`: Trigger if the p99 search latency exceeds 200ms.
+    *   `HighIndexingLag`: Trigger if the indexing lag exceeds 1 hour.
+
+---
+
+## 7. 📚 Learning & Knowledge Base
+
+*   **Key Concepts:** `Web Crawling`, `Information Retrieval`, `PageRank`, `Elasticsearch`, `Distributed Systems`.
+*   **Resources:**
+    *   [Introduction to Information Retrieval](https://nlp.stanford.edu/IR-book/)
+    *   [Elasticsearch: The Definitive Guide](https://www.elastic.co/guide/en/elasticsearch/guide/current/index.html)
+
+---

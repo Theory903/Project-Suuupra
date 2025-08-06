@@ -1,55 +1,61 @@
-# Counter Service - Comprehensive TODO
+# **Service PRD: Counter Service**
 
-## 1. 🎯 Overview & Learning Objectives
+## 1. 🎯 The Challenge: Problem Statement & Mission
 
-The **Counter Service** is a specialized, high-performance service designed for a single purpose: to count things at massive scale. It handles view counts, likes, and other engagement statistics with extremely low latency and high throughput.
+### **Problem Statement**
+> The Suuupra platform needs to track a massive number of engagement statistics, such as views, likes, and shares, in real-time. A traditional database-backed counter will not be able to handle the high throughput and low latency requirements of such a system. The challenge is to build a highly scalable and performant counter service that can handle millions of increments per second with near-instantaneous updates.
 
-### **Why this stack?**
-
-*   **Go**: Its concurrency model (goroutines and channels) and performance make it a perfect fit for a high-throughput service like this.
-*   **Redis**: An in-memory data store that provides the speed needed for real-time counters.
-*   **ClickHouse**: A columnar database that is optimized for analytics and can be used for long-term storage of counter data.
-
-### **Learning Focus**:
-
-*   **High-Performance Go**: Learn how to write highly concurrent and performant Go services.
-*   **Distributed Counters**: Implement counters that can be scaled across multiple machines.
-*   **Probabilistic Data Structures**: Use data structures like HyperLogLog to efficiently count unique items.
-*   **CRDTs (Conflict-free Replicated Data Types)**: Learn about CRDTs for building eventually consistent distributed systems.
+### **Mission**
+> To build a high-performance, distributed counter service that provides accurate, real-time engagement statistics for the entire Suuupra platform.
 
 ---
 
-## 2. 🚀 Implementation Plan (3 Weeks)
+## 2. 🧠 The Gauntlet: Core Requirements & Edge Cases
 
-### **Week 1: Core Counter Infrastructure**
+### **Core Functional Requirements (FRs)**
 
-*   **Goal**: Set up the basic infrastructure and a simple counter.
+| FR-ID | Feature | Description |
+|---|---|---|
+| FR-1  | **Real-time Counters** | The system can increment and retrieve counter values in real-time. |
+| FR-2  | **Distributed Counters** | The system can distribute counters across multiple machines to handle high throughput. |
+| FR-3  | **Probabilistic Counters** | The system can use probabilistic data structures to efficiently count unique items. |
+| FR-4  | **Data Persistence** | The system can periodically persist counter data to a long-term storage for analysis. |
 
-*   **Tasks**:
-    *   [ ] **Project Setup**: Initialize a Go project and set up a Redis Cluster with Docker.
-    *   [ ] **Basic Counter**: Implement a basic counter using the Redis `INCR` command. Create API endpoints for incrementing and getting counter values.
-    *   [ ] **Batching**: Implement a batching mechanism to group multiple increment operations into a single Redis command to reduce network overhead.
+### **Non-Functional Requirements (NFRs)**
 
-### **Week 2: Distributed & Probabilistic Counters**
+| NFR-ID | Requirement | Target | Justification & Key Challenges |
+|---|---|---|---|
+| NFR-1 | **Latency** | <10ms for increments | The system must be able to handle a high volume of increments with low latency. Challenge: Designing a highly concurrent and performant Go service. |
+| NFR-2 | **Scalability** | 1M+ increments/sec | The system must be able to scale horizontally to handle the massive number of increments. Challenge: Implementing a sharding strategy for the counters. |
+| NFR-3 | **Accuracy** | 100% for simple counters | The system must provide accurate counts for simple counters. Challenge: Ensuring data consistency in a distributed environment. |
 
-*   **Goal**: Implement more advanced counter types.
+### **Edge Cases & Failure Scenarios**
 
-*   **Tasks**:
-    *   [ ] **CRDT G-Counter**: Implement a G-Counter (Grow-Only Counter), which is a CRDT that can be used to build an eventually consistent distributed counter.
-    *   [ ] **HyperLogLog for Unique Counts**: Use the Redis `PFADD` and `PFCOUNT` commands to implement a probabilistic counter for unique items (e.g., unique viewers).
-
-### **Week 3: Persistence & Optimization**
-
-*   **Goal**: Persist counter data for long-term analysis and optimize the service for performance.
-
-*   **Tasks**:
-    *   [ ] **Data Persistence**: Create a background Go routine to periodically flush counter data from Redis to ClickHouse.
-    *   [ ] **Sharding**: Implement a sharding strategy to distribute counters across the Redis cluster.
-    *   [ ] **Reservoir Sampling**: Use Reservoir Sampling to get a statistically representative sample of items (e.g., a sample of users who liked a video).
+*   **Redis Failure:** What happens if a Redis node goes down? (e.g., the system should failover to a replica and replay any lost increments from a write-ahead log).
+*   **Network Partition:** How do we handle network partitions between the service and the Redis cluster? (e.g., the service should buffer increments locally and send them to Redis once the partition is resolved).
+*   **Hot Keys:** How do we handle cases where a small number of counters receive a disproportionate amount of traffic? (e.g., use techniques like sharding and replication to distribute the load).
 
 ---
 
-## 3. 🗄️ Redis Schema
+## 3. 🗺️ The Blueprint: Architecture & Design
+
+### **3.1. System Architecture Diagram**
+
+```mermaid
+graph TD
+    A[Services] --> B(Counter Service);
+    B --> C{Redis Cluster};
+    B --> D[ClickHouse];
+```
+
+### **3.2. Tech Stack Deep Dive**
+
+| Component | Technology | Version | Justification & Key Considerations |
+|---|---|---|---|
+| **Language/Framework** | `Go` | `1.21` | High performance and concurrency for a high-throughput service. |
+| **Database** | `Redis`, `ClickHouse` | `7+`, `23.x` | Redis for real-time counters and ClickHouse for long-term storage and analytics. |
+
+### **3.3. Redis Schema**
 
 ```redis
 # Simple counter for an item of type 'content' with id '123'
@@ -68,8 +74,71 @@ ZADD counter_buffer:views 1672531200 "content_id_1,user_id_1"
 
 ---
 
-## 4. 🔌 API Design (REST/gRPC)
+## 4. 🚀 The Quest: Implementation Plan & Milestones
 
--   `POST /v1/counter/{type}/{id}/increment`: Increment a counter.
--   `GET /v1/counter/{type}/{id}`: Get the value of a counter.
--   `GET /v1/counter/{type}/{id}/unique`: Get the unique count for an item.
+### **Phase 1: Core Counter Infrastructure (Week 1)**
+
+*   **Objective:** Set up the basic infrastructure and a simple counter.
+*   **Key Results:**
+    *   The service can increment and retrieve counter values.
+    *   The service is deployed and running.
+*   **Tasks:**
+    *   [ ] **Project Setup**: Initialize a Go project and set up a Redis Cluster.
+    *   [ ] **Basic Counter**: Implement a basic counter using the Redis `INCR` command.
+    *   [ ] **Batching**: Implement a batching mechanism to group multiple increment operations.
+
+### **Phase 2: Distributed & Probabilistic Counters (Week 2)**
+
+*   **Objective:** Implement more advanced counter types.
+*   **Key Results:**
+    *   The service supports distributed and probabilistic counters.
+*   **Tasks:**
+    *   [ ] **CRDT G-Counter**: Implement a G-Counter for eventually consistent distributed counters.
+    *   [ ] **HyperLogLog for Unique Counts**: Use HyperLogLog for probabilistic counting of unique items.
+
+### **Phase 3: Persistence & Optimization (Week 3)**
+
+*   **Objective:** Persist counter data for long-term analysis and optimize the service for performance.
+*   **Key Results:**
+    *   Counter data is periodically persisted to ClickHouse.
+    *   The service is optimized for performance.
+*   **Tasks:**
+    *   [ ] **Data Persistence**: Create a background Go routine to flush counter data from Redis to ClickHouse.
+    *   [ ] **Sharding**: Implement a sharding strategy to distribute counters across the Redis cluster.
+    *   [ ] **Reservoir Sampling**: Use Reservoir Sampling to get a statistically representative sample of items.
+
+---
+
+## 5. 🧪 Testing & Quality Strategy
+
+| Test Type | Tools | Coverage & Scenarios |
+|---|---|---|
+| **Unit Tests** | `Go testing` | >90% coverage of all counter implementations and utilities. |
+| **Integration Tests** | `Testcontainers` | Test the interaction between the service, Redis, and ClickHouse. |
+| **Load Tests** | `k6` | Simulate a high volume of increments to test the performance and scalability of the service. |
+
+---
+
+## 6. 🔭 The Observatory: Monitoring & Alerting
+
+### **Key Performance Indicators (KPIs)**
+*   **Technical Metrics:** `Increment Latency`, `Redis Memory Usage`, `ClickHouse Ingestion Rate`.
+*   **Business Metrics:** `Total Views`, `Total Likes`, `Unique Viewers`.
+
+### **Dashboards & Alerts**
+*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per counter type.
+*   **Alerting Rules (Prometheus):**
+    *   `HighIncrementLatency`: Trigger if the p99 increment latency exceeds 10ms.
+    *   `HighRedisMemoryUsage`: Trigger if Redis memory usage exceeds a certain threshold.
+    *   `ClickHouseIngestionLag`: Trigger if the ClickHouse ingestion lag exceeds 5 minutes.
+
+---
+
+## 7. 📚 Learning & Knowledge Base
+
+*   **Key Concepts:** `High-Performance Go`, `Distributed Counters`, `Probabilistic Data Structures`, `CRDTs`.
+*   **Resources:**
+    *   [Redis Documentation](https://redis.io/documentation)
+    *   [A deep dive into CRDTs](https://www.youtube.com/watch?v=B5NULJ2Lh1s)
+
+---

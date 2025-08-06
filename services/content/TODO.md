@@ -1,67 +1,65 @@
-# Content Service - Comprehensive TODO
 
-## 1. 🎯 Overview & Learning Objectives
+# **Service PRD: Content Service**
 
-The **Content Service** is the heart of our platform's educational and media offerings. It manages the entire lifecycle of content, from creation and uploading to discovery and search. This service is a great opportunity to learn about handling large files, designing flexible data models, and building powerful search experiences.
+## 1. 🎯 The Challenge: Problem Statement & Mission
 
-### **Why this stack?**
+### **Problem Statement**
+> The Suuupra platform needs to manage a vast and diverse library of educational and media content. This content must be easily searchable, discoverable, and delivered to users in a reliable and performant manner. The challenge is to build a scalable and flexible content management system that can handle large file uploads, complex metadata, and powerful search and discovery features.
 
-*   **Node.js/Express**: A great choice for an I/O-bound service that deals with file uploads and database interactions.
-*   **MongoDB**: Its flexible, document-based model is perfect for storing diverse content metadata that can evolve over time.
-*   **Elasticsearch**: The industry standard for building powerful, scalable search engines. It provides advanced features like full-text search, aggregations, and relevance tuning.
-*   **S3**: A scalable and durable object store for our media files.
-
-### **Learning Focus**:
-
-*   **NoSQL Data Modeling**: Learn how to design flexible and efficient schemas in a document database like MongoDB.
-*   **Search Engineering**: Gain hands-on experience with Elasticsearch, including indexing, querying, and ranking.
-*   **Large File Uploads**: Implement a robust system for handling large file uploads using S3 multipart uploads.
-*   **Content Management Systems**: Understand the principles of building a CMS, including versioning and approval workflows.
+### **Mission**
+> To build a world-class content management system that empowers creators to share their knowledge and learners to discover it, providing a seamless and engaging content experience.
 
 ---
 
-## 2. 🚀 Implementation Plan (4 Weeks)
+## 2. 🧠 The Gauntlet: Core Requirements & Edge Cases
 
-### **Week 1: Foundation & File Uploads**
+### **Core Functional Requirements (FRs)**
 
-*   **Goal**: Set up the service and implement the core file upload functionality.
+| FR-ID | Feature | Description |
+|---|---|---|
+| FR-1  | **Content Management** | The system can create, read, update, and delete content and its metadata. |
+| FR-2  | **Large File Uploads** | The system can handle large file uploads with resumability and progress tracking. |
+| FR-3  | **Search & Discovery** | The system provides powerful search and discovery features, including full-text search and filtering. |
+| FR-4  | **Content Approval & Versioning** | The system supports a content approval workflow and versioning of content. |
 
-*   **Tasks**:
-    *   [ ] **Project Setup**: Initialize the Node.js/Express project and set up the development environment with Docker.
-    *   [ ] **MongoDB Schema Design**: Design the MongoDB schemas for content, categories, and tags.
-    *   [ ] **S3 Multipart Upload**: Implement a resumable, chunked file upload system using S3 multipart uploads. This is essential for handling large video files.
-    *   [ ] **Upload Progress Tracking**: Use WebSockets to provide real-time upload progress to the client.
+### **Non-Functional Requirements (NFRs)**
 
-### **Week 2: Content Management & Search Indexing**
+| NFR-ID | Requirement | Target | Justification & Key Challenges |
+|---|---|---|---|
+| NFR-1 | **Scalability** | 1M+ content items | The system must be able to handle a large and growing library of content. Challenge: Designing a scalable architecture with MongoDB and Elasticsearch. |
+| NFR-2 | **Performance** | <200ms search latency | Search and discovery must be fast and responsive. Challenge: Optimizing Elasticsearch queries and indexing. |
+| NFR-3 | **Reliability** | 99.99% content availability | Content must be highly available to users. Challenge: Implementing a resilient storage and delivery system with S3 and a CDN. |
 
-*   **Goal**: Build the core content management features and integrate with Elasticsearch.
+### **Edge Cases & Failure Scenarios**
 
-*   **Tasks**:
-    *   [ ] **CRUD Operations**: Implement API endpoints for creating, reading, updating, and deleting content metadata.
-    *   [ ] **Elasticsearch Integration**: Set up an Elasticsearch index and create a pipeline to keep it in sync with MongoDB.
-    *   [ ] **Custom Inverted Index**: As a learning exercise, implement a simple inverted index from scratch to understand the core concepts behind search engines.
-
-### **Week 3: Content Approval & Versioning**
-
-*   **Goal**: Implement a workflow for content approval and versioning.
-
-*   **Tasks**:
-    *   [ ] **Content Versioning**: Implement a system for versioning content, allowing creators to make changes without affecting the published version.
-    *   [ ] **Approval Workflow**: Design and implement a content approval workflow, allowing moderators to review and approve new content and changes.
-
-### **Week 4: Recommendations & Optimization**
-
-*   **Goal**: Add content recommendation features and optimize the service for performance.
-
-*   **Tasks**:
-    *   [ ] **Content Similarity**: Implement algorithms to calculate the similarity between different pieces of content based on their metadata.
-    *   [ ] **Performance Optimization**: Optimize search queries, add caching for frequently accessed content, and load test the file upload system.
+*   **Upload Failure:** What happens if a large file upload fails midway? (e.g., the system should allow the user to resume the upload from where it left off).
+*   **Search Index Inconsistency:** How do we handle cases where the search index is out of sync with the database? (e.g., implement a reconciliation process to re-index the data).
+*   **Invalid Content:** How do we handle cases where a user uploads invalid or malicious content? (e.g., implement a content validation and moderation process).
 
 ---
 
-## 3. 🗄️ Database & Search Index Schema
+## 3. 🗺️ The Blueprint: Architecture & Design
 
-### **MongoDB Schema**:
+### **3.1. System Architecture Diagram**
+
+```mermaid
+graph TD
+    A[Clients] --> B(Content Service);
+    B --> C{MongoDB};
+    B --> D[Elasticsearch];
+    B --> E(S3);
+```
+
+### **3.2. Tech Stack Deep Dive**
+
+| Component | Technology | Version | Justification & Key Considerations |
+|---|---|---|---|
+| **Language/Framework** | `Node.js`, `Express` | `18.x`, `4.x` | Great for I/O-bound services that deal with file uploads and database interactions. |
+| **Database** | `MongoDB` | `6.x` | Flexible, document-based model for storing diverse content metadata. |
+| **Search** | `Elasticsearch` | `8.x` | Powerful, scalable search engine for advanced search features. |
+| **Storage** | `AWS S3` | - | Scalable and durable object store for media files. |
+
+### **3.3. Database Schema**
 
 ```javascript
 // Content Schema
@@ -79,7 +77,7 @@ const CategorySchema = new mongoose.Schema({
 });
 ```
 
-### **Elasticsearch Index Mapping**:
+### **Elasticsearch Index Mapping**
 
 ```json
 {
@@ -94,3 +92,87 @@ const CategorySchema = new mongoose.Schema({
   }
 }
 ```
+
+---
+
+## 4. 🚀 The Quest: Implementation Plan & Milestones
+
+### **Phase 1: Foundation & File Uploads (Week 1)**
+
+*   **Objective:** Set up the service and implement the core file upload functionality.
+*   **Key Results:**
+    *   Users can upload large files to the system.
+    *   Upload progress is tracked and displayed in real-time.
+*   **Tasks:**
+    *   [ ] **Project Setup**: Initialize the Node.js/Express project and set up the development environment.
+    *   [ ] **MongoDB Schema Design**: Design the MongoDB schemas for content, categories, and tags.
+    *   [ ] **S3 Multipart Upload**: Implement a resumable, chunked file upload system.
+    *   [ ] **Upload Progress Tracking**: Use WebSockets to provide real-time upload progress.
+
+### **Phase 2: Content Management & Search Indexing (Week 2)**
+
+*   **Objective:** Build the core content management features and integrate with Elasticsearch.
+*   **Key Results:**
+    *   Users can manage their content through the API.
+    *   Content is indexed in Elasticsearch and is searchable.
+*   **Tasks:**
+    *   [ ] **CRUD Operations**: Implement API endpoints for content management.
+    *   [ ] **Elasticsearch Integration**: Set up an Elasticsearch index and a pipeline to keep it in sync with MongoDB.
+    *   [ ] **Custom Inverted Index**: Implement a simple inverted index from scratch as a learning exercise.
+
+### **Phase 3: Content Approval & Versioning (Week 3)**
+
+*   **Objective:** Implement a workflow for content approval and versioning.
+*   **Key Results:**
+    *   The system supports content versioning.
+    *   The system supports a content approval workflow.
+*   **Tasks:**
+    *   [ ] **Content Versioning**: Implement a system for versioning content.
+    *   [ ] **Approval Workflow**: Design and implement a content approval workflow.
+
+### **Phase 4: Recommendations & Optimization (Week 4)**
+
+*   **Objective:** Add content recommendation features and optimize the service for performance.
+*   **Key Results:**
+    *   The system can recommend similar content to users.
+    *   The service is optimized for performance.
+*   **Tasks:**
+    *   [ ] **Content Similarity**: Implement algorithms to calculate content similarity.
+    *   [ ] **Performance Optimization**: Optimize search queries, add caching, and load test the file upload system.
+
+---
+
+## 5. 🧪 Testing & Quality Strategy
+
+| Test Type | Tools | Coverage & Scenarios |
+|---|---|---|
+| **Unit Tests** | `Jest`, `Mocha` | >90% coverage of all services and utilities. |
+| **Integration Tests** | `Supertest` | Test the entire content lifecycle, from upload to search. |
+| **Load Tests** | `k6` | Simulate a high volume of uploads and searches to test the scalability of the system. |
+
+---
+
+## 6. 🔭 The Observatory: Monitoring & Alerting
+
+### **Key Performance Indicators (KPIs)**
+*   **Technical Metrics:** `Upload Time`, `Search Latency`, `Indexing Lag`.
+*   **Business Metrics:** `Content Views`, `Search CTR`, `Content Creation Rate`.
+
+### **Dashboards & Alerts**
+*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per content type and category.
+*   **Alerting Rules (Prometheus):**
+    *   `HighUploadFailureRate`: Trigger if the upload failure rate exceeds 5%.
+    *   `HighSearchLatency`: Trigger if p99 search latency exceeds 200ms.
+    *   `HighIndexingLag`: Trigger if the indexing lag exceeds 5 minutes.
+
+---
+
+## 7. 📚 Learning & Knowledge Base
+
+*   **Key Concepts:** `NoSQL Data Modeling`, `Search Engineering`, `Large File Uploads`, `Content Management Systems`.
+*   **Resources:**
+    *   [Elasticsearch Documentation](https://www.elastic.co/guide/index.html)
+    *   [MongoDB Documentation](https://docs.mongodb.com/)
+    *   [AWS S3 Multipart Upload](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)
+
+---

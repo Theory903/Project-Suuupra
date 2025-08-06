@@ -1,71 +1,64 @@
-# Creator Studio - Comprehensive TODO
+# **Service PRD: Creator Studio**
 
-## 1. 🎯 Overview & Learning Objectives
+## 1. 🎯 The Challenge: Problem Statement & Mission
 
-**Creator Studio** is the command center for our content creators. It's a feature-rich, full-stack application that provides all the tools creators need to upload, manage, analyze, and monetize their content. This is a great project for learning how to build a user-facing application with a rich feature set.
+### **Problem Statement**
+> Content creators are the lifeblood of the Suuupra platform, but they lack a centralized and powerful tool to manage their content, analyze its performance, and monetize their work. The challenge is to build a feature-rich, user-friendly Creator Studio that empowers creators to manage their content lifecycle, understand their audience, and build a sustainable career on the platform.
 
-### **Why this stack?**
-
-*   **Node.js Backend**: A solid choice for a service that orchestrates other services (like the VOD service) and handles a lot of I/O.
-*   **React Frontend**: A powerful and popular library for building modern, interactive user interfaces.
-*   **MongoDB**: Its flexible schema is well-suited for storing content metadata and analytics data, which can vary and evolve.
-
-### **Learning Focus**:
-
-*   **Full-Stack Development**: Build a complete, end-to-end application from the database to the UI.
-*   **Large File Uploads**: Implement a system for handling large file uploads with S3 multipart uploads.
-*   **Data Visualization**: Design and build an analytics dashboard with charts and graphs.
-*   **High-Throughput Analytics**: Learn how to use techniques like sharded counters and Min-Heaps to build a scalable analytics backend.
+### **Mission**
+> To build a world-class Creator Studio that provides our creators with the tools, insights, and monetization opportunities they need to succeed.
 
 ---
 
-## 2. 🚀 Implementation Plan (5 Weeks)
+## 2. 🧠 The Gauntlet: Core Requirements & Edge Cases
 
-### **Week 1: Foundation & Content Upload**
+### **Core Functional Requirements (FRs)**
 
-*   **Goal**: Set up the project and implement the core content upload functionality.
+| FR-ID | Feature | Description |
+|---|---|---|
+| FR-1  | **Content Management** | Creators can upload, manage, and edit their content. |
+| FR-2  | **Analytics Dashboard** | Creators can view detailed analytics about their content's performance. |
+| FR-3  | **Monetization** | Creators can monetize their content and track their earnings. |
+| FR-4  | **User Feedback** | Creators can view and respond to comments on their content. |
 
-*   **Tasks**:
-    *   [ ] **Project Setup**: Initialize the Node.js backend and React frontend projects, and set up a Docker-compose development environment.
-    *   [ ] **Schema Design**: Design the MongoDB schemas for content, analytics, and creator data.
-    *   [ ] **S3 Multipart Upload**: Implement a resumable, chunked file upload system on the backend using S3 multipart uploads.
-    *   [ ] **React Upload Component**: Create a file upload component in React that provides real-time progress feedback.
+### **Non-Functional Requirements (NFRs)**
 
-### **Week 2: Content Management**
+| NFR-ID | Requirement | Target | Justification & Key Challenges |
+|---|---|---|---|
+| NFR-1 | **Usability** | High | The Creator Studio must be intuitive and easy to use for creators of all technical skill levels. Challenge: Designing a user-friendly UI/UX. |
+| NFR-2 | **Performance** | <500ms page load | The Creator Studio must be fast and responsive. Challenge: Optimizing the performance of the frontend and backend. |
+| NFR-3 | **Scalability** | 1M+ creators | The Creator Studio must be able to handle a large and growing number of creators. Challenge: Designing a scalable architecture. |
 
-*   **Goal**: Build the tools for creators to manage their content.
+### **Edge Cases & Failure Scenarios**
 
-*   **Tasks**:
-    *   [ ] **Content Management Backend**: Implement API endpoints to list, edit, and delete content.
-    *   [ ] **Content Management Frontend**: Create a content dashboard where creators can view and manage all their content.
-
-### **Week 3: Analytics Dashboard**
-
-*   **Goal**: Build a dashboard to provide creators with insights into their content's performance.
-
-*   **Tasks**:
-    *   [ ] **Analytics Backend**: Implement API endpoints to serve analytics data. Use sharded counters for high-throughput view counts and a Min-Heap to efficiently calculate the Top-K performing videos.
-    *   [ ] **Analytics Frontend**: Build an analytics dashboard with charts and graphs to visualize the data.
-
-### **Week 4: Monetization**
-
-*   **Goal**: Implement features that allow creators to earn money from their content.
-
-*   **Tasks**:
-    *   [ ] **Monetization Backend**: Integrate with a payment service to handle creator payouts. Implement the logic for calculating revenue.
-    *   [ ] **Monetization Frontend**: Create a UI for creators to set up their payment information and a dashboard to track their earnings.
-
-### **Week 5: Finalization**
-
-*   **Goal**: Add final touches and prepare for deployment.
-
-*   **Tasks**:
-    *   [ ] **User Feedback**: Implement a system for creators to view and respond to comments.
-    *   [ ] **Testing & Deployment**: Write comprehensive tests and prepare the service for production.
+*   **Upload Failure:** What happens if a large file upload fails midway? (e.g., the system should allow the creator to resume the upload from where it left off).
+*   **Analytics Lag:** What happens if there is a lag in the analytics data? (e.g., the system should display a message indicating that the data is not yet up-to-date).
+*   **Payment Failure:** What happens if a creator's payout fails? (e.g., the system should notify the creator and provide instructions on how to resolve the issue).
 
 ---
 
-## 3. 🗄️ Database Schema (MongoDB)
+## 3. 🗺️ The Blueprint: Architecture & Design
+
+### **3.1. System Architecture Diagram**
+
+```mermaid
+graph TD
+    A[Creator] --> B(Creator Studio Frontend);
+    B --> C(Creator Studio Backend);
+    C --> D{MongoDB};
+    C --> E(VOD Service);
+    C --> F(Analytics Service);
+    C --> G(Payment Service);
+```
+
+### **3.2. Tech Stack Deep Dive**
+
+| Component | Technology | Version | Justification & Key Considerations |
+|---|---|---|---|
+| **Language/Framework** | `Node.js`, `React` | `18.x`, `18.x` | A solid choice for a full-stack application with a rich UI. |
+| **Database** | `MongoDB` | `6.x` | Flexible schema for storing content metadata and analytics data. |
+
+### **3.3. Database Schema**
 
 ```javascript
 // Content Schema
@@ -101,3 +94,91 @@
   }
 }
 ```
+
+---
+
+## 4. 🚀 The Quest: Implementation Plan & Milestones
+
+### **Phase 1: Foundation & Content Upload (Week 1)**
+
+*   **Objective:** Set up the project and implement the core content upload functionality.
+*   **Key Results:**
+    *   Creators can upload content to the platform.
+*   **Tasks:**
+    *   [ ] **Project Setup**: Initialize the Node.js backend and React frontend projects.
+    *   [ ] **Schema Design**: Design the MongoDB schemas for content, analytics, and creator data.
+    *   [ ] **S3 Multipart Upload**: Implement a resumable, chunked file upload system.
+    *   [ ] **React Upload Component**: Create a file upload component in React.
+
+### **Phase 2: Content Management (Week 2)**
+
+*   **Objective:** Build the tools for creators to manage their content.
+*   **Key Results:**
+    *   Creators can manage their content through a dashboard.
+*   **Tasks:**
+    *   [ ] **Content Management Backend**: Implement API endpoints to list, edit, and delete content.
+    *   [ ] **Content Management Frontend**: Create a content dashboard.
+
+### **Phase 3: Analytics Dashboard (Week 3)**
+
+*   **Objective:** Build a dashboard to provide creators with insights into their content's performance.
+*   **Key Results:**
+    *   Creators can view detailed analytics for their content.
+*   **Tasks:**
+    *   [ ] **Analytics Backend**: Implement API endpoints to serve analytics data.
+    *   [ ] **Analytics Frontend**: Build an analytics dashboard with charts and graphs.
+
+### **Phase 4: Monetization (Week 4)**
+
+*   **Objective:** Implement features that allow creators to earn money from their content.
+*   **Key Results:**
+    *   Creators can set up their payment information and track their earnings.
+*   **Tasks:**
+    *   [ ] **Monetization Backend**: Integrate with a payment service to handle creator payouts.
+    *   [ ] **Monetization Frontend**: Create a UI for creators to manage their monetization settings.
+
+### **Phase 5: Finalization (Week 5)**
+
+*   **Objective:** Add final touches and prepare for deployment.
+*   **Key Results:**
+    *   The Creator Studio is ready for production.
+*   **Tasks:**
+    *   [ ] **User Feedback**: Implement a system for creators to view and respond to comments.
+    *   [ ] **Testing & Deployment**: Write comprehensive tests and prepare the service for production.
+
+---
+
+## 5. 🧪 Testing & Quality Strategy
+
+| Test Type | Tools | Coverage & Scenarios |
+|---|---|---|
+| **Unit Tests** | `Jest`, `Mocha` | >90% coverage of all backend and frontend components. |
+| **Integration Tests** | `Supertest`, `Cypress` | Test key creator flows, such as uploading content and viewing analytics. |
+| **Load Tests** | `k6` | Simulate a high volume of creators and content to test the scalability of the system. |
+
+---
+
+## 6. 🔭 The Observatory: Monitoring & Alerting
+
+### **Key Performance Indicators (KPIs)**
+*   **Technical Metrics:** `Page Load Time`, `API Latency`, `Upload Success Rate`.
+*   **Business Metrics:** `Creator Retention`, `Content Creation Rate`, `Creator Earnings`.
+
+### **Dashboards & Alerts**
+*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per creator and content type.
+*   **Alerting Rules (Prometheus):**
+    *   `HighPageLoadTime`: Trigger if the p99 page load time exceeds 1 second.
+    *   `HighApiLatency`: Trigger if the p99 API latency exceeds 500ms.
+    *   `HighUploadFailureRate`: Trigger if the upload failure rate exceeds 5%.
+
+---
+
+## 7. 📚 Learning & Knowledge Base
+
+*   **Key Concepts:** `Full-Stack Development`, `Large File Uploads`, `Data Visualization`, `High-Throughput Analytics`.
+*   **Resources:**
+    *   [React Documentation](https://reactjs.org/docs/getting-started.html)
+    *   [Node.js Documentation](https://nodejs.org/en/docs/)
+    *   [MongoDB Documentation](https://docs.mongodb.com/)
+
+---

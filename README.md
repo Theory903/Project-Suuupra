@@ -27,24 +27,27 @@
 
 | Domain | Service | Tech Stack | Database | Core Features | DSA Focus |
 |--------|---------|------------|----------|---------------|----------|
-| Gateway | API Gateway | Node.js + Express | Redis | JWT auth, rate limiting, routing | Token bucket, consistent hashing |
-| Identity | User Service | Java + Spring Boot | PostgreSQL | Authentication, RBAC, profiles | Trie (permissions), union-find (roles) |
-| Content | Course/Content | Node.js + Express | MongoDB + Elasticsearch | Content management, search, metadata | Inverted index, BM25 ranking |
-| Commerce | Order Service | Python + FastAPI | PostgreSQL + Redis | Order processing, CQRS, events | Saga pattern, event ordering |
-| Payments | Payment Gateway | Go + Gin | MySQL | UPI, cards, wallets, fraud detection | Double-entry ledger, idempotency |
-| Payments | Ledger Service | Java + Spring Batch | MySQL | Reconciliation, settlement | Merkle trees, windowed aggregation |
-| Media | Live Classes | WebRTC SFU + Node.js | Redis + S3 | Zoom-like classes, recording, chat | Jitter buffers, priority queues |
-| Media | VOD Service | Node.js + FFmpeg | S3 + CDN | Transcoding, adaptive bitrate, DRM | Dynamic programming (encoding) |
-| Media | Mass Live Stream | Go + FFmpeg | S3 + Multi-CDN | Hotstar-scale streaming, LL-HLS | Consistent hashing, segment scheduling |
-| Media | Creator Studio | Node.js + React | S3 + MongoDB | Uploads, analytics, monetization | Sharded counters, min-heap (top-K) |
-| Intelligence | Recommendation | Python + FastAPI | Neo4j + Vector DB | Collaborative filtering, graph ML | PageRank, ANN search, UCB bandits |
-| Intelligence | Search & Crawler | Go + Python | Elasticsearch + MinIO | Web crawling, content discovery | Priority queues, PageRank, SimHash |
-| Intelligence | LLM Tutor | Python + vLLM | Vector DB + S3 | RAG, Q&A, personalized tutoring | Vector similarity, query expansion |
-| Analytics | Analytics Service | Python + Flink | ClickHouse + Kafka | Real-time analytics, dashboards | Stream processing, HyperLogLog |
-| Analytics | Counter Service | Redis Cluster | Redis + ClickHouse | View counters, engagement stats | CRDT counters, reservoir sampling |
-| Logistics | Live Tracking | Go + Rust | PostGIS + Redis | GPS tracking, ETA, route optimization | Geohash, A* pathfinding, k-NN |
-| Communication | Notification | Python + Django | Redis + SES/FCM | Push, email, SMS, WebSocket | Priority queues, bloom filters |
-| Operations | Admin Service | Node.js + React | PostgreSQL | Content moderation, user management | DAG evaluation, Merkle logs |
+| Gateway | API Gateway | Node.js (Fastify), TypeScript | Redis | JWT auth, rate limiting, routing, service discovery, WebSocket proxy | Token bucket, consistent hashing, circuit breaker |
+| Identity | User Service | Java (Spring Boot, Spring Security) | PostgreSQL, Redis, Elasticsearch | OAuth2/OIDC, RBAC, MFA, session management, user lifecycle | Trie (permissions), graph (roles), secure hashing (Argon2) |
+| Content | Course/Content | Node.js + Express | MongoDB + Elasticsearch | Content management, versioning, approval workflows, search | Inverted index, BM25, SimHash |
+| Commerce | Order Service | Python + FastAPI | PostgreSQL + Redis | Order management, distributed transactions, inventory | Saga pattern, event sourcing, state machines |
+| Payments | Payment Gateway | Go + Gin | MySQL | UPI, card processing, fraud detection, tokenization, reconciliation | Double-entry ledger, idempotency, state machines |
+| Payments | Ledger Service | Java + Spring Batch | MySQL | Double-entry accounting, reconciliation, settlement, audit trails | Merkle trees, windowed aggregation, cryptographic hash chains |
+| Payments | UPI Core | Go (gRPC) | Redis | Transaction routing, security, service discovery, reconciliation | Consistent Hashing, CRDTs, distributed locking |
+| Payments | UPI PSP | Flutter | Secure Storage | P2P/P2M payments, QR codes, bank account linking, UPI PIN | - |
+| Payments | Bank Simulator | Node.js + Express | PostgreSQL | Mock bank account management, transaction processing | - |
+| Media | Live Classes | WebRTC SFU (mediasoup) + Node.js | Redis + S3 | Interactive classes, recording, chat, whiteboard, screen sharing | Jitter buffers, priority queues, consistent hashing |
+| Media | VOD Service | Node.js + FFmpeg | S3 + CDN | Transcoding, adaptive bitrate (HLS/DASH), DRM, watermarking | Dynamic programming (encoding), priority queues (transcoding) |
+| Media | Mass Live Stream | Go + FFmpeg | S3 + Multi-CDN | Hotstar-scale streaming, LL-HLS, real-time transcoding | Consistent hashing, segment scheduling, ring buffers |
+| Media | Creator Studio | Node.js + React | S3 + MongoDB | Content upload, management, analytics, monetization, user feedback | Sharded counters, min-heap (top-K), resumable uploads |
+| Intelligence | Recommendation | Python + FastAPI | Neo4j, Vector DB (Faiss) | Collaborative filtering, content-based, graph-based, real-time personalization | PageRank, ANN search, matrix factorization, multi-armed bandits |
+| Intelligence | Search & Crawler | Go + Python | Elasticsearch + MinIO | Web crawling, content indexing, PageRank, duplicate detection | Priority queues, PageRank, SimHash, inverted index |
+| Intelligence | LLM Tutor | Python + vLLM | Vector DB + S3 | RAG, conversational AI, personalized learning, safety filters, adaptive assessment | Vector similarity, query expansion, memory networks |
+| Analytics | Analytics Service | Python + Flink | ClickHouse + Kafka | Real-time data pipelines, stateful stream processing, dashboards | Stream processing, HyperLogLog, windowing |
+| Analytics | Counter Service | Go | Redis + ClickHouse | Real-time distributed counters, probabilistic counting, data persistence | CRDT counters, reservoir sampling, HyperLogLog |
+| Logistics | Live Tracking | Go + Rust | PostGIS + Redis | Real-time GPS tracking, ETA calculation, route optimization, geofencing | Geohash, A* pathfinding, k-NN, R-trees |
+| Communication | Notification | Python + Django | Redis + SES/FCM | Multi-channel delivery (push, email, SMS, WebSocket), priority queues, templates | Priority queues, bloom filters, exponential backoff |
+| Operations | Admin Service | Node.js + React | PostgreSQL | User management, content moderation, platform dashboard, audit trails | DAG evaluation, Merkle logs, RBAC |
 
 > Full service code lives in `/services/<service-name>`
 
@@ -55,11 +58,43 @@
 ```
 suuupra-edtech-platform/
 ├── services/              # All microservices
+│   ├── admin/             # Admin panel for platform operations
+│   ├── analytics/         # Real-time data analytics and business intelligence
+│   ├── api-gateway/       # Main API Gateway for client requests
+│   ├── commerce/          # Order management, CQRS, and event sourcing
+│   ├── content/           # Content management, search, and metadata
+│   ├── counters/          # High-performance counters for stats
+│   ├── creator-studio/    # Tools for content creators
+│   ├── gateway/           # (Legacy/Secondary Gateway)
+│   ├── identity/          # User authentication, RBAC, and profiles
+│   ├── ledger/            # Double-entry accounting ledger service
+│   ├── live-classes/      # Interactive live classes with WebRTC
+│   ├── live-tracking/     # Real-time GPS tracking and route optimization
+│   ├── llm-tutor/         # AI-powered tutoring with RAG
+│   ├── mass-live/         # Mass-scale live streaming (Hotstar-like)
+│   ├── notifications/     # Multi-channel notification delivery
+│   ├── payments/          # Payment gateway for UPI, cards, etc.
+│   ├── recommendations/   # ML-powered recommendation engine
+│   ├── search-crawler/    # Web crawler and search indexing
+│   └── vod/               # Video-on-demand processing and streaming
 ├── infrastructure/        # Terraform, K8s configs, observability
+│   ├── kubernetes/        # Kubernetes manifests and configurations
+│   ├── monitoring/        # Grafana, Jaeger, Prometheus setup
+│   ├── scripts/           # Infrastructure automation scripts
+│   └── terraform/         # Terraform code for IaC
 ├── shared/                # Proto files, shared libs, event schemas
+│   ├── events/            # Shared event schemas (e.g., Avro, Protobuf)
+│   ├── libs/              # Shared libraries for cross-service use
+│   └── proto/             # gRPC protobuf definitions
 ├── tools/                 # Scripts, testing, generators
+│   ├── generators/        # Service/code generation tools
+│   ├── scripts/           # General utility and automation scripts
+│   └── testing/           # Load testing (k6), E2E tests
 ├── docs/                  # Architecture, API specs, runbooks
-├── docker-compose.yml     # Local orchestration
+│   ├── architecture/      # High-level design documents
+│   ├── apis/              # OpenAPI/Swagger specifications
+│   └── runbooks/          # Operational guides and procedures
+├── docker-compose.yml     # Local orchestration for development
 └── README.md              # 📘 You're here
 ```
 
