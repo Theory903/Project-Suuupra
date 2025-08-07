@@ -36,11 +36,13 @@ Our architecture is layered to separate concerns and enhance security and scalab
 
 **Communication Patterns**:
 - **Synchronous**:
+
   - **REST**: The universal language for external APIs. It's well-understood, stateless, and cacheable.
     - *Alternative*: GraphQL could be used for clients that need flexible data fetching, but adds complexity.
   - **gRPC**: For internal, high-performance, low-latency communication between services. Its use of Protocol Buffers ensures strongly-typed contracts.
     - *Alternative*: REST is simpler but has higher overhead due to its text-based nature (JSON).
 - **Asynchronous**:
+
   - **Kafka**: The backbone of our event-driven architecture. It provides a durable, ordered log of events, enabling event sourcing, stream processing, and service decoupling.
     - *Alternative*: RabbitMQ is excellent for traditional message queuing but Kafka's log-based approach is better for event sourcing and replayability at massive scale.
 
@@ -96,6 +98,7 @@ Our goal is to build a system that can scale to handle billions of users.
 **Scaling Strategies**:
 - **Horizontal Scaling**: All services are designed to be stateless where possible, allowing us to add more instances to handle increased load. We use Kubernetes' **Horizontal Pod Autoscaler (HPA)** and **Vertical Pod Autoscaler (VPA)**.
 - **Database Scaling**:
+
   - **Read Replicas**: To scale read-heavy workloads.
   - **Sharding**: To scale write-heavy workloads by partitioning data across multiple database instances.
 - **Caching**: A multi-level caching strategy (in-memory, distributed, CDN) is used to reduce latency and database load.

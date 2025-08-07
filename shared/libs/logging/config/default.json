@@ -1,0 +1,351 @@
+{
+  "logging": {
+    "global": {
+      "enabled": true,
+      "level": "INFO",
+      "format": "json",
+      "maskPII": true,
+      "async": true,
+      "bufferSize": 1000,
+      "flushInterval": 5000
+    },
+    "transports": {
+      "console": {
+        "enabled": true,
+        "level": "INFO",
+        "format": "pretty",
+        "colorize": true
+      },
+      "file": {
+        "enabled": false,
+        "level": "INFO",
+        "path": "./logs/app.log",
+        "maxSize": "100MB",
+        "maxFiles": 10,
+        "compress": true,
+        "format": "json"
+      },
+      "http": {
+        "enabled": false,
+        "level": "WARN",
+        "endpoint": "https://logs.example.com/api/v1/logs",
+        "timeout": 5000,
+        "retries": 3,
+        "headers": {
+          "Authorization": "Bearer ${LOG_API_TOKEN}",
+          "Content-Type": "application/json"
+        }
+      },
+      "elasticsearch": {
+        "enabled": false,
+        "level": "INFO",
+        "host": "localhost:9200",
+        "index": "suuupra-logs",
+        "type": "_doc",
+        "auth": {
+          "username": "${ELASTIC_USERNAME}",
+          "password": "${ELASTIC_PASSWORD}"
+        }
+      },
+      "splunk": {
+        "enabled": false,
+        "level": "INFO",
+        "host": "localhost:8088",
+        "token": "${SPLUNK_HEC_TOKEN}",
+        "index": "suuupra",
+        "source": "nodejs"
+      },
+      "datadog": {
+        "enabled": false,
+        "level": "INFO",
+        "apiKey": "${DATADOG_API_KEY}",
+        "service": "suuupra-platform",
+        "host": "localhost",
+        "tags": ["env:production", "version:1.0.0"]
+      },
+      "honeycomb": {
+        "enabled": false,
+        "level": "INFO",
+        "apiKey": "${HONEYCOMB_API_KEY}",
+        "dataset": "suuupra-logs",
+        "sampleRate": 1
+      }
+    },
+    "sampling": {
+      "enabled": false,
+      "rate": 1.0,
+      "strategy": "random",
+      "rules": [
+        {
+          "service": "api-gateway",
+          "level": "DEBUG",
+          "rate": 0.1
+        },
+        {
+          "service": "payment-service",
+          "level": "INFO",
+          "rate": 1.0
+        }
+      ]
+    },
+    "security": {
+      "maskPII": true,
+      "encryptLogs": false,
+      "encryptionKey": "${LOG_ENCRYPTION_KEY}",
+      "piiFields": [
+        "password",
+        "token",
+        "secret",
+        "key",
+        "ssn",
+        "credit_card",
+        "creditcard",
+        "email",
+        "phone",
+        "address"
+      ],
+      "piiPatterns": [
+        {
+          "name": "email",
+          "pattern": "\\b[\\w\\.-]+@[\\w\\.-]+\\.\\w+\\b",
+          "replacement": "[EMAIL]"
+        },
+        {
+          "name": "credit_card",
+          "pattern": "\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b",
+          "replacement": "[CARD]"
+        },
+        {
+          "name": "ssn",
+          "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+          "replacement": "[SSN]"
+        },
+        {
+          "name": "phone",
+          "pattern": "\\b\\d{3}-\\d{3}-\\d{4}\\b",
+          "replacement": "[PHONE]"
+        }
+      ]
+    },
+    "observability": {
+      "openTelemetry": {
+        "enabled": true,
+        "tracing": {
+          "enabled": true,
+          "endpoint": "${OTEL_EXPORTER_OTLP_ENDPOINT}",
+          "headers": {
+            "Authorization": "Bearer ${OTEL_API_TOKEN}"
+          }
+        },
+        "metrics": {
+          "enabled": true,
+          "prometheus": {
+            "enabled": true,
+            "port": 9090,
+            "endpoint": "/metrics"
+          },
+          "otlp": {
+            "enabled": false,
+            "endpoint": "${OTEL_METRICS_ENDPOINT}",
+            "headers": {
+              "Authorization": "Bearer ${OTEL_API_TOKEN}"
+            }
+          }
+        }
+      },
+      "wideEvents": {
+        "enabled": true,
+        "maxDimensions": 1000,
+        "includeStackTrace": false,
+        "includeEnvironmentInfo": true,
+        "includePerformanceMetrics": true
+      }
+    },
+    "context": {
+      "propagation": {
+        "enabled": true,
+        "headers": [
+          "x-request-id",
+          "x-trace-id",
+          "x-user-id",
+          "x-session-id",
+          "x-tenant-id"
+        ]
+      },
+      "correlation": {
+        "enabled": true,
+        "generateRequestId": true,
+        "generateTraceId": true,
+        "requestIdHeader": "x-request-id",
+        "traceIdHeader": "x-trace-id"
+      }
+    },
+    "performance": {
+      "timers": {
+        "enabled": true,
+        "autoLog": true,
+        "threshold": 1000
+      },
+      "metrics": {
+        "enabled": true,
+        "collectSystemMetrics": true,
+        "collectProcessMetrics": true,
+        "interval": 30000
+      }
+    },
+    "environments": {
+      "development": {
+        "level": "DEBUG",
+        "format": "pretty",
+        "console": {
+          "enabled": true,
+          "colorize": true
+        },
+        "file": {
+          "enabled": false
+        },
+        "security": {
+          "maskPII": false
+        }
+      },
+      "staging": {
+        "level": "INFO",
+        "format": "json",
+        "console": {
+          "enabled": true,
+          "colorize": false
+        },
+        "file": {
+          "enabled": true
+        },
+        "security": {
+          "maskPII": true
+        }
+      },
+      "production": {
+        "level": "WARN",
+        "format": "json",
+        "console": {
+          "enabled": false
+        },
+        "file": {
+          "enabled": true
+        },
+        "http": {
+          "enabled": true
+        },
+        "security": {
+          "maskPII": true,
+          "encryptLogs": true
+        },
+        "sampling": {
+          "enabled": true,
+          "rate": 0.1
+        }
+      }
+    },
+    "services": {
+      "api-gateway": {
+        "level": "INFO",
+        "component": "gateway",
+        "specialHandling": {
+          "rateLimitLogs": {
+            "enabled": true,
+            "level": "WARN",
+            "sampling": 0.01
+          },
+          "authLogs": {
+            "enabled": true,
+            "level": "INFO",
+            "maskTokens": true
+          }
+        }
+      },
+      "payment-service": {
+        "level": "INFO",
+        "component": "payments",
+        "specialHandling": {
+          "transactionLogs": {
+            "enabled": true,
+            "level": "INFO",
+            "auditTrail": true,
+            "encryption": true
+          }
+        }
+      },
+      "identity-service": {
+        "level": "INFO",
+        "component": "identity",
+        "specialHandling": {
+          "authEvents": {
+            "enabled": true,
+            "level": "INFO",
+            "securityAudit": true
+          }
+        }
+      },
+      "live-tracking": {
+        "level": "DEBUG",
+        "component": "tracking",
+        "specialHandling": {
+          "locationLogs": {
+            "enabled": true,
+            "level": "DEBUG",
+            "sampling": 0.1,
+            "geoPrivacy": true
+          }
+        }
+      }
+    },
+    "alerting": {
+      "enabled": true,
+      "rules": [
+        {
+          "name": "high_error_rate",
+          "condition": "error_rate > 0.05",
+          "window": "5m",
+          "severity": "critical",
+          "channels": ["slack", "email"]
+        },
+        {
+          "name": "high_latency",
+          "condition": "p99_latency > 2000",
+          "window": "10m",
+          "severity": "warning",
+          "channels": ["slack"]
+        },
+        {
+          "name": "security_event",
+          "condition": "security_events > 10",
+          "window": "1m",
+          "severity": "high",
+          "channels": ["slack", "email", "pagerduty"]
+        }
+      ]
+    },
+    "retention": {
+      "policies": [
+        {
+          "level": "DEBUG",
+          "retention": "7d"
+        },
+        {
+          "level": "INFO",
+          "retention": "30d"
+        },
+        {
+          "level": "WARN",
+          "retention": "90d"
+        },
+        {
+          "level": "ERROR",
+          "retention": "1y"
+        },
+        {
+          "level": "FATAL",
+          "retention": "3y"
+        }
+      ]
+    }
+  }
+}

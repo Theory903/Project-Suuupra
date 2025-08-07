@@ -6,10 +6,10 @@ This document details our strategy for managing infrastructure using Terraform. 
 
 ### 1.1. Learning Objectives
 
--   Understand how to structure a large Terraform project.
--   Learn about Terraform modules for reusability.
--   Implement remote state management and locking.
--   Design a promotion workflow for moving changes from staging to production.
+- Understand how to structure a large Terraform project.
+- Learn about Terraform modules for reusability.
+- Implement remote state management and locking.
+- Design a promotion workflow for moving changes from staging to production.
 
 ---
 
@@ -17,7 +17,7 @@ This document details our strategy for managing infrastructure using Terraform. 
 
 Our Terraform project is structured to support multiple environments and services.
 
-```
+```text
 terraform/
 ├── environments/
 │   ├── dev/
@@ -32,11 +32,11 @@ terraform/
 │   └── ...
 └── global/
     └── s3_backend.tf
-```
+```text
 
--   **`environments`**: Contains the root configurations for each environment (dev, staging, production).
--   **`modules`**: Contains reusable Terraform modules for creating our infrastructure components (VPC, EKS cluster, etc.).
--   **`global`**: Contains global resources like the S3 bucket for our Terraform state.
+- **`environments`**: Contains the root configurations for each environment (dev, staging, production).
+- **`modules`**: Contains reusable Terraform modules for creating our infrastructure components (VPC, EKS cluster, etc.).
+- **`global`**: Contains global resources like the S3 bucket for our Terraform state.
 
 ---
 
@@ -45,9 +45,9 @@ terraform/
 We use an **S3 backend** for storing our Terraform state.
 
 **Why S3?**
--   **Remote State**: It allows multiple team members to work on the same infrastructure.
--   **State Locking**: We use DynamoDB for state locking to prevent concurrent modifications to our infrastructure.
--   **Versioning**: S3's versioning feature provides a history of our state files.
+- **Remote State**: It allows multiple team members to work on the same infrastructure.
+- **State Locking**: We use DynamoDB for state locking to prevent concurrent modifications to our infrastructure.
+- **Versioning**: S3's versioning feature provides a history of our state files.
 
 **`global/s3_backend.tf`**:
 ```terraform
@@ -60,7 +60,7 @@ terraform {
     encrypt        = true
   }
 }
-```
+```text
 
 ---
 
@@ -81,14 +81,16 @@ We create reusable Terraform modules for our infrastructure components to ensure
 **Example VPC Module**:
 ```terraform
 # modules/vpc/main.tf
+
 resource "aws_vpc" "main" {
   cidr_block = var.cidr_block
   # ...
 }
 
 # environments/staging/main.tf
+
 module "vpc" {
   source     = "../../modules/vpc"
   cidr_block = "10.0.0.0/16"
 }
-```
+```text

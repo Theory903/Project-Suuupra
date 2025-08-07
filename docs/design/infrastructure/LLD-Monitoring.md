@@ -6,9 +6,9 @@ This document details our monitoring and observability stack. Our goal is to hav
 
 ### 1.1. Learning Objectives
 
--   Understand the three pillars of observability: metrics, logs, and traces.
--   Learn how to set up and configure Prometheus, Grafana, the ELK Stack, and Jaeger.
--   Design effective monitoring dashboards and alerting rules.
+- Understand the three pillars of observability: metrics, logs, and traces.
+- Learn how to set up and configure Prometheus, Grafana, the ELK Stack, and Jaeger.
+- Design effective monitoring dashboards and alerting rules.
 
 ---
 
@@ -18,18 +18,18 @@ We use **Prometheus** for collecting time-series metrics and **Grafana** for vis
 
 ### 2.1. Prometheus Configuration
 
--   **ServiceMonitors**: We use the Prometheus Operator to automatically discover and scrape metrics from our services using `ServiceMonitor` custom resources.
--   **Alerting**: We define our alerting rules in `PrometheusRule` custom resources and use the **Alertmanager** to route alerts to PagerDuty and Slack.
+- **ServiceMonitors**: We use the Prometheus Operator to automatically discover and scrape metrics from our services using `ServiceMonitor` custom resources.
+- **Alerting**: We define our alerting rules in `PrometheusRule` custom resources and use the **Alertmanager** to route alerts to PagerDuty and Slack.
 
 ### 2.2. Grafana Dashboards
 
 We create Grafana dashboards for each of our services, as well as high-level dashboards for our key business metrics.
 
 **Example Dashboard Panels**:
--   **Latency**: p99, p95, and p50 latency for each API endpoint.
--   **Throughput**: Requests per second for each service.
--   **Error Rate**: Percentage of failed requests.
--   **Saturation**: CPU, memory, and disk utilization.
+- **Latency**: p99, p95, and p50 latency for each API endpoint.
+- **Throughput**: Requests per second for each service.
+- **Error Rate**: Percentage of failed requests.
+- **Saturation**: CPU, memory, and disk utilization.
 
 ---
 
@@ -59,11 +59,11 @@ We use **Jaeger** for distributed tracing.
 All our services are instrumented with **OpenTelemetry** to generate traces.
 
 **Why OpenTelemetry?**
--   It is an open standard, vendor-neutral way to instrument our applications.
--   It provides libraries for all the languages we use.
+- It is an open standard, vendor-neutral way to instrument our applications.
+- It provides libraries for all the languages we use.
 
 ### 4.2. Jaeger Architecture
 
--   **Jaeger Agent**: Runs as a sidecar to our application pods and receives spans from the OpenTelemetry SDK.
--   **Jaeger Collector**: Receives spans from the agents and stores them in Elasticsearch.
--   **Jaeger Query**: Provides a UI for querying and visualizing traces.
+- **Jaeger Agent**: Runs as a sidecar to our application pods and receives spans from the OpenTelemetry SDK.
+- **Jaeger Collector**: Receives spans from the agents and stores them in Elasticsearch.
+- **Jaeger Query**: Provides a UI for querying and visualizing traces.

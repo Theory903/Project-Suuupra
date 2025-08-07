@@ -48,7 +48,7 @@ graph TD
     A[Payment Service] --> B(Ledger Service);
     B --> C{MySQL Database};
     B --> D[Spring Batch];
-```
+```text
 
 ### **3.2. Tech Stack Deep Dive**
 
@@ -110,7 +110,7 @@ CREATE TABLE journal_entries (
     FOREIGN KEY (transaction_id) REFERENCES transactions(id),
     FOREIGN KEY (account_id) REFERENCES chart_of_accounts(id)
 );
-```
+```text
 
 ---
 

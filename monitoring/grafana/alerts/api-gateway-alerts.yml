@@ -1,0 +1,311 @@
+groups:
+  - name: api-gateway.rules
+    interval: 30s
+    rules:
+      # High Latency Alert
+      - alert: HighGatewayLatency
+        expr: histogram_quantile(0.99, sum(rate(gateway_request_duration_seconds_bucket[5m])) by (le)) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway P99 latency is high"
+          description: "P99 latency is {{ $value }}s, which exceeds the 150ms threshold"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/high-latency"
+          dashboard_url: "https://grafana.company.com/d/api-gateway"
+
+      # Critical Latency Alert
+      - alert: CriticalGatewayLatency
+        expr: histogram_quantile(0.99, sum(rate(gateway_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway P99 latency is critically high"
+          description: "P99 latency is {{ $value }}s, which is critically high"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/critical-latency"
+
+      # High Error Rate
+      - alert: HighGatewayErrorRate
+        expr: (sum(rate(gateway_requests_total{status_code=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))) * 100 > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway error rate is high"
+          description: "5xx error rate is {{ $value }}%, which exceeds 1% threshold"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/high-error-rate"
+
+      # Critical Error Rate
+      - alert: CriticalGatewayErrorRate
+        expr: (sum(rate(gateway_requests_total{status_code=~"5.."}[5m])) / sum(rate(gateway_requests_total[5m]))) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway error rate is critically high"
+          description: "5xx error rate is {{ $value }}%, which is critically high"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/critical-error-rate"
+
+      # Circuit Breaker Open
+      - alert: CircuitBreakerOpen
+        expr: gateway_circuit_breaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Circuit breaker is open for {{ $labels.service }}"
+          description: "Circuit breaker for service {{ $labels.service }} has been open for more than 1 minute"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/circuit-breaker-open"
+
+      # Persistent Circuit Breaker Open
+      - alert: PersistentCircuitBreakerOpen
+        expr: gateway_circuit_breaker_state{state="open"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Circuit breaker persistently open for {{ $labels.service }}"
+          description: "Circuit breaker for service {{ $labels.service }} has been open for more than 5 minutes"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/persistent-circuit-breaker"
+
+      # Rate Limiting Saturation
+      - alert: RateLimitSaturation
+        expr: (sum(rate(gateway_rate_limit_exceeded_total[5m])) / sum(rate(gateway_rate_limit_hits_total[5m]))) * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Rate limiting saturation is high"
+          description: "{{ $value }}% of rate limit checks are being exceeded"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/rate-limit-saturation"
+
+      # High Queue Depth for AI Services
+      - alert: HighAIQueueDepth
+        expr: gateway_ai_queue_depth > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "High queue depth for AI service {{ $labels.service }}"
+          description: "Queue depth for {{ $labels.service }} is {{ $value }}, indicating potential bottleneck"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/high-queue-depth"
+
+      # Critical Queue Depth for AI Services
+      - alert: CriticalAIQueueDepth
+        expr: gateway_ai_queue_depth > 500
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Critical queue depth for AI service {{ $labels.service }}"
+          description: "Queue depth for {{ $labels.service }} is {{ $value }}, service may be overwhelmed"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/critical-queue-depth"
+
+      # High Memory Usage
+      - alert: HighGatewayMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024 / 1024) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway memory usage is high"
+          description: "Memory usage is {{ $value }}GB on {{ $labels.instance }}"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/high-memory"
+
+      # Gateway Instance Down
+      - alert: GatewayInstanceDown
+        expr: up{job="api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway instance is down"
+          description: "Instance {{ $labels.instance }} has been down for more than 1 minute"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/instance-down"
+
+      # Low Request Rate (Potential Issue)
+      - alert: LowGatewayRequestRate
+        expr: sum(rate(gateway_requests_total[5m])) < 1
+        for: 10m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "API Gateway request rate is unusually low"
+          description: "Request rate is {{ $value }} req/s, which may indicate an issue"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/low-request-rate"
+
+      # JWT Verification Failures
+      - alert: HighJWTVerificationFailures
+        expr: rate(gateway_jwt_verification_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "High JWT verification failure rate"
+          description: "JWT verification failures are {{ $value }} per second"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/jwt-failures"
+
+      # API Key Authentication Failures
+      - alert: HighAPIKeyFailures
+        expr: rate(gateway_api_key_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "High API key authentication failure rate"
+          description: "API key failures are {{ $value }} per second"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/api-key-failures"
+
+      # Service Discovery Issues
+      - alert: ServiceDiscoveryFailures
+        expr: rate(gateway_service_discovery_errors_total[5m]) > 1
+        for: 3m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Service discovery errors detected"
+          description: "Service discovery errors are {{ $value }} per second"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/service-discovery-errors"
+
+      # Unhealthy Service Instances
+      - alert: UnhealthyServiceInstances
+        expr: gateway_service_instances{health="unhealthy"} > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "Unhealthy service instances detected"
+          description: "{{ $value }} unhealthy instances for service {{ $labels.service }}"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/unhealthy-instances"
+
+      # WAF Blocked Requests Spike
+      - alert: WAFBlockedRequestsSpike
+        expr: rate(gateway_waf_blocked_total[5m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: security
+        annotations:
+          summary: "High rate of WAF blocked requests"
+          description: "WAF is blocking {{ $value }} requests per second"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/waf-spike"
+
+      # Streaming Connection Failures
+      - alert: StreamingConnectionFailures
+        expr: rate(gateway_streaming_connection_failures_total[5m]) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "High streaming connection failure rate"
+          description: "Streaming connections are failing at {{ $value }} per second"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/streaming-failures"
+
+      # GitOps Sync Failures
+      - alert: GitOpsSyncFailures
+        expr: rate(gateway_gitops_sync_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          team: platform
+        annotations:
+          summary: "GitOps configuration sync failures"
+          description: "GitOps sync is failing at {{ $value }} per second"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/gitops-sync-failures"
+
+      # Admin API Unauthorized Access Attempts
+      - alert: AdminAPIUnauthorizedAccess
+        expr: rate(gateway_admin_unauthorized_total[5m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: security
+        annotations:
+          summary: "Unauthorized access attempts to Admin API"
+          description: "{{ $value }} unauthorized access attempts per second to Admin API"
+          runbook_url: "https://docs.company.com/runbooks/api-gateway/admin-unauthorized"
+
+  - name: api-gateway.slo
+    interval: 30s
+    rules:
+      # SLO: 99.9% Availability
+      - record: gateway:slo_availability_1h
+        expr: |
+          (
+            sum(rate(gateway_requests_total{status_code!~"5.."}[1h])) /
+            sum(rate(gateway_requests_total[1h]))
+          )
+
+      # SLO: P99 Latency < 150ms
+      - record: gateway:slo_latency_p99_1h
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(gateway_request_duration_seconds_bucket[1h])) by (le)
+          )
+
+      # SLO Burn Rate Alerts
+      - alert: SLOAvailabilityBurnRateFast
+        expr: |
+          (
+            gateway:slo_availability_1h < 0.999 and
+            gateway:slo_availability_1h < bool 0.999
+          )
+        for: 2m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+          slo: availability
+        annotations:
+          summary: "SLO availability burn rate is too fast"
+          description: "Availability SLO is burning too fast: {{ $value }}"
+
+      - alert: SLOLatencyBurnRateFast
+        expr: gateway:slo_latency_p99_1h > 0.15
+        for: 2m
+        labels:
+          severity: critical
+          service: api-gateway
+          team: platform
+          slo: latency
+        annotations:
+          summary: "SLO latency burn rate is too fast"
+          description: "Latency SLO is burning too fast: {{ $value }}s"

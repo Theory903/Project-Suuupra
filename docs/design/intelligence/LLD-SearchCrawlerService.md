@@ -6,9 +6,9 @@ This document provides the low-level design for the **Search & Crawler Service**
 
 ### 1.1. Learning Objectives
 
--   Build a distributed web crawler.
--   Implement the PageRank algorithm.
--   Use Elasticsearch for indexing and searching.
+- Build a distributed web crawler.
+- Implement the PageRank algorithm.
+- Use Elasticsearch for indexing and searching.
 
 ---
 
@@ -22,14 +22,14 @@ graph TD
     D --> E[Parser]
     E --> F[Indexer]
     F --> G[Elasticsearch]
-```
+```text
 
--   **Crawler**: The main component that orchestrates the crawling process.
--   **URL Frontier**: A priority queue of URLs to be crawled.
--   **Politeness**: A component that ensures we are crawling responsibly (respecting `robots.txt`, etc.).
--   **Downloader**: Downloads the content of a URL.
--   **Parser**: Parses the HTML and extracts links and content.
--   **Indexer**: Indexes the content in Elasticsearch.
+- **Crawler**: The main component that orchestrates the crawling process.
+- **URL Frontier**: A priority queue of URLs to be crawled.
+- **Politeness**: A component that ensures we are crawling responsibly (respecting `robots.txt`, etc.).
+- **Downloader**: Downloads the content of a URL.
+- **Parser**: Parses the HTML and extracts links and content.
+- **Indexer**: Indexes the content in Elasticsearch.
 
 ---
 
@@ -44,7 +44,7 @@ We use the **PageRank** algorithm to rank the importance of web pages. This is a
 We use **Elasticsearch** to index our crawled content. Our index is designed for fast and relevant search.
 
 **Key Features**:
--   **Full-text search**
--   **Faceted search**
--   **Auto-complete**
--   **Highlighting**
+- **Full-text search**
+- **Faceted search**
+- **Auto-complete**
+- **Highlighting**

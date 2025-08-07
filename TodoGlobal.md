@@ -13,11 +13,11 @@ This document serves as the master roadmap for the development of the Suuupra pl
 
 This project is designed to be a learning experience. By the end of this project, you will have gained mastery over:
 
--   **Distributed Systems**: Designing, building, and deploying a complex microservices architecture.
--   **Event-Driven Architecture**: Building a system that is resilient, scalable, and loosely coupled.
--   **Financial Systems**: Understanding the principles of building a secure and reliable payment system.
--   **Media Infrastructure**: Building a high-performance, low-latency video streaming platform.
--   **AI & Machine Learning**: Applying AI and ML to solve real-world problems like fraud detection and content recommendations.
+-  **Distributed Systems**: Designing, building, and deploying a complex microservices architecture.
+-  **Event-Driven Architecture**: Building a system that is resilient, scalable, and loosely coupled.
+-  **Financial Systems**: Understanding the principles of building a secure and reliable payment system.
+-  **Media Infrastructure**: Building a high-performance, low-latency video streaming platform.
+-  **AI & Machine Learning**: Applying AI and ML to solve real-world problems like fraud detection and content recommendations.
 
 ---
 
@@ -52,7 +52,7 @@ graph TD
 
     A --> B
     B --> C & D & E & F & H & I & J & K & L & M & N & O & P & Q & R & S
-```
+```text
 
 ---
 
@@ -64,8 +64,8 @@ We will follow a phased approach to building the Suuupra platform. Each phase is
 
 **Goal**: To lay the foundation for the entire platform by building the core infrastructure and services.
 
--   **Key Services**: `API Gateway`, `Identity`, `Content`
--   **Detailed TODOs**:
+-  **Key Services**: `API Gateway`, `Identity`, `Content`
+-  **Detailed TODOs**:
     -   [API Gateway](./services/api-gateway/TODO.md)
     -   [Identity Service](./services/identity/TODO.md)
     -   [Content Service](./services/content/TODO.md)
@@ -74,8 +74,8 @@ We will follow a phased approach to building the Suuupra platform. Each phase is
 
 **Goal**: To build the e-commerce and payment processing capabilities of the platform.
 
--   **Key Services**: `Commerce`, `Payments`, `Ledger`
--   **Detailed TODOs**:
+-  **Key Services**: `Commerce`, `Payments`, `Ledger`
+-  **Detailed TODOs**:
     -   [Commerce Service](./services/commerce/TODO.md)
     -   [Payment Gateway](./services/payments/TODO.md)
     -   [Ledger Service](./services/ledger/TODO.md)
@@ -84,8 +84,8 @@ We will follow a phased approach to building the Suuupra platform. Each phase is
 
 **Goal**: To build the live streaming and video-on-demand capabilities of the platform.
 
--   **Key Services**: `Live Classes`, `VOD`, `Mass Live`, `Creator Studio`
--   **Detailed TODOs**:
+-  **Key Services**: `Live Classes`, `VOD`, `Mass Live`, `Creator Studio`
+-  **Detailed TODOs**:
     -   [Live Classes Service](./services/live-classes/TODO.md)
     -   [VOD Service](./services/vod/TODO.md)
     -   [Mass Live Service](./services/mass-live/TODO.md)
@@ -95,8 +95,8 @@ We will follow a phased approach to building the Suuupra platform. Each phase is
 
 **Goal**: To build the AI-powered features of the platform.
 
--   **Key Services**: `Search & Crawler`, `Recommendations`, `LLM Tutor`, `Analytics`
--   **Detailed TODOs**:
+-  **Key Services**: `Search & Crawler`, `Recommendations`, `LLM Tutor`, `Analytics`
+-  **Detailed TODOs**:
     -   [Search & Crawler Service](./services/search-crawler/TODO.md)
     -   [Recommendation Service](./services/recommendations/TODO.md)
     -   [LLM Tutor Service](./services/llm-tutor/TODO.md)
@@ -106,8 +106,8 @@ We will follow a phased approach to building the Suuupra platform. Each phase is
 
 **Goal**: To build the supporting services that are used by all other services.
 
--   **Key Services**: `Counters`, `Live Tracking`, `Notifications`, `Admin`
--   **Detailed TODOs**:
+-  **Key Services**: `Counters`, `Live Tracking`, `Notifications`, `Admin`
+-  **Detailed TODOs**:
     -   [Counter Service](./services/counters/TODO.md)
     -   [Live Tracking Service](./services/live-tracking/TODO.md)
     -   [Notifications Service](./services/notifications/TODO.md)

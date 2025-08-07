@@ -6,9 +6,9 @@ This document provides the low-level design for the **Commerce Service**. This s
 
 ### 1.1. Learning Objectives
 
--   Implement the CQRS and Event Sourcing patterns.
--   Use the Saga pattern for distributed transactions.
--   Design and implement a state machine for order fulfillment.
+- Implement the CQRS and Event Sourcing patterns.
+- Use the Saga pattern for distributed transactions.
+- Design and implement a state machine for order fulfillment.
 
 ---
 
@@ -16,8 +16,8 @@ This document provides the low-level design for the **Commerce Service**. This s
 
 We use the **CQRS (Command Query Responsibility Segregation)** pattern to separate our write and read operations.
 
--   **Command Side**: Handles commands like `CreateOrder`, `AddItemToCart`, etc. This side is optimized for consistency.
--   **Query Side**: Handles queries for reading data. This side is optimized for performance with denormalized read models.
+- **Command Side**: Handles commands like `CreateOrder`, `AddItemToCart`, etc. This side is optimized for consistency.
+- **Query Side**: Handles queries for reading data. This side is optimized for performance with denormalized read models.
 
 We use **Event Sourcing** to persist the state of our aggregates. Instead of storing the current state, we store a sequence of events.
 
@@ -47,7 +47,7 @@ CREATE TABLE order_views (
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 );
-```
+```text
 
 ---
 

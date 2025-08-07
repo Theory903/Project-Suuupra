@@ -43,7 +43,7 @@ This directory contains shared libraries, Protocol Buffer definitions, and other
 
 ## 3. 📁 Directory Structure
 
--   `events/`: Contains event-specific documentation and schemas.
--   `libs/`: Contains the source code for our shared libraries, organized by language.
--   `proto/`: Contains all our Protocol Buffer definitions.
--   `templates/`: Contains templates for creating new services.
+-  `events/`: Contains event-specific documentation and schemas.
+-  `libs/`: Contains the source code for our shared libraries, organized by language.
+-  `proto/`: Contains all our Protocol Buffer definitions.
+-  `templates/`: Contains templates for creating new services.

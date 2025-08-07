@@ -50,7 +50,7 @@ graph TD
     B --> E(Inventory Service);
     B --> F(Payment Service);
     B --> G(Notification Service);
-```
+```text
 
 ### **3.2. Tech Stack Deep Dive**
 
@@ -95,7 +95,7 @@ CREATE TABLE saga_instances (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+```text
 
 ---
 

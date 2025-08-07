@@ -1,0 +1,13 @@
+groups:
+  - name: gateway.rules
+    rules:
+      - alert: HighGatewayErrorRate
+        expr: sum(rate(http_server_errors_total[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "High 5xx rate detected on API Gateway"
+          description: "5xx error rate > 5% over 5 minutes. Investigate upstream health/circuit breakers."
+
+

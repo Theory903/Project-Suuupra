@@ -45,7 +45,7 @@ Each service has standardized scripts (currently empty but should be implemented
 ./test.sh       # Run all tests
 ./deploy.sh     # Deploy to environments
 ./migrate.sh    # Run database migrations (for data services)
-```
+```text
 
 **Testing:**
 - Unit tests: Service-specific frameworks (Jest, Pytest, JUnit, Go test)
@@ -61,7 +61,7 @@ terraform apply -var-file="environments/dev.tfvars"
 
 # Kubernetes deployments
 kubectl apply -k infrastructure/kubernetes/overlays/dev
-```
+```text
 
 ## Architecture Overview
 
@@ -109,7 +109,7 @@ kubectl apply -k infrastructure/kubernetes/overlays/dev
 
 ## Key Directories
 
-```
+```text
 services/           # 19 microservices with domain separation
 ├── api-gateway/    # Central routing and authentication
 ├── identity/       # User management and auth (Java/Spring)
@@ -128,7 +128,7 @@ shared/            # Cross-service contracts and libraries
 ├── libs/          # Language-specific shared code
 ├── proto/         # gRPC protocol definitions
 └── templates/     # Service scaffolding templates
-```
+```text
 
 ## Development Workflow
 

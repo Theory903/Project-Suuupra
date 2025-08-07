@@ -6,9 +6,9 @@ This document provides the low-level design for the **Recommendation Service**. 
 
 ### 1.1. Learning Objectives
 
--   Implement collaborative filtering and content-based filtering.
--   Use a graph database (Neo4j) for recommendations.
--   Use a vector database for similarity search.
+- Implement collaborative filtering and content-based filtering.
+- Use a graph database (Neo4j) for recommendations.
+- Use a vector database for similarity search.
 
 ---
 
@@ -16,9 +16,9 @@ This document provides the low-level design for the **Recommendation Service**. 
 
 Our recommendation engine uses a hybrid approach, combining several techniques:
 
--   **Collaborative Filtering**: We use a **graph-based approach** with Neo4j to find users with similar tastes.
--   **Content-Based Filtering**: We use a **vector database** to find content that is similar to content a user has liked in the past.
--   **Real-time Personalization**: We use a real-time feature store to update user profiles and recommendations in real-time.
+- **Collaborative Filtering**: We use a **graph-based approach** with Neo4j to find users with similar tastes.
+- **Content-Based Filtering**: We use a **vector database** to find content that is similar to content a user has liked in the past.
+- **Real-time Personalization**: We use a real-time feature store to update user profiles and recommendations in real-time.
 
 ---
 
@@ -30,7 +30,7 @@ Our recommendation engine uses a hybrid approach, combining several techniques:
 // User-Item-Interaction Graph
 (:User {id: 1})-[:LIKED]->(:Content {id: 101, title: "..."})
 (:User {id: 1})-[:VIEWED]->(:Content {id: 102, title: "..."})
-```
+```text
 
 ### 3.2. Vector Database
 

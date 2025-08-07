@@ -6,9 +6,9 @@ This document provides the low-level design for the **Identity Service**. This s
 
 ### 1.1. Learning Objectives
 
--   Implement OAuth 2.0 and OpenID Connect (OIDC).
--   Design a flexible RBAC system.
--   Implement secure password storage and management.
+- Implement OAuth 2.0 and OpenID Connect (OIDC).
+- Design a flexible RBAC system.
+- Implement secure password storage and management.
 
 ---
 
@@ -17,9 +17,9 @@ This document provides the low-level design for the **Identity Service**. This s
 The Identity Service is built with **Java and Spring Boot**, chosen for their robust security features and mature ecosystem.
 
 **Key Components**:
--   **OAuth 2.0/OIDC Provider**: We use the Spring Authorization Server to implement our OAuth 2.0 and OIDC provider.
--   **User Management**: Handles user registration, profile management, and password management.
--   **RBAC Engine**: Manages roles and permissions.
+- **OAuth 2.0/OIDC Provider**: We use the Spring Authorization Server to implement our OAuth 2.0 and OIDC provider.
+- **User Management**: Handles user registration, profile management, and password management.
+- **RBAC Engine**: Manages roles and permissions.
 
 ---
 
@@ -59,12 +59,12 @@ CREATE TABLE role_permissions (
     permission_id UUID REFERENCES permissions(id),
     PRIMARY KEY (role_id, permission_id)
 );
-```
+```text
 
 ---
 
 ## 4. 🔐 Security
 
--   **Password Hashing**: We use **Argon2** for password hashing, which is a modern, secure hashing algorithm.
--   **MFA**: We support multiple MFA factors, including TOTP, SMS, and push notifications.
--   **Session Management**: We use JWTs for stateless session management, with short-lived access tokens and long-lived refresh tokens.
+- **Password Hashing**: We use **Argon2** for password hashing, which is a modern, secure hashing algorithm.
+- **MFA**: We support multiple MFA factors, including TOTP, SMS, and push notifications.
+- **Session Management**: We use JWTs for stateless session management, with short-lived access tokens and long-lived refresh tokens.

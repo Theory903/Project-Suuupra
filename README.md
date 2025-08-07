@@ -11,6 +11,7 @@
 **🎯 Mission**: Build a next-generation EdTech + Media super-platform that integrates ALL major digital services in-house with learning-focused approach to advanced distributed systems, AI integration, and billion-user scale engineering.
 
 ### 🔧 Integrated Super-Platform Capabilities
+
 - 💳 **Payment Gateway**: UPI Clone + Juspay-like flows with fraud detection
 - 🎥 **Live Video**: Zoom-like classes + Hotstar-scale mass streaming (1M+ viewers)
 - 🤖 **LLM Tutor**: OpenAI ChatGPT-like with RAG and personalized learning
@@ -55,7 +56,7 @@
 
 ## 📦 Project Layout
 
-```
+```text
 suuupra-edtech-platform/
 ├── services/              # All microservices
 │   ├── admin/             # Admin panel for platform operations
@@ -96,16 +97,14 @@ suuupra-edtech-platform/
 │   └── runbooks/          # Operational guides and procedures
 ├── docker-compose.yml     # Local orchestration for development
 └── README.md              # 📘 You're here
-```
+```text
 
 ---
-
-
-
 
 ## 🚀 Getting Started
 
 ### ✳️ Requirements
+
 - **Docker & Docker Compose** for local development
 - **Node.js 22.18.0** (managed via nvm)
 - **Python 3.13.5** (managed via pyenv)
@@ -123,12 +122,13 @@ docker-compose up -d
 ./tools/scripts/initialize-project.sh
 
 # Per-Service Operations (standardized scripts):
+
 # In any service directory (e.g., services/api-gateway/)
 ./build.sh      # Build the service
 ./test.sh       # Run all tests
 ./deploy.sh     # Deploy to environments
 ./migrate.sh    # Run database migrations
-```
+```text
 
 ---
 
@@ -136,9 +136,9 @@ docker-compose up -d
 
 ### Create a New Service
 
-```
+```text
 ./tools/scripts/generate-service.sh my-service java
-```
+```text
 
 - Supported stacks: `go`, `java`, `node`, `python`
 - Template includes: API Scaffold, Infra, Tests, CI Config
@@ -184,11 +184,12 @@ docker-compose up -d
 | Contracts    | Pact (consumer-driven)        |
 | Load Testing | k6 (`/tools/testing/k6`)       |
 
-```
+```text
 make test
 # or per-service:
+
 ./services/payments/scripts/test.sh
-```
+```text
 
 GitHub Actions handle CI/CD, scans, tests, and deploy on commit.
 

@@ -40,6 +40,6 @@ This directory contains tools and scripts that help with the development, testin
 
 ## 3. 📁 Directory Structure
 
--   `generators/`: Contains tools for generating code, such as the new service generator.
--   `scripts/`: Contains scripts for automating common development tasks.
--   `testing/`: Contains tools and libraries for testing our services.
+-  `generators/`: Contains tools for generating code, such as the new service generator.
+-  `scripts/`: Contains scripts for automating common development tasks.
+-  `testing/`: Contains tools and libraries for testing our services.

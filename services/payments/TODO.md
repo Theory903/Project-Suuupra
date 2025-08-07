@@ -50,7 +50,7 @@ graph TD
     C --> D[MySQL Database];
     C --> E[Fraud Detection Engine];
     C --> F[Payment Providers];
-```
+```text
 
 ### **3.2. Tech Stack Deep Dive**
 
@@ -94,7 +94,7 @@ CREATE TABLE upi_transactions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (payment_id) REFERENCES payments(id)
 );
-```
+```text
 
 ---
 

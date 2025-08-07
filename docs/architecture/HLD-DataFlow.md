@@ -38,7 +38,7 @@ sequenceDiagram
     K-->>Notification: Consume event to send welcome email
     ID-->>AG: Return JWT token
     AG-->>U: Registration successful, return token
-```
+```text
 
 **Data Flow Explained**:
 1.  The `API Gateway` acts as the single entry point, forwarding the request to the `Identity Service`.
@@ -48,9 +48,9 @@ sequenceDiagram
 5.  A `UserRegistered` event is published to a **Kafka** topic. This decouples the registration process from other side effects, such as sending a welcome email or updating analytics. This is a key principle of event-driven architecture.
 
 **Key Learning Points**:
--   **Stateless Authentication with JWT**: The server does not need to store session state, making it easy to scale horizontally. The JWT is self-contained.
--   **Event-Driven Side Effects**: By publishing an event, the `Identity Service`'s responsibility ends with creating the user. Other services can react to this event independently, making the system more resilient and scalable.
--   **Cache-First Strategy**: Using Redis for session data significantly reduces latency for authenticated requests.
+- **Stateless Authentication with JWT**: The server does not need to store session state, making it easy to scale horizontally. The JWT is self-contained.
+- **Event-Driven Side Effects**: By publishing an event, the `Identity Service`'s responsibility ends with creating the user. Other services can react to this event independently, making the system more resilient and scalable.
+- **Cache-First Strategy**: Using Redis for session data significantly reduces latency for authenticated requests.
 
 ### 2.2. Content Discovery & Recommendation Flow
 
@@ -73,7 +73,7 @@ graph TD
     L --> M[MongoDB]
     L --> N[Search Indexing Pipeline]
     N --> D
-```
+```text
 
 **Data Flow Explained**:
 1.  **Search & Recommendations**: The `Search Service` queries both **Elasticsearch** for keyword-based search results and the `Recommendation Engine` for personalized content.
@@ -105,12 +105,12 @@ stateDiagram-v2
 
     PaymentRejected --> PaymentFailed
     PaymentFailed --> [*]
-```
+```text
 
 **Critical Data Consistency Requirements**:
--   **ACID Transactions**: All state changes in the payment process must be atomic. We use **MySQL** for our `Ledger Service` because of its proven reliability for financial transactions.
--   **Idempotency**: The system must handle duplicate requests safely (e.g., if a user double-clicks the "pay" button). This is typically handled by using a unique idempotency key for each transaction.
--   **Audit Trail**: Every state change is logged for compliance and debugging. This is a perfect use case for **Event Sourcing**.
+- **ACID Transactions**: All state changes in the payment process must be atomic. We use **MySQL** for our `Ledger Service` because of its proven reliability for financial transactions.
+- **Idempotency**: The system must handle duplicate requests safely (e.g., if a user double-clicks the "pay" button). This is typically handled by using a unique idempotency key for each transaction.
+- **Audit Trail**: Every state change is logged for compliance and debugging. This is a perfect use case for **Event Sourcing**.
 
 ---
 
@@ -121,21 +121,21 @@ stateDiagram-v2
 Instead of storing the current state of our data, we store a sequence of immutable events. This gives us a complete audit log and the ability to replay events to reconstruct state at any point in time.
 
 **Why Event Sourcing?**
--   **Auditability**: Provides a full history of what happened to an entity.
--   **Debugging**: Makes it easier to understand how an entity reached its current state.
--   **Temporal Queries**: We can query the state of an entity at any point in time.
--   **Decoupling**: Services can subscribe to event streams and react to them independently.
+- **Auditability**: Provides a full history of what happened to an entity.
+- **Debugging**: Makes it easier to understand how an entity reached its current state.
+- **Temporal Queries**: We can query the state of an entity at any point in time.
+- **Decoupling**: Services can subscribe to event streams and react to them independently.
 
 **Event Processing Patterns**:
--   **Command Handler**: Takes a user command, validates it, and if successful, produces one or more events.
--   **Projection**: A read-side component that consumes an event stream and builds a denormalized read model (e.g., in a document database or cache) optimized for querying.
--   **Saga**: A pattern for managing distributed transactions. A saga is a sequence of local transactions. If one transaction fails, the saga executes compensating transactions to undo the preceding transactions.
+- **Command Handler**: Takes a user command, validates it, and if successful, produces one or more events.
+- **Projection**: A read-side component that consumes an event stream and builds a denormalized read model (e.g., in a document database or cache) optimized for querying.
+- **Saga**: A pattern for managing distributed transactions. A saga is a sequence of local transactions. If one transaction fails, the saga executes compensating transactions to undo the preceding transactions.
 
 ### 3.2. Kafka Topic Architecture
 
 We use a domain-oriented approach to structure our Kafka topics.
 
-```
+```text
 Domain Topics:
 ├── user.events
 │   ├── user.registered
@@ -150,12 +150,12 @@ Domain Topics:
 │   ├── order.paid
 │   └── order.fulfilled
 ...
-```
+```text
 
 **Kafka Configuration for Scale**:
--   **Partitioning Strategy**: We partition by `user_id` for user-related events to ensure that all events for a given user go to the same partition, preserving order.
--   **Replication Factor**: A replication factor of 3 is standard for production environments to ensure high availability.
--   **Retention**: We retain events for 7 days to allow for replayability in case of a consumer failure. For long-term storage, we use a Kafka sink to a data lake.
+- **Partitioning Strategy**: We partition by `user_id` for user-related events to ensure that all events for a given user go to the same partition, preserving order.
+- **Replication Factor**: A replication factor of 3 is standard for production environments to ensure high availability.
+- **Retention**: We retain events for 7 days to allow for replayability in case of a consumer failure. For long-term storage, we use a Kafka sink to a data lake.
 
 ---
 
@@ -166,13 +166,13 @@ Domain Topics:
 We use **Apache Flink** for stateful stream processing.
 
 **Why Flink?**
--   **Stateful Processing**: Flink has excellent support for managing state, which is crucial for many real-time analytics use cases (e.g., calculating a user's session duration).
--   **Event Time Processing**: Flink can process events based on the time they occurred, not the time they were processed, which is important for accurate analytics.
--   **High Throughput & Low Latency**: Flink is designed for high-performance stream processing.
+- **Stateful Processing**: Flink has excellent support for managing state, which is crucial for many real-time analytics use cases (e.g., calculating a user's session duration).
+- **Event Time Processing**: Flink can process events based on the time they occurred, not the time they were processed, which is important for accurate analytics.
+- **High Throughput & Low Latency**: Flink is designed for high-performance stream processing.
 
 **Stream Processing Use Cases**:
--   **Real-Time Analytics**: Aggregating user engagement metrics in real-time.
--   **Fraud Detection**: Analyzing patterns in payment events to detect fraud as it happens.
+- **Real-Time Analytics**: Aggregating user engagement metrics in real-time.
+- **Fraud Detection**: Analyzing patterns in payment events to detect fraud as it happens.
 
 ---
 
@@ -182,15 +182,15 @@ We use **Apache Flink** for stateful stream processing.
 
 We use different databases for different services based on their specific needs.
 
--   **PostgreSQL**: For services that require strong consistency and complex queries (e.g., `Identity Service`).
--   **MongoDB**: For services with flexible data models (e.g., `Content Service`).
--   **Neo4j**: For services that model highly connected data (e.g., `Recommendation Service`).
--   **ClickHouse**: For high-performance analytical queries (e.g., `Analytics Service`).
+- **PostgreSQL**: For services that require strong consistency and complex queries (e.g., `Identity Service`).
+- **MongoDB**: For services with flexible data models (e.g., `Content Service`).
+- **Neo4j**: For services that model highly connected data (e.g., `Recommendation Service`).
+- **ClickHouse**: For high-performance analytical queries (e.g., `Analytics Service`).
 
 ### 5.2. Data Partitioning Strategies
 
--   **Horizontal Sharding**: For our largest datasets, like user data, we use sharding to distribute the data across multiple database instances. The `user_id` is a good shard key.
--   **Time-based Partitioning**: For time-series data, like analytics events, we partition tables by time (e.g., by month). This makes it easy to archive or delete old data.
+- **Horizontal Sharding**: For our largest datasets, like user data, we use sharding to distribute the data across multiple database instances. The `user_id` is a good shard key.
+- **Time-based Partitioning**: For time-series data, like analytics events, we partition tables by time (e.g., by month). This makes it easy to archive or delete old data.
 
 ---
 
@@ -200,8 +200,8 @@ We use different databases for different services based on their specific needs.
 
 The CAP theorem states that a distributed system can only provide two of the following three guarantees: Consistency, Availability, and Partition Tolerance. Since network partitions are a fact of life, we must choose between consistency and availability.
 
--   **Strong Consistency (CP)**: For services like `Payments` and `Identity`, we prioritize consistency. A user's password must be correct, and a payment must be processed exactly once. We achieve this with ACID-compliant databases like PostgreSQL and MySQL.
--   **Eventual Consistency (AP)**: For services like `Content` and `Analytics`, we prioritize availability. It's acceptable if a new piece of content takes a few seconds to appear in search results. We achieve this through asynchronous replication and event-driven updates.
+- **Strong Consistency (CP)**: For services like `Payments` and `Identity`, we prioritize consistency. A user's password must be correct, and a payment must be processed exactly once. We achieve this with ACID-compliant databases like PostgreSQL and MySQL.
+- **Eventual Consistency (AP)**: For services like `Content` and `Analytics`, we prioritize availability. It's acceptable if a new piece of content takes a few seconds to appear in search results. We achieve this through asynchronous replication and event-driven updates.
 
 ### 6.2. Distributed Transactions with the Saga Pattern
 

@@ -6,9 +6,9 @@ This document provides the low-level design for the **VOD (Video-on-Demand) Serv
 
 ### 1.1. Learning Objectives
 
--   Build a video processing pipeline with FFmpeg.
--   Implement adaptive bitrate streaming with HLS and DASH.
--   Integrate with a CDN for global content delivery.
+- Build a video processing pipeline with FFmpeg.
+- Implement adaptive bitrate streaming with HLS and DASH.
+- Integrate with a CDN for global content delivery.
 
 ---
 
@@ -22,13 +22,13 @@ graph TD
     D --> E[HLS/DASH Segments]
     E --> F[CDN]
     F --> G[User]
-```
+```text
 
--   **S3 Bucket**: The source of truth for our original video files.
--   **Transcoding Queue**: A message queue (BullMQ) for managing transcoding jobs.
--   **FFmpeg Workers**: A pool of workers that transcode videos into multiple bitrates.
--   **HLS/DASH Segments**: The transcoded video segments are stored in S3.
--   **CDN**: We use a CDN to deliver the video segments to users with low latency.
+- **S3 Bucket**: The source of truth for our original video files.
+- **Transcoding Queue**: A message queue (BullMQ) for managing transcoding jobs.
+- **FFmpeg Workers**: A pool of workers that transcode videos into multiple bitrates.
+- **HLS/DASH Segments**: The transcoded video segments are stored in S3.
+- **CDN**: We use a CDN to deliver the video segments to users with low latency.
 
 ---
 

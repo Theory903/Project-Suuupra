@@ -7,12 +7,12 @@ Our goal is to build a system that can gracefully scale to support a billion use
 **Philosophy**: "Design for 10x the expected load, and have a plan for 100x."
 
 **Target Scale Metrics**:
--   **Global User Base**: 1 Billion+
--   **Concurrent Users**: 100 Million+
--   **Request Volume**: 10 Million+ RPS (Requests Per Second)
--   **Data Volume**: 100 PB+ (Petabytes)
--   **Video Streaming**: 10 Million+ concurrent streams
--   **Payment TPS**: 1 Million+ (Transactions Per Second)
+- **Global User Base**: 1 Billion+
+- **Concurrent Users**: 100 Million+
+- **Request Volume**: 10 Million+ RPS (Requests Per Second)
+- **Data Volume**: 100 PB+ (Petabytes)
+- **Video Streaming**: 10 Million+ concurrent streams
+- **Payment TPS**: 1 Million+ (Transactions Per Second)
 
 ---
 
@@ -21,9 +21,9 @@ Our goal is to build a system that can gracefully scale to support a billion use
 Horizontal scaling (scaling out) is our primary strategy. We will add more machines to our resource pool to handle increased load, rather than increasing the resources of a single machine (vertical scaling).
 
 **Why Horizontal Scaling?**
--   **Elasticity**: We can easily add or remove instances to match demand.
--   **Fault Tolerance**: The failure of a single node does not bring down the entire system.
--   **Cost-Effectiveness**: It's often cheaper to add many small machines than one large one.
+- **Elasticity**: We can easily add or remove instances to match demand.
+- **Fault Tolerance**: The failure of a single node does not bring down the entire system.
+- **Cost-Effectiveness**: It's often cheaper to add many small machines than one large one.
 
 ### 2.1. Service-Level Scaling Patterns
 
@@ -69,10 +69,10 @@ spec:
       target:
         type: AverageValue
         averageValue: "1000"
-```
+```text
 
 **Learning Resources**:
--   [Kubernetes HPA Documentation](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
+- [Kubernetes HPA Documentation](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
 
 ---
 
@@ -85,19 +85,19 @@ Databases are often the hardest part of a system to scale. We use a combination 
 For our largest datasets, we will use **sharding** to partition the data across multiple database servers. Each server holds a subset of the data.
 
 **Why Sharding?**
--   It allows us to scale our write throughput beyond the capacity of a single server.
+- It allows us to scale our write throughput beyond the capacity of a single server.
 
 **Sharding Strategies**:
--   **User Data**: We will shard the `Identity Service` database by `user_id` using a consistent hashing algorithm to ensure even distribution.
--   **Time-Series Data**: For analytics data in **ClickHouse**, we will partition by time (`toYYYYMM(timestamp)`) and then by a hash of the `user_id`.
+- **User Data**: We will shard the `Identity Service` database by `user_id` using a consistent hashing algorithm to ensure even distribution.
+- **Time-Series Data**: For analytics data in **ClickHouse**, we will partition by time (`toYYYYMM(timestamp)`) and then by a hash of the `user_id`.
 
 ### 3.2. Read Replicas
 
 For read-heavy workloads, we use **read replicas**. A read replica is a copy of the master database that can be used to serve read queries.
 
 **Why Read Replicas?**
--   They offload read traffic from the master database, allowing it to focus on writes.
--   They can be placed in different geographic regions to reduce read latency for users.
+- They offload read traffic from the master database, allowing it to focus on writes.
+- They can be placed in different geographic regions to reduce read latency for users.
 
 ### 3.3. Connection Pooling
 
@@ -110,12 +110,12 @@ We use **PgBouncer** for PostgreSQL to manage a pool of database connections. Th
 Caching is essential for reducing latency and database load.
 
 **Multi-Level Caching Strategy**:
--   **L1 (Application Cache)**: An in-memory cache within each service instance for frequently accessed, non-critical data.
--   **L2 (Distributed Cache)**: A **Redis Cluster** for shared data that needs to be accessed by multiple service instances.
--   **L3 (CDN)**: A **Content Delivery Network** (Cloudflare, AWS CloudFront) to cache static assets and media content close to our users.
+- **L1 (Application Cache)**: An in-memory cache within each service instance for frequently accessed, non-critical data.
+- **L2 (Distributed Cache)**: A **Redis Cluster** for shared data that needs to be accessed by multiple service instances.
+- **L3 (CDN)**: A **Content Delivery Network** (Cloudflare, AWS CloudFront) to cache static assets and media content close to our users.
 
 **Cache Invalidation**:
--   **Write-Through with Event-Driven Invalidation**: When data is updated, we write it to the cache and the database simultaneously. We then publish a cache invalidation event to a Kafka topic, which is consumed by other services to invalidate their local caches.
+- **Write-Through with Event-Driven Invalidation**: When data is updated, we write it to the cache and the database simultaneously. We then publish a cache invalidation event to a Kafka topic, which is consumed by other services to invalidate their local caches.
 
 ---
 
@@ -125,14 +125,14 @@ Caching is essential for reducing latency and database load.
 
 We deploy our services to multiple AWS regions to provide low latency to our global user base and for disaster recovery.
 
--   **Primary Regions**: Full deployments of all services and master databases.
--   **Secondary Regions**: Read replicas of our databases and CDN edge nodes.
+- **Primary Regions**: Full deployments of all services and master databases.
+- **Secondary Regions**: Read replicas of our databases and CDN edge nodes.
 
 ### 5.2. Load Balancing at Scale
 
--   **Global Load Balancing (Route 53)**: We use AWS Route 53 for DNS-based global load balancing, with geo-routing to direct users to the nearest region.
--   **Regional Load Balancing (ALB)**: We use AWS Application Load Balancers to distribute traffic across our services within a region.
--   **Service Mesh (Istio)**: We use Istio for fine-grained traffic management between our microservices.
+- **Global Load Balancing (Route 53)**: We use AWS Route 53 for DNS-based global load balancing, with geo-routing to direct users to the nearest region.
+- **Regional Load Balancing (ALB)**: We use AWS Application Load Balancers to distribute traffic across our services within a region.
+- **Service Mesh (Istio)**: We use Istio for fine-grained traffic management between our microservices.
 
 ---
 
@@ -140,13 +140,13 @@ We deploy our services to multiple AWS regions to provide low latency to our glo
 
 ### 6.1. Service-Specific Optimizations
 
--   **Payment Service**: We use a semaphore to limit the number of concurrent payment processes, preventing the system from being overwhelmed.
--   **Content Delivery**: We use an adaptive bitrate engine to select the optimal video quality for a user based on their network conditions and device.
+- **Payment Service**: We use a semaphore to limit the number of concurrent payment processes, preventing the system from being overwhelmed.
+- **Content Delivery**: We use an adaptive bitrate engine to select the optimal video quality for a user based on their network conditions and device.
 
 ### 6.2. Resilience Patterns
 
--   **Circuit Breaker**: To prevent a failing service from cascading failures to other services.
--   **Bulkhead**: To isolate failures in one part of the system from affecting others.
+- **Circuit Breaker**: To prevent a failing service from cascading failures to other services.
+- **Bulkhead**: To isolate failures in one part of the system from affecting others.
 
 **Learning Resources**:
--   [Release It! by Michael T. Nygard](https://pragprog.com/titles/mnee2/release-it-second-edition/)
+- [Release It! by Michael T. Nygard](https://pragprog.com/titles/mnee2/release-it-second-edition/)

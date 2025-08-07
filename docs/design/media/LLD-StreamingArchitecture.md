@@ -8,11 +8,11 @@ This document details the low-level design of our live streaming architecture, w
 
 ### 1.1. Key Requirements
 
--   **Concurrent Viewers**: 10M+ for mass streaming.
--   **Latency**: <100ms for interactive sessions, <3s for mass streaming.
--   **Quality**: Adaptive bitrate streaming from 360p to 4K.
--   **Global Reach**: <2s startup time worldwide.
--   **Reliability**: 99.9% uptime with automatic failover.
+- **Concurrent Viewers**: 10M+ for mass streaming.
+- **Latency**: <100ms for interactive sessions, <3s for mass streaming.
+- **Quality**: Adaptive bitrate streaming from 360p to 4K.
+- **Global Reach**: <2s startup time worldwide.
+- **Reliability**: 99.9% uptime with automatic failover.
 
 ---
 
@@ -23,27 +23,27 @@ This document details the low-level design of our live streaming architecture, w
 For interactive sessions, we use a **Selective Forwarding Unit (SFU)** architecture with **WebRTC**.
 
 **Why an SFU?**
--   An SFU receives each participant's video stream once and forwards it to all other participants. This is much more efficient than a mesh architecture where each participant sends their stream to every other participant.
--   It allows for better server-side control, such as recording, moderation, and analytics.
+- An SFU receives each participant's video stream once and forwards it to all other participants. This is much more efficient than a mesh architecture where each participant sends their stream to every other participant.
+- It allows for better server-side control, such as recording, moderation, and analytics.
 
 **Technology Choice: Mediasoup**
--   **Why Mediasoup?**: It's a powerful, flexible, and low-level WebRTC SFU library that gives us fine-grained control over the media pipeline.
+- **Why Mediasoup?**: It's a powerful, flexible, and low-level WebRTC SFU library that gives us fine-grained control over the media pipeline.
 
 ```typescript
 // WebRTC SFU (Selective Forwarding Unit) implementation
 class WebRTCSFU {
     // ... (Implementation details as before)
 }
-```
+```text
 
 ### 2.2. Mass Live Streaming (HLS/DASH)
 
 For mass live streaming, we use a more traditional architecture based on **HLS (HTTP Live Streaming)** and **DASH (Dynamic Adaptive Streaming over HTTP)**.
 
 **Why HLS/DASH?**
--   **Scalability**: They are based on standard HTTP, which is easy to scale with CDNs.
--   **Client Support**: They are supported by virtually all modern browsers and devices.
--   **Adaptive Bitrate**: They allow the client to switch between different quality levels based on network conditions.
+- **Scalability**: They are based on standard HTTP, which is easy to scale with CDNs.
+- **Client Support**: They are supported by virtually all modern browsers and devices.
+- **Adaptive Bitrate**: They allow the client to switch between different quality levels based on network conditions.
 
 **Technology Choices**: **Go** for the high-performance ingestion and segmentation service, and **FFmpeg** for video transcoding.
 
@@ -52,22 +52,23 @@ For mass live streaming, we use a more traditional architecture based on **HLS (
 type MassStreamingService struct {
     // ... (Implementation details as before)
 }
-```
+```text
 
 ### 2.3. CDN Management and Global Distribution
 
 We use a **multi-CDN strategy** to ensure global reach and high availability.
 
 **Why Multi-CDN?**
--   **Performance**: We can route users to the best-performing CDN for their location.
--   **Resilience**: If one CDN has an outage, we can failover to another.
--   **Cost Optimization**: We can route traffic to the most cost-effective CDN.
+- **Performance**: We can route users to the best-performing CDN for their location.
+- **Resilience**: If one CDN has an outage, we can failover to another.
+- **Cost Optimization**: We can route traffic to the most cost-effective CDN.
 
 ```python
 # Multi-CDN orchestration for global streaming
+
 class CDNManager:
     // ... (Implementation details as before)
-```
+```text
 
 ---
 
@@ -111,9 +112,9 @@ We use **JSON Web Tokens (JWTs)** to secure our streaming URLs. This ensures tha
 We collect real-time analytics to monitor the health of our streaming infrastructure and the quality of experience for our users.
 
 **Key Metrics**:
--   **Concurrent Viewers**: The number of users watching a stream at any given time.
--   **Startup Time**: The time it takes for a video to start playing.
--   **Buffer Health**: The amount of video buffered by the client.
--   **Dropped Frames**: The number of video frames that are not displayed to the user.
+- **Concurrent Viewers**: The number of users watching a stream at any given time.
+- **Startup Time**: The time it takes for a video to start playing.
+- **Buffer Health**: The amount of video buffered by the client.
+- **Dropped Frames**: The number of video frames that are not displayed to the user.
 
 This low-level design provides a detailed blueprint for our live streaming architecture, covering both interactive and mass-scale streaming use cases.

@@ -6,9 +6,9 @@ This document provides the low-level design for the **Analytics Service**. This 
 
 ### 1.1. Learning Objectives
 
--   Understand the architecture of a real-time analytics pipeline.
--   Learn how to use Kafka, Flink, and ClickHouse together.
--   Gain experience with stateful stream processing and windowing operations.
+- Understand the architecture of a real-time analytics pipeline.
+- Learn how to use Kafka, Flink, and ClickHouse together.
+- Gain experience with stateful stream processing and windowing operations.
 
 ---
 
@@ -21,12 +21,12 @@ graph TD
     C --> D[ClickHouse]
     D --> E[Analytics API]
     E --> F[Dashboards]
-```
+```text
 
--   **Kafka**: Acts as the central message bus for all events.
--   **Flink**: Performs real-time stream processing on the event data.
--   **ClickHouse**: Our data warehouse for storing and querying analytical data.
--   **Analytics API**: A FastAPI service that exposes the analytical data to our dashboards.
+- **Kafka**: Acts as the central message bus for all events.
+- **Flink**: Performs real-time stream processing on the event data.
+- **ClickHouse**: Our data warehouse for storing and querying analytical data.
+- **Analytics API**: A FastAPI service that exposes the analytical data to our dashboards.
 
 ---
 
@@ -51,7 +51,7 @@ CREATE TABLE hourly_metrics (
     dimensions Map(String, String)
 ) ENGINE = SummingMergeTree()
 ORDER BY (metric_name, timestamp, dimensions);
-```
+```text
 
 ---
 
@@ -59,6 +59,6 @@ ORDER BY (metric_name, timestamp, dimensions);
 
 We will have several Flink jobs for different analytical tasks:
 
--   **Real-time User Activity**: Calculates the number of active users and other engagement metrics in real-time.
--   **Content Engagement**: Tracks how users are interacting with our content.
--   **Revenue Analytics**: Processes commerce events to calculate revenue.
+- **Real-time User Activity**: Calculates the number of active users and other engagement metrics in real-time.
+- **Content Engagement**: Tracks how users are interacting with our content.
+- **Revenue Analytics**: Processes commerce events to calculate revenue.

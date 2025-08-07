@@ -49,7 +49,7 @@ graph TD
     B --> C{PostgreSQL};
     B --> D[Redis];
     B --> E[Elasticsearch];
-```
+```text
 
 ### **3.2. Tech Stack Deep Dive**
 
@@ -106,7 +106,7 @@ CREATE TABLE permissions (
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-```
+```text
 
 ---
 
