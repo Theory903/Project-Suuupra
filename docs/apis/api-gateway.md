@@ -17,7 +17,7 @@ TABLE OF CONTENTS – regenerate automatically with your editor/IDE
 - Replace all `<PLACEHOLDERS>` with actual values when implementing.
 - Start with **Quickstart Lab**, then go deeper into specific features.
 - Embed diagrams/screenshots where words fall short.
-- Cite code with **path:line-range** (e.g., `src/types/gateway.ts:236-241`).
+- Cite code with **start:end:filepath** (e.g., `236:241:services/api-gateway/src/types/gateway.ts`).
 
 ---
 
@@ -59,7 +59,7 @@ npm run dev
 # Smoke test
 
 curl localhost:8080/health   # → {"success": true}
-```text
+```
 
 ---
 
@@ -96,7 +96,7 @@ curl localhost:8080/health   # → {"success": true}
 | Redis connection failed | Redis not running | `docker run -p 6379:6379 redis:7` |
 | Admin API 404 | Admin disabled | Enable in config and restart |
 
-## 4) File & Folder Structure (with one-line purpose)
+### 4.1 · File & Folder Structure (with one-line purpose)
 
 ```text
 services/api-gateway/
@@ -176,9 +176,9 @@ services/api-gateway/
 
     types/
       gateway.ts              # Strong gateway types (routes, policies, flags)
-```text
+```
 
-## 5) Tech Stack & Libraries (with rationale)
+## 5 · Tech Stack & Libraries (with rationale)
 
 - **Fastify**: High-performance, low-overhead Node HTTP server
 - **TypeScript**: Safer evolvability across many features
@@ -189,7 +189,7 @@ services/api-gateway/
 - **Prometheus + OpenTelemetry**: Operations visibility
 - **ws**: WebSocket server for session manager
 
-## 6) Architecture & Request Flow (Diagrams)
+## 6 · Architecture & Request Flow (Diagrams)
 
 ### Component Diagram
 ```mermaid
@@ -214,7 +214,7 @@ flowchart LR
   K8s[Kubernetes] -->|Ingress/CRD| Gateway
   Gateway -->|metrics| Prometheus
   Gateway -->|traces| OTLP[(Tracing Backend)]
-```text
+```
 
 ### Sequence (simplified request)
 
@@ -226,7 +226,7 @@ flowchart LR
 6) Circuit breaker wraps upstream call; optional retries
 7) Proxy response (SSE streaming supported); metrics/traces emitted
 
-## 7) Features (Teach-Style Deep Dives)
+## 7 · Features (Teach-Style Deep Dives)
 
 Below are representative deep dives. See code for others (e.g., CDN routing, SFU, feature flags, GitOps).
 
@@ -243,7 +243,7 @@ export interface RouteConfig {
   target: ServiceTarget;
   policy: RoutePolicy;
 }
-```text
+```
 
 ### Authentication (JWT/JWKS, API Keys)
 
@@ -338,7 +338,7 @@ export interface RouteConfig {
   - Runner: `scripts/run-load-tests.sh`
 - **Operate**: Track P95/P99 latency and error-rate; gate canary progression on SLOs.
 
-## 8) Integration Points
+## 8 · Integration Points
 
 - **Identity**: OIDC discovery + JWKS; `issuer`, `audience`, `jwksUri`, or `oidcDiscoveryUrl` per-route.
 - **Redis**: Rate limiting and API key activity timestamps.
@@ -346,29 +346,29 @@ export interface RouteConfig {
 - **Kubernetes**: Ingress controller translates Ingress/CRDs → GatewayConfig.
 - **GitOps**: Repo polling and webhook-triggered sync with drift detection.
 
-## 9) Data Model
+## 9 · Data Model
 
 - **Stateless**: No gateway DB.
 - **Caches/State**: JWKS cache, discovery/LB cache, token buckets, API key records (hashed), plugin sandbox state.
 
-## 10) Observability
+## 10 · Observability
 
 - **Metrics**: Requests, errors, latency histograms; limiter hits; retries; breaker opens; queue/concurrency gauges.
 - **Tracing**: Gateway and upstream spans; W3C context.
 - **Dashboards/Alerts**: High latency/error rate; breaker open; limiter saturation.
 
-## 11) Security
+## 11 · Security
 
 - **Threats**: Token replay, key leakage, credential sprawl, SSRF, over-permissive CORS.
 - **Mitigations**: JWKS validation, hashed API keys, credential proxying, signed URL verification, IP allow/deny.
 - **Secrets**: Store in Vault/AWS/GCP or env; never commit secrets.
 
-## 12) Performance & SLOs
+## 12 · Performance & SLOs
 
 - **Targets**: p99 latency < 150ms (gateway overhead), error rate < 1%, throughput scalable to cluster.
 - **Load Testing**: Focus on rate limiter/breaker behavior and streaming path.
 
-## 13) Contributing & Extension Guide
+## 13 · Contributing & Extension Guide
 
 - **Dev**: `npm run dev` (do not run build unless explicitly required).
 - **Lint/Types**: Fix lints before PR; keep strong types, avoid `any`.
@@ -376,7 +376,7 @@ export interface RouteConfig {
 - **Extend Pipeline**: Add middleware under `src/middleware/` and wire via `pipeline/handle.ts`.
 - **Plugins**: Create `PluginRegistration` and register via sandbox manager.
 
-## 14) Hands-on Exercises
+## 14 · Hands-on Exercises
 
 - **Exercise 1: Add a Rate-Limited Route**
 
@@ -387,29 +387,29 @@ export interface RouteConfig {
   - Configure `jwksUri` or `oidcDiscoveryUrl` and `issuer`/`audience`.
   - Acceptance: Valid token passes; tampered token fails with 401.
 
-## 15) Troubleshooting & FAQ
+## 15 · Troubleshooting & FAQ
 
 - 429s unexpectedly: Check rate limit keys (ip/user/tenant/route) and burst settings.
 - 503s with breaker: Upstream failing; inspect breaker metrics and logs.
 - Admin 404: Admin API disabled. Enable in config and hot-reload.
 - SSE truncation: Ensure client keeps connection open and proxies don’t buffer.
 
-## 16) Glossary & Mental Models
+## 16 · Glossary & Mental Models
 
 - **JWKS**: JSON Web Key Set for verifying JWTs from an issuer.
 - **Circuit Breaker**: Fails fast to protect backends and recover gracefully.
 - **Token Bucket**: Rate limiter that refills tokens over time.
 - Mental model: Think of the gateway as a programmable reverse proxy + policy engine.
 
-## 17) References & Further Reading
+## 17 · References & Further Reading
 
-- API Gateway pattern: https://microservices.io/patterns/apigateway.html
-- OIDC Discovery: https://openid.net/specs/openid-connect-discovery-1_0.html
-- jose library: https://github.com/panva/jose
-- Opossum breaker: https://github.com/nodeshift/opossum
-- OpenTelemetry: https://opentelemetry.io/
-- Prometheus (Node): https://github.com/siimon/prom-client
-- Kubernetes Ingress: https://kubernetes.io/docs/concepts/services-networking/ingress/
+- API Gateway pattern: [microservices.io – API Gateway](https://microservices.io/patterns/apigateway.html)
+- OIDC Discovery: [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html)
+- jose library: [panva/jose](https://github.com/panva/jose)
+- Opossum breaker: [nodeshift/opossum](https://github.com/nodeshift/opossum)
+- OpenTelemetry: [opentelemetry.io](https://opentelemetry.io/)
+- Prometheus (Node): [siimon/prom-client](https://github.com/siimon/prom-client)
+- Kubernetes Ingress: [Kubernetes – Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/)
 
 ---
 
@@ -424,7 +424,7 @@ export interface RouteConfig {
   target: ServiceTarget;
   policy: RoutePolicy;
 }
-```text
+```
 - `AdminConfig` shape:
 
 ```243:248:services/api-gateway/src/types/gateway.ts
@@ -434,4 +434,4 @@ export interface AdminConfig {
   secretsManagementEnabled: boolean;
   dashboardUiEnabled?: boolean;
 }
-```text
+```
