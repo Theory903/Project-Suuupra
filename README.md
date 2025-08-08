@@ -97,7 +97,7 @@ suuupra-edtech-platform/
 │   └── runbooks/          # Operational guides and procedures
 ├── docker-compose.yml     # Local orchestration for development
 └── README.md              # 📘 You're here
-```text
+```
 
 ---
 
@@ -128,7 +128,7 @@ docker-compose up -d
 ./test.sh       # Run all tests
 ./deploy.sh     # Deploy to environments
 ./migrate.sh    # Run database migrations
-```text
+```
 
 ---
 
@@ -136,9 +136,9 @@ docker-compose up -d
 
 ### Create a New Service
 
-```text
+```bash
 ./tools/scripts/generate-service.sh my-service java
-```text
+```
 
 - Supported stacks: `go`, `java`, `node`, `python`
 - Template includes: API Scaffold, Infra, Tests, CI Config
@@ -184,12 +184,12 @@ docker-compose up -d
 | Contracts    | Pact (consumer-driven)        |
 | Load Testing | k6 (`/tools/testing/k6`)       |
 
-```text
+```bash
 make test
 # or per-service:
 
 ./services/payments/scripts/test.sh
-```text
+```
 
 GitHub Actions handle CI/CD, scans, tests, and deploy on commit.
 
