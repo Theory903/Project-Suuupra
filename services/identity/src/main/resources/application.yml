@@ -1,0 +1,51 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/identity
+    username: identity
+    password: identity
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  redis:
+    host: localhost
+    port: 6379
+
+security:
+  jwt:
+    issuer: suuupra-identity
+    audience: suuupra-api
+    access-ttl-seconds: 900
+    refresh-ttl-seconds: 2592000 # 30 days
+    # ES256 keys: provide PEM via env/secret manager in non-dev
+    ec:
+      private-key-pem: ""
+      public-key-pem: ""
+  auth:
+    rate-limit-per-minute: 60
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+security:
+  oauth:
+    clients:
+      - clientId: sample-public-client
+        redirectUris:
+          - http://localhost:3000/callback
+        grants: [authorization_code, refresh_token]
+        scopes: [openid, profile, api]
+      - clientId: sample-confidential-client
+        clientSecret: "{noop}secret"
+        grants: [client_credentials]
+        scopes: [api]

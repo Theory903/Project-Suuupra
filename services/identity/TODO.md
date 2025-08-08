@@ -127,28 +127,30 @@ Additional tables (not shown): `user_roles`, `role_permissions`, `sessions`, `mf
 - Objective: Core user management and password auth.
 - Key results: register/login; lockout; JWT issuance; basic profile; Flyway DDL.
 - Tasks:
-  - [ ] Registration, email uniqueness, password policy, hashing (BCrypt/Argon2).
-  - [ ] Login with lockout/backoff; failed attempt tracking.
-  - [ ] JWT access tokens; optional refresh tokens.
-  - [ ] Flyway migrations: users/roles/permissions and join tables.
-  - [ ] Basic audit fields population.
+  - [x] Registration, email uniqueness, password policy, Argon2id hashing (+ HIBP k‑anonymity check).
+  - [x] Login with lockout/backoff; failed attempt tracking (Redis).
+  - [x] Access tokens (ES256) + refresh tokens (Redis) with rotation.
+  - [x] Flyway migrations: users/roles/permissions/sessions/mfa/tenancy/audit.
+  - [x] Basic audit logging (append‑only, hash chaining).
 
 ### Phase 2: OAuth2 and OpenID Connect (Weeks 2–3)
 
 - Objective: Stand up Authorization Server with OIDC discovery.
 - Tasks:
-  - [ ] Configure Spring Authorization Server, client registry, JWK source.
-  - [ ] Token endpoints, introspection, revocation, discovery docs.
-  - [ ] Migrate ad‑hoc JWT issuance to AS.
+  - [x] Spring Authorization Server configured; OIDC discovery and JWKS live.
+  - [x] Config‑driven clients (public PKCE + confidential); ES256 keypair wired.
+  - [x] Token customizer adds `roles`; gateway docs updated for OIDC.
+  - [~] Migrate issuance to SAS (legacy endpoints marked deprecated via `X-Auth-Deprecated`).
+  - [ ] Add userinfo, RFC 7009 revocation, RFC 7662 introspection endpoints.
 
 ### Phase 3: RBAC and Permission System (Weeks 3–4)
 
 - Objective: Fine‑grained authorization.
 - Tasks:
-  - [ ] Role/permission model and data seeding.
-  - [ ] Permission evaluation via `PermissionEvaluator` and annotations.
-  - [ ] Session management and device tracking.
-  - [ ] Optional ABAC policy engine.
+  - [x] Role/permission model, seed roles/permissions; admin RBAC CRUD APIs.
+  - [x] Permission evaluation via custom `PermissionEvaluator`; method security enabled; Caffeine cache + targeted eviction.
+  - [x] Session mgmt: list/revoke sessions; device UA/IP capture; access token denylist.
+  - [~] Tenant‑scoped roles with context; ABAC/OPA hook planned.
 
 ### Phase 4: Federation and Advanced Features (Week 4)
 
@@ -157,6 +159,32 @@ Additional tables (not shown): `user_roles`, `role_permissions`, `sessions`, `mf
   - [ ] SAML 2.0 IdP; metadata and assertion attributes.
   - [ ] Social login (OAuth2 client) providers.
   - [ ] Risk-based rules, adaptive MFA, anomaly detection.
+
+### Phase 5: MFA (TOTP)
+
+- Objective: MFA baseline with TOTP + recovery.
+- Tasks:
+  - [x] TOTP enrollment (otpauth URI) and verification; `users.mfa_enabled`.
+  - [ ] Backup codes (hashed, one‑time) + recovery flow; admin reset.
+  - [ ] Encrypt MFA secrets at rest; QR provisioning images; drift window.
+  - [ ] Step‑up auth on sensitive actions (policy‑based).
+
+### Phase 6: Observability & Hardening
+
+- Objective: Production‑grade observability and runtime security.
+- Tasks:
+  - [x] Metrics for cache, auth; security headers (HSTS, CSP, XSS protection).
+  - [ ] OTLP tracing, dashboards (Grafana), alerts (SLO burns, 401/403 spikes, JWKS failures).
+  - [ ] Bot/velocity defense; PoP/DPoP or mTLS for high‑risk flows.
+  - [ ] JWKS cache TTL/backoff tuning; key rotation with KMS/HSM custody.
+
+### Phase 7: Infra & Delivery (IaC/CI/CD)
+
+- Objective: HA infra, secrets, and secure supply chain.
+- Tasks:
+  - [x] CI workflow (build/test; placeholders for SAST/DAST).
+  - [ ] Terraform: VPC, EKS, RDS (HA), ElastiCache, KMS/Vault; GitOps CD; multi‑AZ; DR plan.
+  - [ ] Supply chain: SBOM, image signing (cosign), provenance; renovate.
 
 ---
 

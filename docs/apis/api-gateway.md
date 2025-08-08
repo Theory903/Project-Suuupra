@@ -178,6 +178,53 @@ services/api-gateway/
       gateway.ts              # Strong gateway types (routes, policies, flags)
 ```
 
+### 4.2 · Identity Quickstart (JWT/JWKS with ES256)
+
+1. Issue an ES256 token from Identity
+
+   ```bash
+   # Register or login to get a token (adjust URL/port if needed)
+   curl -s -X POST http://localhost:8081/api/v1/auth/login \
+     -H 'content-type: application/json' \
+     -d '{"email":"user@example.com","password":"<PASSWORD>"}' | jq -r .accessToken
+   ```
+
+2. Configure a protected route in the gateway using JWKS
+
+   - Required: `issuer`, `audience`, and `jwksUri` (or `oidcDiscoveryUrl`).
+   - Policy example (conceptual):
+
+   ```json
+   {
+     "id": "users-api",
+     "matcher": { "path": "/api/users/*", "methods": ["GET"] },
+     "target": { "type": "http", "url": "http://users:8080" },
+     "policy": {
+       "auth": {
+         "jwt": {
+           "issuer": "https://identity.suuupra.local",
+           "audience": "suuupra-api",
+           "jwksUri": "https://identity.suuupra.local/.well-known/jwks.json",
+           "requiredRoles": ["user"],
+           "requiredScopes": ["user.read"],
+           "clockSkewSeconds": 60
+         }
+       }
+     }
+   }
+   ```
+
+3. Call the protected route with the token
+
+   ```bash
+   TOKEN="$(...)"  # paste the token from step 1
+   curl -i http://localhost:8080/api/users/me \
+     -H "authorization: Bearer ${TOKEN}"
+   ```
+
+   - Expect: `200 OK` when roles/scopes match; `401/403` otherwise.
+   - Troubleshooting: Check `issuer/audience`, token expiry, and JWKS reachability.
+
 ## 5 · Tech Stack & Libraries (with rationale)
 
 - **Fastify**: High-performance, low-overhead Node HTTP server
@@ -250,6 +297,27 @@ export interface RouteConfig {
 - **What**: Verify JWT with remote JWKS (OIDC discovery) or local secret; validate API keys with scopes.
 - **Why**: Secure access, rotate keys, decouple issuers.
 - **How**: `middleware/auth.ts` uses `jose` for JWKS and `apiKeys.ts` for Redis-backed keys. Per-route `requiredScopes`/`requiredRoles` optional.
+- **OIDC Integration**: Configure `issuer`, `audience` and `jwksUri` from Identity discovery (`/.well-known/openid-configuration`). Example route policy (conceptual):
+
+  ```json
+  {
+    "policy": {
+      "auth": {
+        "jwt": {
+          "issuer": "https://identity.suuupra.local",
+          "audience": "suuupra-api",
+          "oidcDiscoveryUrl": "https://identity.suuupra.local/.well-known/openid-configuration",
+          "requiredRoles": ["user"],
+          "requiredScopes": ["api"],
+          "jwksCacheMaxAgeMs": 600000,
+          "clockSkewSeconds": 60
+        }
+      },
+      "rateLimit": { "enabled": true, "tokensPerInterval": 60, "intervalMs": 60000 },
+      "timeout": 10000
+    }
+  }
+  ```
 - **Notes**: When both are enabled, both must pass.
 
 ### Rate Limiting
@@ -345,6 +413,56 @@ export interface RouteConfig {
 - **Cloud**: AWS SigV4, GCP SA tokens for upstream auth.
 - **Kubernetes**: Ingress controller translates Ingress/CRDs → GatewayConfig.
 - **GitOps**: Repo polling and webhook-triggered sync with drift detection.
+
+## 8.1 · Identity Integration (JWT/JWKS with ES256)
+
+- Overview
+  - The Identity service issues ES256-signed JWTs. Publish a public JWKS endpoint and configure routes with `issuer`, `audience`, and `jwksUri`.
+  - Tokens are framework-neutral to support polyglot microservices.
+
+- Recommended token claims
+  - Standard: `iss`, `aud`, `sub` (stable user id or email), `iat`, `exp`, `jti`
+  - App claims:
+    - `roles`: ["user", "admin"]
+    - `perms`: ["user.read", "user.write"]
+    - Optional `scope`: "user.read user.write" (space-delimited)
+
+- Role prefixing note (Spring vs others)
+  - Do not add `ROLE_` in tokens. Keep `roles` as plain names (e.g., `user`, `admin`).
+  - In Spring apps that prefer `hasRole("user")`, map token roles → authorities with `ROLE_` prefix at runtime.
+  - Else, use `hasAuthority("user")` directly. Other languages simply check the `roles` array.
+
+- JWKS and rotation
+  - Use JWKS with `kid` for key identification; cache keys with TTL and backoff on fetch errors.
+  - Rotation procedure: publish new key with new `kid` → start signing with new `kid` → retire old key after TTL.
+
+- Example route policy (conceptual)
+
+  ```json
+  {
+    "policy": {
+      "auth": {
+        "jwt": {
+          "issuer": "https://identity.suuupra.local",
+          "audience": "suuupra-api",
+          "jwksUri": "https://identity.suuupra.local/.well-known/jwks.json",
+          "requiredRoles": ["user"],
+          "requiredPermissions": ["user.read"],
+          "requiredScopes": ["user.read"]
+        }
+      }
+    }
+  }
+  ```
+
+- Polyglot verification hints
+  - Node: `jose` → remote JWKS via `createRemoteJWKSet(new URL(jwksUri))`, verify `iss`/`aud`.
+  - Go: `lestrrat-go/jwx` or `golang-jwt` + JWKS, enforce `iss`/`aud`.
+  - Java: Nimbus (as used by Identity) or Spring Security Resource Server JWKS.
+
+- Observability
+  - Metrics to track: `jwt_verify_success_total`, `jwt_verify_error_total`, `jwks_cache_hit_ratio`, `authz_denied_total` by reason (role/scope/perm).
+  - Alerts: sudden spike in 401s; JWKS cache miss surge; clock-skew anomalies.
 
 ## 9 · Data Model
 
