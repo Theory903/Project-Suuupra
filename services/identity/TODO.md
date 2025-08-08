@@ -4,9 +4,11 @@
 ## 1. 🎯 The Challenge: Problem Statement & Mission
 
 ### **Problem Statement**
+
 > The Suuupra platform requires a centralized, secure, and scalable system to manage user identities and control access to its resources. A fragmented or insecure identity system would expose the platform to significant security risks and provide a poor user experience. The challenge is to build a comprehensive Identity and Access Management (IAM) service that can handle millions of users, support modern authentication protocols, and provide fine-grained access control.
 
 ### **Mission**
+
 > To build a fortress of identity and access management that secures the Suuupra platform, empowers users with seamless and secure access, and provides administrators with granular control over permissions.
 
 ---
@@ -33,9 +35,9 @@
 
 ### **Edge Cases & Failure Scenarios**
 
-*   **Password Breach:** What happens if a user's password is leaked in a data breach? (e.g., the system should proactively notify the user and require a password reset).
-*   **MFA Device Loss:** What happens if a user loses their MFA device? (e.g., the system should provide a secure recovery mechanism, such as backup codes).
-*   **Concurrent Sessions:** How do we handle concurrent sessions for a single user? (e.g., the system should allow the user to view and manage their active sessions).
+- **Password Breach:** What happens if a user's password is leaked in a data breach? (e.g., the system should proactively notify the user and require a password reset).
+- **MFA Device Loss:** What happens if a user loses their MFA device? (e.g., the system should provide a secure recovery mechanism, such as backup codes).
+- **Concurrent Sessions:** How do we handle concurrent sessions for a single user? (e.g., the system should allow the user to view and manage their active sessions).
 
 ---
 
@@ -49,7 +51,7 @@ graph TD
     B --> C{PostgreSQL};
     B --> D[Redis];
     B --> E[Elasticsearch];
-```text
+```
 
 ### **3.2. Tech Stack Deep Dive**
 
@@ -106,7 +108,7 @@ CREATE TABLE permissions (
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-```text
+```
 
 ---
 
@@ -114,44 +116,44 @@ CREATE TABLE permissions (
 
 ### **Phase 1: User Management & Authentication (Weeks 1-2)**
 
-*   **Objective:** Implement the core user management and authentication features.
-*   **Key Results:**
-    *   Users can register, log in, and manage their profiles.
-    *   The system supports password and MFA authentication.
-*   **Tasks:**
-    *   [ ] **User Registration & Profile Management**: Implement user registration and profile management.
-    *   [ ] **Password Management & Security**: Implement secure password management.
-    *   [ ] **Multi-Factor Authentication**: Implement TOTP-based MFA.
+- **Objective:** Implement the core user management and authentication features.
+- **Key Results:**
+  - Users can register, log in, and manage their profiles.
+  - The system supports password and MFA authentication.
+- **Tasks:**
+  - [ ] **User Registration & Profile Management**: Implement user registration and profile management.
+  - [ ] **Password Management & Security**: Implement secure password management.
+  - [ ] **Multi-Factor Authentication**: Implement TOTP-based MFA.
 
 ### **Phase 2: OAuth2 & OpenID Connect (Weeks 2-3)**
 
-*   **Objective:** Implement the OAuth2 and OpenID Connect server.
-*   **Key Results:**
-    *   The service can act as an OAuth2/OIDC provider.
-*   **Tasks:**
-    *   [ ] **OAuth2 Authorization Server**: Set up the Spring Authorization Server.
-    *   [ ] **OpenID Connect Implementation**: Implement OpenID Connect on top of OAuth2.
-    *   [ ] **Advanced OAuth2 Features**: Implement advanced OAuth2 features like token exchange.
+- **Objective:** Implement the OAuth2 and OpenID Connect server.
+- **Key Results:**
+  - The service can act as an OAuth2/OIDC provider.
+- **Tasks:**
+  - [ ] **OAuth2 Authorization Server**: Set up the Spring Authorization Server.
+  - [ ] **OpenID Connect Implementation**: Implement OpenID Connect on top of OAuth2.
+  - [ ] **Advanced OAuth2 Features**: Implement advanced OAuth2 features like token exchange.
 
 ### **Phase 3: RBAC & Permission System (Weeks 3-4)**
 
-*   **Objective:** Implement the RBAC and permission system.
-*   **Key Results:**
-    *   The system can control access to resources based on roles and permissions.
-*   **Tasks:**
-    *   [ ] **Role-Based Access Control Engine**: Implement the RBAC engine.
-    *   [ ] **Attribute-Based Access Control (ABAC)**: Implement an ABAC policy engine.
-    *   [ ] **Session Management & Device Tracking**: Implement session and device management.
+- **Objective:** Implement the RBAC and permission system.
+- **Key Results:**
+  - The system can control access to resources based on roles and permissions.
+- **Tasks:**
+  - [ ] **Role-Based Access Control Engine**: Implement the RBAC engine.
+  - [ ] **Attribute-Based Access Control (ABAC)**: Implement an ABAC policy engine.
+  - [ ] **Session Management & Device Tracking**: Implement session and device management.
 
 ### **Phase 4: Federation & Advanced Features (Week 4)**
 
-*   **Objective:** Implement federation and advanced security features.
-*   **Key Results:**
-    *   The system supports SAML 2.0 and social login.
-*   **Tasks:**
-    *   [ ] **SAML 2.0 Implementation**: Implement SAML 2.0 IdP.
-    *   [ ] **Social Login Integration**: Integrate with social login providers.
-    *   [ ] **Advanced Security Features**: Implement risk-based authentication and behavioral biometrics.
+- **Objective:** Implement federation and advanced security features.
+- **Key Results:**
+  - The system supports SAML 2.0 and social login.
+- **Tasks:**
+  - [ ] **SAML 2.0 Implementation**: Implement SAML 2.0 IdP.
+  - [ ] **Social Login Integration**: Integrate with social login providers.
+  - [ ] **Advanced Security Features**: Implement risk-based authentication and behavioral biometrics.
 
 ---
 
@@ -169,23 +171,25 @@ CREATE TABLE permissions (
 ## 6. 🔭 The Observatory: Monitoring & Alerting
 
 ### **Key Performance Indicators (KPIs)**
-*   **Technical Metrics:** `Authentication Latency`, `Token Validation Latency`, `Error Rate`.
-*   **Business Metrics:** `User Registrations`, `Active Users`, `Failed Logins`.
+
+- **Technical Metrics:** `Authentication Latency`, `Token Validation Latency`, `Error Rate`.
+- **Business Metrics:** `User Registrations`, `Active Users`, `Failed Logins`.
 
 ### **Dashboards & Alerts**
-*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per authentication method.
-*   **Alerting Rules (Prometheus):**
-    *   `HighAuthLatency`: Trigger if p99 authentication latency exceeds 200ms.
-    *   `HighFailedLoginRate`: Trigger if the failed login rate exceeds a certain threshold.
-    *   `MfaBypassAttempt`: Trigger if there is a suspected MFA bypass attempt.
+
+- **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per authentication method.
+- **Alerting Rules (Prometheus):**
+  - `HighAuthLatency`: Trigger if p99 authentication latency exceeds 200ms.
+  - `HighFailedLoginRate`: Trigger if the failed login rate exceeds a certain threshold.
+  - `MfaBypassAttempt`: Trigger if there is a suspected MFA bypass attempt.
 
 ---
 
 ## 7. 📚 Learning & Knowledge Base
 
-*   **Key Concepts:** `OAuth2`, `OpenID Connect`, `RBAC`, `ABAC`, `SAML`, `Cryptography`.
-*   **Resources:**
-    *   [OAuth 2.0 and OpenID Connect](https://www.oauth.com/)
-    *   [NIST Digital Identity Guidelines](https://pages.nist.gov/800-63-3/)
+- **Key Concepts:** `OAuth2`, `OpenID Connect`, `RBAC`, `ABAC`, `SAML`, `Cryptography`.
+- **Resources:**
+  - [OAuth 2.0 and OpenID Connect](https://www.oauth.com/)
+  - [NIST Digital Identity Guidelines](https://pages.nist.gov/800-63-3/)
 
 ---
