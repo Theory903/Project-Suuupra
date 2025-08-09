@@ -10,6 +10,39 @@
 
 > Deliver a robust identity and access management capability that secures the platform, enables seamless sign‑in/sign‑up, and provides administrators with granular role- and permission-based control.
 
+## 14) Phased TODO (Remaining Work)
+
+### Phase 1: OAuth2/OIDC Completion (Done)
+
+- [x] Spring Authorization Server enabled (discovery, JWKS, authorize, token, userinfo)
+- [x] Clients from JDBC (seeded from config); roles injected via token customizer
+- [x] Legacy login/register responses marked `X-Auth-Deprecated: true`
+
+### Phase 2: RBAC Tenancy and ABAC Hook (Done)
+
+- [x] Tenant-scoped roles; delegated admin; bulk membership APIs
+- [x] ABAC policy engine with dry-run/enforce and Redis cache invalidation
+
+### Phase 3: MFA and Account Recovery (Done)
+
+- [x] TOTP enrollment/verification; QR provisioning; metrics; step-up annotation
+- [ ] Backup codes + secret encryption + drift window (optional next)
+
+### Phase 4: Observability and Security Hardening (Done)
+
+- [x] OTLP tracing via Micrometer bridge; Prometheus metrics; Grafana dashboards
+- [x] Alerts: SLO burn-rate, token P95, JWKS failures, WebAuthn failure spike, DPoP
+- [x] DPoP nonce challenges; cnf.jkt binding; mTLS enforcement annotation/filter
+- [x] JWKS TTL and ETag; key rotation admin endpoints
+
+### Phase 5: Federation, Social Login, and Delivery (Planned)
+
+- [ ] SAML 2.0 IdP with metadata and assertion attributes.
+- [ ] Social login providers (as OAuth2 clients).
+- [ ] Risk-based rules, adaptive MFA, anomaly detection.
+- [ ] IaC: Terraform for VPC, EKS, RDS (HA), ElastiCache, KMS/Vault; GitOps CD; multi-AZ; DR plan.
+- [ ] Supply chain security: SBOM, image signing (cosign), provenance, renovate.
+
 ---
 
 ## 2) Scope, Requirements, and Edge Cases
@@ -169,7 +202,7 @@ Additional tables (not shown): `user_roles`, `role_permissions`, `sessions`, `mf
   - [ ] Encrypt MFA secrets at rest; QR provisioning images; drift window.
   - [ ] Step‑up auth on sensitive actions (policy‑based).
 
-### Phase 6: Observability & Hardening
+### Phase 6: Observability & Hardening (Consolidated into Phase 4)
 
 - Objective: Production‑grade observability and runtime security.
 - Tasks:
@@ -178,13 +211,13 @@ Additional tables (not shown): `user_roles`, `role_permissions`, `sessions`, `mf
   - [ ] Bot/velocity defense; PoP/DPoP or mTLS for high‑risk flows.
   - [ ] JWKS cache TTL/backoff tuning; key rotation with KMS/HSM custody.
 
-### Phase 7: Infra & Delivery (IaC/CI/CD)
+### Phase 7: Infra & Delivery (IaC/CI/CD) (Ongoing)
 
 - Objective: HA infra, secrets, and secure supply chain.
 - Tasks:
   - [x] CI workflow (build/test; placeholders for SAST/DAST).
-  - [ ] Terraform: VPC, EKS, RDS (HA), ElastiCache, KMS/Vault; GitOps CD; multi‑AZ; DR plan.
-  - [ ] Supply chain: SBOM, image signing (cosign), provenance; renovate.
+- [ ] Terraform: VPC, EKS, RDS (HA), ElastiCache, KMS/Vault; GitOps CD; multi‑AZ; DR plan
+- [x] Supply chain: SBOM, signing (Maven GPG profile), dependency check; renovate (planned)
 
 ---
 

@@ -6,6 +6,8 @@ import com.suuupra.identity.user.entity.Role;
 import com.suuupra.identity.user.entity.User;
 import com.suuupra.identity.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
 
@@ -23,7 +25,7 @@ public class PermissionService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "permChecks", key = "#email + '|' + T(java.util.Objects).toString(#permissionName) + '|' + T(com.suuupra.identity.common.util.TenantContext).getTenant()")
+    @Cacheable(value = "permChecks", key = "T(com.suuupra.identity.rbac.PermissionCacheIndex).composeKey(#email, #permissionName, T(com.suuupra.identity.common.util.TenantContext).getTenant())")
     public boolean userHasPermissionByEmail(String email, String permissionName) {
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) return false;
@@ -34,7 +36,7 @@ public class PermissionService {
             // tenant-aware lookup via user_roles_tenant
             // if user has any role in this tenant, evaluate its permissions
             // For simplicity, reuse global role->permission mapping
-            var roleNames = tenantService.listRoleNamesForUser(user.getId(), UUID.fromString(tenant));
+            List<String> roleNames = tenantService.listRoleNamesForUser(user.getId(), UUID.fromString(tenant));
             for (String roleName : roleNames) {
                 for (Role role : user.getRoles()) {
                     if (role.getName().equalsIgnoreCase(roleName)) {

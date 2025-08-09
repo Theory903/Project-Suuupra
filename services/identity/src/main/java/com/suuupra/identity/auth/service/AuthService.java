@@ -8,7 +8,6 @@ import com.suuupra.identity.user.entity.Role;
 import com.suuupra.identity.user.entity.User;
 import com.suuupra.identity.user.repository.RoleRepository;
 import com.suuupra.identity.user.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -103,7 +102,7 @@ public class AuthService implements UserDetailsService {
             requestContextProvider.getUserAgent(),
             requestContextProvider.getClientIp()
         );
-        return new AuthResponse(accessToken, refreshToken);
+        return new AuthResponse(accessToken, refreshToken, 0, new String[]{"pwd"});
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -133,7 +132,7 @@ public class AuthService implements UserDetailsService {
         String[] roles = principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).toArray(String[]::new);
         User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
         String sid = sessionService.createSession();
-        String token = jwtService.generateAccessToken(principal.getUsername(), roles, Map.of("sid", sid, "sv", 1));
+        String token = jwtService.generateAccessToken(principal.getUsername(), roles, Map.of("sid", sid, "sv", 1, "amr", new String[]{"pwd"}, "mfa_level", 0));
         String refreshToken = refreshTokenService.issueRefreshToken(user.getId(), sid);
         sessionService.persistSession(
             UUID.fromString(sid),
@@ -143,7 +142,7 @@ public class AuthService implements UserDetailsService {
             requestContextProvider.getUserAgent(),
             requestContextProvider.getClientIp()
         );
-        return new AuthResponse(token, refreshToken);
+        return new AuthResponse(token, refreshToken, 0, new String[]{"pwd"});
     }
 
     @Override
@@ -166,9 +165,9 @@ public class AuthService implements UserDetailsService {
         String sid = parsed.sid() != null ? parsed.sid() : sessionService.createSession();
         int newVersion = sessionService.incrementVersion(sid);
         String[] roles = user.getRoles().stream().map(Role::getName).toArray(String[]::new);
-        String access = jwtService.generateAccessToken(user.getEmail(), roles, Map.of("sid", sid, "sv", newVersion));
+        String access = jwtService.generateAccessToken(user.getEmail(), roles, Map.of("sid", sid, "sv", newVersion, "amr", new String[]{"pwd"}, "mfa_level", 0));
         String newRefresh = refreshTokenService.issueRefreshToken(user.getId(), sid);
-        return new AuthResponse(access, newRefresh);
+        return new AuthResponse(access, newRefresh, 0, new String[]{"pwd"});
     }
 
     public void logout(String refreshToken) {
@@ -202,10 +201,30 @@ public class AuthService implements UserDetailsService {
         }
     }
 
+    public void revokeAccessToken(String token) {
+        try {
+            if (!jwtService.isTokenValid(token)) {
+                return;
+            }
+            String jti = jwtService.extractJti(token);
+            long ttl = jwtService.secondsUntilExpiry(token);
+            denylistService.revokeJti(jti, ttl);
+        } catch (Exception ignored) {
+        }
+    }
+
     public void markEmailVerified(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
             user.setEmailVerified(true);
             userRepository.save(user);
         });
+    }
+
+    public UUID getUserIdByEmail(String email) {
+        return userRepository.findByEmail(email).map(User::getId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    public String loadUserByUsernameById(UUID userId) {
+        return userRepository.findById(userId).map(User::getEmail).orElse(null);
     }
 }

@@ -62,18 +62,33 @@ public class AuthController {
 
     @PostMapping("/token/refresh")
     public ResponseEntity<AuthResponse> refresh(@RequestBody @Valid RefreshTokenRequest body) {
-        return ResponseEntity.ok(authService.refresh(body.getRefreshToken()));
+        return ResponseEntity.status(410)
+            .header("X-Auth-Deprecated", "true")
+            .header("X-Alt-Endpoint", "/oauth2/token")
+            .build();
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody @Valid RefreshTokenRequest body) {
-        authService.logout(body.getRefreshToken());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.status(410)
+            .header("X-Auth-Deprecated", "true")
+            .header("X-Alt-Endpoint", "/oauth2/revoke")
+            .build();
     }
 
     @PostMapping("/token/introspect")
     public ResponseEntity<Map<String, Object>> introspect(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
-        return ResponseEntity.ok(authService.introspect(token));
+        return ResponseEntity.status(410)
+            .header("X-Auth-Deprecated", "true")
+            .header("X-Alt-Endpoint", "/oauth2/introspect")
+            .build();
+    }
+
+    @PostMapping("/token/revoke")
+    public ResponseEntity<Void> revoke(@RequestBody Map<String, String> body) {
+        return ResponseEntity.status(410)
+            .header("X-Auth-Deprecated", "true")
+            .header("X-Alt-Endpoint", "/oauth2/revoke")
+            .build();
     }
 }

@@ -13,6 +13,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.suuupra.identity.security.RequireResources;
+import com.suuupra.identity.security.RequireDPoP;
 
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/admin/rbac")
+@RequireResources({"resource://identity.admin"})
+@RequireDPoP
 public class AdminRbacController {
 
     private final UserRepository userRepository;

@@ -6,20 +6,23 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Value;
+import com.suuupra.identity.keys.SigningKeyService;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
-import java.security.*;
+ 
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+ 
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.Base64;
+ 
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -33,37 +36,16 @@ public class JwtService {
     @Value("${security.jwt.access-ttl-seconds:900}")
     private long accessTokenTtlSeconds;
 
-    @Value("${security.jwt.ec.private-key-pem:}")
-    private String ecPrivateKeyPem;
+    // legacy PEMs no longer used; keys are provided via SigningKeyService
 
-    @Value("${security.jwt.ec.public-key-pem:}")
-    private String ecPublicKeyPem;
+    private final SigningKeyService signingKeyService;
 
-    private ECPrivateKey ecPrivateKey;
-    private ECPublicKey ecPublicKey;
-    private String currentKeyId;
+    public JwtService(SigningKeyService signingKeyService) {
+        this.signingKeyService = signingKeyService;
+    }
 
     @PostConstruct
-    public void initializeKeys() {
-        try {
-            if (isNonEmpty(ecPrivateKeyPem) && isNonEmpty(ecPublicKeyPem)) {
-                this.ecPrivateKey = loadECPrivateKeyFromPem(ecPrivateKeyPem);
-                this.ecPublicKey = loadECPublicKeyFromPem(ecPublicKeyPem);
-            } else {
-                KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
-                kpg.initialize(256);
-                KeyPair kp = kpg.generateKeyPair();
-                this.ecPrivateKey = (ECPrivateKey) kp.getPrivate();
-                this.ecPublicKey = (ECPublicKey) kp.getPublic();
-            }
-            // Derive a stable kid for this key pair (e.g., SHA-256 of public key bytes, truncated)
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            byte[] digest = sha256.digest(ecPublicKey.getEncoded());
-            this.currentKeyId = Base64.getUrlEncoder().withoutPadding().encodeToString(digest).substring(0, 16);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize EC keys for JWT", e);
-        }
-    }
+    public void initializeKeys() {}
 
     public String generateAccessToken(String subject, String[] roles, Map<String, Object> additionalClaims) {
         Instant now = Instant.now();
@@ -86,10 +68,10 @@ public class JwtService {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .type(JOSEObjectType.JWT)
-                .keyID(currentKeyId)
+                .keyID(signingKeyService.getCurrentKid())
                 .build();
             SignedJWT signedJWT = new SignedJWT(header, claims);
-            JWSSigner signer = new ECDSASigner(ecPrivateKey);
+            JWSSigner signer = new ECDSASigner(signingKeyService.getCurrentPrivateKey());
             signedJWT.sign(signer);
             return signedJWT.serialize();
         } catch (JOSEException e) {
@@ -112,8 +94,14 @@ public class JwtService {
     public boolean isTokenValid(String token) {
         try {
             SignedJWT jwt = SignedJWT.parse(token);
-            JWSVerifier verifier = new ECDSAVerifier(ecPublicKey);
-            return jwt.verify(verifier) && jwt.getJWTClaimsSet().getExpirationTime().after(new Date());
+            JWSVerifier verifier = new ECDSAVerifier(signingKeyService.getCurrentPublicKey());
+            boolean sigOk = jwt.verify(verifier);
+            Date exp = jwt.getJWTClaimsSet().getExpirationTime();
+            boolean notExpired = exp != null && exp.after(new Date());
+            // Enforce audience
+            var auds = jwt.getJWTClaimsSet().getAudience();
+            boolean audOk = auds != null && auds.contains(audience);
+            return sigOk && notExpired && audOk;
         } catch (Exception e) {
             return false;
         }
@@ -144,41 +132,35 @@ public class JwtService {
         return t != null ? t.toString() : null;
     }
 
-    public ECPublicKey getEcPublicKey() {
-        return ecPublicKey;
+    public Set<String> extractScopes(String token) throws ParseException {
+        SignedJWT jwt = SignedJWT.parse(token);
+        Object scope = jwt.getJWTClaimsSet().getClaim("scope");
+        if (scope == null) {
+            return Set.of();
+        }
+        if (scope instanceof String s) {
+            if (s.isBlank()) return Set.of();
+            return Set.of(s.split(" "));
+        }
+        if (scope instanceof List<?> list) {
+            return list.stream().map(Object::toString).collect(Collectors.toSet());
+        }
+        return Set.of();
     }
 
-    public String getCurrentKeyId() {
-        return currentKeyId;
+    public String extractCnfJkt(String token) throws ParseException {
+        SignedJWT jwt = SignedJWT.parse(token);
+        Object cnf = jwt.getJWTClaimsSet().getClaim("cnf");
+        if (cnf instanceof Map<?, ?> map) {
+            Object jkt = map.get("jkt");
+            return jkt != null ? jkt.toString() : null;
+        }
+        return null;
     }
 
-    public ECPrivateKey getEcPrivateKey() {
-        return ecPrivateKey;
-    }
+    public ECPublicKey getEcPublicKey() { return signingKeyService.getCurrentPublicKey(); }
+    public String getCurrentKeyId() { return signingKeyService.getCurrentKid(); }
+    public ECPrivateKey getEcPrivateKey() { return signingKeyService.getCurrentPrivateKey(); }
 
-    private static boolean isNonEmpty(String s) {
-        return s != null && !s.isBlank();
-    }
-
-    private static ECPrivateKey loadECPrivateKeyFromPem(String pem) throws Exception {
-        String content = pem.replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replaceAll("\\s", "");
-        byte[] der = Base64.getDecoder().decode(content);
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(der);
-        KeyFactory kf = KeyFactory.getInstance("EC");
-        PrivateKey key = kf.generatePrivate(keySpec);
-        return (ECPrivateKey) key;
-    }
-
-    private static ECPublicKey loadECPublicKeyFromPem(String pem) throws Exception {
-        String content = pem.replace("-----BEGIN PUBLIC KEY-----", "")
-            .replace("-----END PUBLIC KEY-----", "")
-            .replaceAll("\\s", "");
-        byte[] der = Base64.getDecoder().decode(content);
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(der);
-        KeyFactory kf = KeyFactory.getInstance("EC");
-        PublicKey key = kf.generatePublic(keySpec);
-        return (ECPublicKey) key;
-    }
+    
 }

@@ -12,13 +12,13 @@ import com.suuupra.identity.user.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.security.oauth2.server.authorization.InMemoryRegisteredClientRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class AuthorizationServerConfig {
@@ -48,41 +50,51 @@ public class AuthorizationServerConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
-        OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
+        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
+        // Enable OpenID Connect endpoints (userinfo, discovery, etc.)
+        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class).oidc(Customizer.withDefaults());
         http
-            .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
             .authorizeHttpRequests(authorize -> authorize
                 // Allow discovery and JWKs to be publicly accessible
                 .requestMatchers("/.well-known/**", "/oauth2/jwks", "/oauth2/authorize", "/oauth2/token").permitAll()
                 .anyRequest().authenticated()
             )
-            .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServerConfigurer.getEndpointsMatcher()))
-            .apply(authorizationServerConfigurer)
-                .oidc(Customizer.withDefaults()); // Enable OpenID Connect 1.0
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/.well-known/**", "/oauth2/**"));
+        // OIDC enabled by default in applyDefaultSecurity for Spring Authorization Server
 
         return http.build();
     }
 
+    
+    
+
     @Bean
-    public RegisteredClientRepository registeredClientRepository() {
-        var list = clientsProperties.getClients().stream().map(c -> {
-            RegisteredClient.Builder b = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId(c.getClientId());
-            if (c.getClientSecret() != null && !c.getClientSecret().isBlank()) {
-                b.clientSecret(c.getClientSecret());
-            } else {
-                b.clientAuthenticationMethod(auth -> {}); // public client
+    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
+        return new JdbcRegisteredClientRepository(jdbcTemplate);
+    }
+
+    @Bean
+    public CommandLineRunner seedRegisteredClients(JdbcRegisteredClientRepository repo, PasswordEncoder passwordEncoder) {
+        return args -> {
+            for (var c : clientsProperties.getClients()) {
+                if (repo.findByClientId(c.getClientId()) != null) continue;
+                RegisteredClient.Builder b = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId(c.getClientId())
+                    .clientName(c.getClientId())
+                    .clientIdIssuedAt(java.time.Instant.now());
+                if (c.getClientSecret() != null && !c.getClientSecret().isBlank()) {
+                    b.clientSecret(passwordEncoder.encode(c.getClientSecret()));
+                }
+                for (String g : c.getGrants()) {
+                    if ("authorization_code".equalsIgnoreCase(g)) b.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE);
+                    if ("refresh_token".equalsIgnoreCase(g)) b.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN);
+                    if ("client_credentials".equalsIgnoreCase(g)) b.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS);
+                }
+                for (String ru : c.getRedirectUris()) b.redirectUri(ru);
+                for (String s : c.getScopes()) b.scope(s);
+                repo.save(b.build());
             }
-            for (String g : c.getGrants()) {
-                if ("authorization_code".equalsIgnoreCase(g)) b.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE);
-                if ("refresh_token".equalsIgnoreCase(g)) b.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN);
-                if ("client_credentials".equalsIgnoreCase(g)) b.authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS);
-            }
-            for (String ru : c.getRedirectUris()) b.redirectUri(ru);
-            for (String s : c.getScopes()) b.scope(s);
-            return b.build();
-        }).toList();
-        return new InMemoryRegisteredClientRepository(list);
+        };
     }
 
     @Bean
@@ -91,6 +103,10 @@ public class AuthorizationServerConfig {
     ) {
         return AuthorizationServerSettings.builder()
             .issuer(issuer)
+            .tokenIntrospectionEndpoint("/oauth2/introspect")
+            .tokenRevocationEndpoint("/oauth2/revoke")
+            .oidcUserInfoEndpoint("/userinfo")
+            .tokenEndpoint("/oauth2/token")
             .build();
     }
 
@@ -116,6 +132,8 @@ public class AuthorizationServerConfig {
             context.getClaims().claim("roles", roles);
         };
     }
+
+    
 }
 
 

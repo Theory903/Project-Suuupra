@@ -15,7 +15,10 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.filter.DelegatingFilterProxy;
+import com.suuupra.identity.security.ResourceIndicatorFilter;
+import com.suuupra.identity.security.DPoPVerifierFilter;
+import com.suuupra.identity.security.RateLimiterFilter;
+import com.suuupra.identity.security.MtlsEnforcementFilter;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
@@ -24,11 +27,19 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ResourceIndicatorFilter resourceIndicatorFilter;
+    private final DPoPVerifierFilter dPoPVerifierFilter;
+    private final RateLimiterFilter rateLimiterFilter;
     private final UserDetailsService userDetailsService;
+    private final MtlsEnforcementFilter mtlsEnforcementFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService, ResourceIndicatorFilter resourceIndicatorFilter, DPoPVerifierFilter dPoPVerifierFilter, RateLimiterFilter rateLimiterFilter, MtlsEnforcementFilter mtlsEnforcementFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.userDetailsService = userDetailsService;
+        this.resourceIndicatorFilter = resourceIndicatorFilter;
+        this.dPoPVerifierFilter = dPoPVerifierFilter;
+        this.rateLimiterFilter = rateLimiterFilter;
+        this.mtlsEnforcementFilter = mtlsEnforcementFilter;
     }
 
     @Bean
@@ -39,7 +50,6 @@ public class SecurityConfig {
             .headers(h -> h
                 .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
                 .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'; base-uri 'none'"))
-                .xssProtection(xss -> xss.block(true))
                 .frameOptions(f -> f.sameOrigin())
             )
             .authorizeHttpRequests(auth -> auth
@@ -48,12 +58,19 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/api/v1/auth/**",
-                    "/.well-known/**"
+                    "/api/v1/webauthn/**",
+                    "/.well-known/**",
+                    "/oidc/**"
                 ).permitAll()
                 .anyRequest().authenticated())
+            .requiresChannel(ch -> ch.anyRequest().requiresSecure())
             .httpBasic(Customizer.withDefaults());
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(rateLimiterFilter, JwtAuthenticationFilter.class);
+        http.addFilterAfter(resourceIndicatorFilter, JwtAuthenticationFilter.class);
+        http.addFilterAfter(dPoPVerifierFilter, ResourceIndicatorFilter.class);
+        http.addFilterAfter(mtlsEnforcementFilter, DPoPVerifierFilter.class);
         return http.build();
     }
 

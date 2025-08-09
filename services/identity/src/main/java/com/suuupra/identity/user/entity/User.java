@@ -52,6 +52,10 @@ public class User {
 
     private Integer version = 1;
 
+    private boolean mfaEnabled = false;
+
+    private Instant mfaEnrolledAt;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_roles",

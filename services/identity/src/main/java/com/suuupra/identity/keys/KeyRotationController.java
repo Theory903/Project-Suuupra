@@ -1,44 +1,56 @@
 package com.suuupra.identity.keys;
 
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.suuupra.identity.auth.jwt.JwtService;
+import com.suuupra.identity.audit.AuditLogService;
+import com.suuupra.identity.auth.service.AuthService;
+import com.suuupra.identity.mfa.StepUpProtected;
+import com.suuupra.identity.security.RequireResources;
+import com.suuupra.identity.security.RequireDPoP;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/keys")
+@RequireResources({"resource://identity.admin"})
 public class KeyRotationController {
 
-    private final JwtService jwtService;
+    private final SigningKeyService signingKeyService;
+    private final AuditLogService auditLogService;
+    private final AuthService authService;
 
-    public KeyRotationController(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public KeyRotationController(SigningKeyService signingKeyService, AuditLogService auditLogService, AuthService authService) {
+        this.signingKeyService = signingKeyService;
+        this.auditLogService = auditLogService;
+        this.authService = authService;
     }
 
     @PostMapping("/rotate")
     @PreAuthorize("hasPermission(null, 'keys.rotate')")
-    public ResponseEntity<Map<String, String>> rotate() throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
-        kpg.initialize(256);
-        KeyPair kp = kpg.generateKeyPair();
-        // In a full implementation, persist the new keypair and update JwtService atomically
-        // Here we just report the new kid that would be used post-rotation
-        ECPublicKey pub = (ECPublicKey) kp.getPublic();
-        ECPrivateKey priv = (ECPrivateKey) kp.getPrivate();
-        ECKey ecJwk = new ECKey.Builder(Curve.P_256, pub).privateKey(priv).build();
-        String newKid = ecJwk.computeThumbprint().toString();
-        return ResponseEntity.ok(Map.of("nextKid", newKid));
+    @StepUpProtected(ttlSeconds = 900)
+    @RequireDPoP
+    public ResponseEntity<Map<String, String>> rotate(@AuthenticationPrincipal UserDetails principal) {
+        String nextKid = signingKeyService.rotateCreateNext();
+        // audit
+        java.util.UUID actorId = authService.getUserIdByEmail(principal.getUsername());
+        auditLogService.append("KEY_ROTATE_NEXT", actorId, principal.getUsername(), null, null, java.util.Map.of("nextKid", nextKid));
+        return ResponseEntity.ok(Map.of("nextKid", nextKid));
+    }
+
+    @PostMapping("/promote")
+    @PreAuthorize("hasPermission(null, 'keys.rotate')")
+    @StepUpProtected(ttlSeconds = 900)
+    @RequireDPoP
+    public ResponseEntity<Map<String, String>> promote(@AuthenticationPrincipal UserDetails principal, @org.springframework.web.bind.annotation.RequestParam("kid") String kid) {
+        signingKeyService.promoteCurrent(kid);
+        java.util.UUID actorId = authService.getUserIdByEmail(principal.getUsername());
+        auditLogService.append("KEY_PROMOTE", actorId, principal.getUsername(), null, null, java.util.Map.of("currentKid", kid));
+        return ResponseEntity.ok(Map.of("currentKid", kid));
     }
 }
 

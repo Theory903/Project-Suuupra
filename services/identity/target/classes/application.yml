@@ -18,6 +18,10 @@ spring:
     host: localhost
     port: 6379
 
+# KMS settings (activate profile aws-kms to use AWS KMS)
+kms:
+  key-id: ""
+
 security:
   jwt:
     issuer: suuupra-identity
@@ -30,22 +34,86 @@ security:
       public-key-pem: ""
   auth:
     rate-limit-per-minute: 60
+  webauthn:
+    rpId: identity.suuupra.local
+    rpName: Suuupra Identity
+    origins:
+      - https://identity.suuupra.local
+      - https://console.suuupra.local
+    residentKey: preferred
+    userVerification: preferred
+    attestation: none
+    authenticatorAttachment: cross_platform
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  tracing:
+    sampling:
+      probability: 0.2
+  otlp:
+    tracing:
+      endpoint: http://otel-collector:4317
+    metrics:
+      export:
+        enabled: false
 
+health:
+  readiness:
+    state:
+      enabled: true
+  liveness:
+    state:
+      enabled: true
+
+oauth:
+  clients:
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
 security:
-  oauth:
-    clients:
-      - clientId: sample-public-client
-        redirectUris:
-          - http://localhost:3000/callback
-        grants: [authorization_code, refresh_token]
-        scopes: [openid, profile, api]
-      - clientId: sample-confidential-client
-        clientSecret: "{noop}secret"
-        grants: [client_credentials]
-        scopes: [api]
+  webauthn:
+    rpId: identity.staging.suuupra.com
+    rpName: Suuupra Identity (Staging)
+    origins:
+      - https://identity.staging.suuupra.com
+      - https://console.staging.suuupra.com
+    residentKey: preferred
+    userVerification: required
+    attestation: indirect
+    authenticatorAttachment: cross_platform
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+security:
+  webauthn:
+    rpId: identity.suuupra.com
+    rpName: Suuupra Identity
+    origins:
+      - https://identity.suuupra.com
+      - https://console.suuupra.com
+    residentKey: required
+    userVerification: required
+    attestation: direct
+    authenticatorAttachment: platform
+
+oauth:
+  clients:
+    - clientId: sample-public-client
+      redirectUris:
+        - http://localhost:3000/callback
+      grants: [authorization_code, refresh_token]
+      scopes: [openid, profile, api]
+    - clientId: sample-confidential-client
+      clientSecret: "{noop}secret"
+      grants: [client_credentials]
+      scopes: [api]
+

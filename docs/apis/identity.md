@@ -56,7 +56,7 @@ curl -s localhost:8081/actuator/health | jq
 
 ## 4 · Quickstart Lab (20 min)
 
-1) Register and login (legacy endpoints, marked deprecated)
+1. Register and login (legacy endpoints, marked deprecated)
 
 ```bash
 curl -s -X POST http://localhost:8081/api/v1/auth/register \
@@ -68,14 +68,14 @@ curl -s -X POST http://localhost:8081/api/v1/auth/login \
   -d '{"email":"user@example.com","password":"Str0ngPassw0rd!"}' | jq
 ```
 
-2) Fetch profile
+2. Fetch profile
 
 ```bash
 TOKEN="<accessToken>"
 curl -s http://localhost:8081/api/v1/users/me -H "authorization: Bearer $TOKEN" | jq
 ```
 
-3) OIDC discovery (preferred integration)
+3. OIDC discovery (preferred integration)
 
 ```bash
 curl -s http://localhost:8081/.well-known/openid-configuration | jq
@@ -151,12 +151,26 @@ Client → Gateway → Identity (AuthN/Z, SAS) → Postgres/Redis
 - Revocation: session-version + jti denylist; `/users/token/revoke`
 - Introspection endpoint returns `active`, `sub`, `sid`, `sv`
 
-### 8.3 OAuth2/OIDC (SAS)
+### 8.3 OAuth2/OIDC (Spring Authorization Server)
 
-- OIDC discovery, JWKS, authorization, and token endpoints
+- OIDC discovery, JWKS, authorization, token, and userinfo endpoints are enabled
 - Config-driven clients (public PKCE and confidential)
 - Token customizer adds `roles`; scopes configurable per client
-- Migration: legacy login/register marked `X-Auth-Deprecated: true`
+- Legacy login/register are deprecated via `X-Auth-Deprecated: true`
+
+### 8.4 DPoP and mTLS (High-Risk Flows)
+
+- DPoP nonce challenges: server issues `DPoP-Nonce` and expects nonce in DPoP JWT
+- Replay protection and `cnf.jkt` binding validated on protected routes
+- Optional mTLS for admin/high-risk endpoints via annotation and filter
+
+### 8.5 WebAuthn (Passkeys)
+
+- Registration and assertion ceremonies implemented with challenge storage in Redis
+- Credential storage with signCount, AAGUID, friendly name; admin list/rename/delete
+- Step-up protection: annotate sensitive admin endpoints (`@StepUpProtected`)
+
+<!-- consolidated above into 8.3 and added details for nonce and WebAuthn -->
 
 ### 8.4 RBAC & Tenancy
 
@@ -182,7 +196,8 @@ Client → Gateway → Identity (AuthN/Z, SAS) → Postgres/Redis
 - ES256 keys; JWKS with cache TTL/backoff; rotation scaffolding (`keys.rotate`)
 - HSTS, CSP, XSS, frame options enabled; no secrets in repo
 - Lockout/backoff + rate limits; device UA/IP capture per session
-- RFC roadmap: token revocation (7009), introspection (7662), userinfo
+- DPoP nonce challenges; `cnf.jkt` proof binding; optional mTLS on admin APIs
+- RFC alignment: revocation (7009), introspection (7662), userinfo
 
 ---
 
@@ -194,6 +209,8 @@ Client → Gateway → Identity (AuthN/Z, SAS) → Postgres/Redis
 | lockout_rate | % of locked-out attempts | spike alert |
 | jwks_cache_hit_ratio | JWKS cache efficiency | drop alert |
 | cache_hits/misses | Caffeine effectiveness | trend |
+| dpop_nonce_challenges_total | DPoP nonce challenges issued | spike alert |
+| `webauthn_(register\|assert)_(success\|failure)_total` | WebAuthn success/failure | failure spike |
 
 Tracing (OTLP) recommended around login, token, introspect; include tenant (non‑PII) as baggage.
 
@@ -207,29 +224,107 @@ Tracing (OTLP) recommended around login, token, introspect; include tenant (non�
 
 ---
 
-## 12 · API Reference (selected)
+## 12 · API Reference
+
+### 12.1 Public Auth (legacy — deprecated)
 
 | Method | Path | Purpose |
 | ------ | ---- | ------- |
-| POST | `/api/v1/auth/register` | Register (deprecated; use OIDC flows) |
-| POST | `/api/v1/auth/login` | Login (deprecated; use OIDC flows) |
+| POST | `/api/v1/auth/register` | Register (deprecated; prefer OIDC flows) |
+| POST | `/api/v1/auth/login` | Login (deprecated; prefer OIDC flows) |
 | POST | `/api/v1/auth/token/refresh` | Rotate refresh, issue access |
 | POST | `/api/v1/auth/token/introspect` | Token validity and claims |
 | POST | `/api/v1/auth/logout` | Revoke via refresh; bump `sv` |
+
+### 12.2 User APIs
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
 | GET | `/api/v1/users/me` | Current user profile |
-| GET/POST | `/api/v1/admin/rbac/*` | Roles/permissions admin |
-| GET/POST | `/api/v1/admin/tenants/*` | Tenant role admin |
-| OIDC | `/.well-known/openid-configuration` | Discovery |
-| OIDC | `/oauth2/jwks`, `/oauth2/authorize`, `/oauth2/token` | OIDC endpoints |
+| GET | `/api/v1/users/sessions` | List sessions |
+| POST | `/api/v1/users/sessions/{sid}/revoke` | Revoke session by id |
+| POST | `/api/v1/users/token/revoke` | Denylist current access token |
+
+### 12.3 MFA (TOTP)
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| POST | `/api/v1/mfa/enroll/init` | Start TOTP enrollment (QR/secret) |
+| POST | `/api/v1/mfa/enroll/verify` | Verify TOTP and enable |
+| POST | `/api/v1/mfa/backup/verify` | Verify a backup code |
+
+### 12.4 WebAuthn (Passkeys)
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| POST | `/api/v1/webauthn/register/start` | Begin registration (creation options) |
+| POST | `/api/v1/webauthn/register/finish` | Finish registration |
+| POST | `/api/v1/webauthn/assert/start` | Begin assertion (request options) |
+| POST | `/api/v1/webauthn/assert/finish` | Finish assertion |
+
+### 12.5 OIDC / SAS
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/.well-known/openid-configuration` | Discovery |
+| GET | `/oauth2/jwks` or `/.well-known/jwks.json` | JWKS |
+| GET | `/oauth2/authorize` | Authorization endpoint |
+| POST | `/oauth2/token` | Token endpoint (DPoP nonce challenge supported) |
+| GET | `/userinfo` | OIDC UserInfo |
+
+### 12.6 Admin — RBAC, Tenants, Policies
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/api/v1/admin/rbac/users/{userId}/roles` | List user roles |
+| POST | `/api/v1/admin/rbac/users/assign-roles` | Assign roles to users |
+| GET | `/api/v1/admin/tenants/{tenantId}/users/{userId}/roles` | List roles in tenant |
+| POST | `/api/v1/admin/tenants/{tenantId}/users/{userId}/roles/{role}` | Grant role in tenant |
+| DELETE | `/api/v1/admin/tenants/{tenantId}/users/{userId}/roles/{role}` | Revoke role in tenant |
+| POST | `/api/v1/admin/tenants/{tenantId}/admins/{userId}` | Add delegated admin |
+| DELETE | `/api/v1/admin/tenants/{tenantId}/admins/{userId}` | Remove delegated admin |
+| GET | `/api/v1/admin/tenants/{tenantId}/admins` | List delegated admins |
+| POST | `/api/v1/admin/memberships/tenant/{tenantId}/assign` | Bulk assign roles |
+| POST | `/api/v1/admin/memberships/tenant/{tenantId}/revoke` | Bulk revoke roles |
+| POST | `/api/v1/admin/policies` | Create/update ABAC policy (mode) |
+
+### 12.7 Admin — Roles & Role Templates
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/api/v1/admin/roles` | List roles |
+| POST | `/api/v1/admin/roles` | Create role |
+| DELETE | `/api/v1/admin/roles/{roleName}` | Delete role |
+| POST | `/api/v1/admin/roles/{roleName}/permissions` | Add permissions |
+| DELETE | `/api/v1/admin/roles/{roleName}/permissions` | Remove permissions |
+| GET | `/api/v1/admin/role-templates` | List templates |
+| POST | `/api/v1/admin/role-templates` | Create template |
+| POST | `/api/v1/admin/role-templates/{templateId}/permissions` | Add perms to template |
+| DELETE | `/api/v1/admin/role-templates/{templateId}/permissions` | Remove perms from template |
+| POST | `/api/v1/admin/role-templates/{templateId}/materialize-role` | Create role from template |
+
+### 12.8 Admin — Keys, MFA, WebAuthn
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| POST | `/api/v1/admin/keys/rotate` | Create next signing key |
+| POST | `/api/v1/admin/keys/promote?kid=...` | Promote key to active |
+| POST | `/api/v1/admin/mfa/users/{userId}/reset` | Reset MFA for user |
+| GET | `/api/v1/admin/webauthn/users/{userId}/credentials` | List credentials (filter by `aaguid`) |
+| PATCH | `/api/v1/admin/webauthn/credentials/{credentialId}` | Rename credential |
+| DELETE | `/api/v1/admin/webauthn/credentials/{credentialId}` | Delete credential |
+| DELETE | `/api/v1/admin/webauthn/users/{userId}/credentials` | Delete all credentials |
+
+Security notes: Admin routes require JWT with roles, DPoP, and may require mTLS and step‑up (`@StepUpProtected`).
 
 ---
 
-## 13 · Remaining Work
+## 13 · What’s Next (Optional)
 
-- SAS userinfo, revocation (7009), introspection (7662)
-- MFA backup codes, encryption, drift window, QR provisioning
-- Terraform modules for Redis/KMS; CI security gates; dashboards/alerts
-- Full `hasPermission` coverage + ABAC hooks
+- MFA backup codes and TOTP secret encryption, drift window, QR provisioning
+- Terraform modules for infra (Redis/KMS) and GitOps CD; renovate and provenance
+- DPoP alignment in resource services (cnf.jkt validation and nonce flow)
+- ABAC policy authoring UX and dry-run → enforce workflows
 
 ---
 
@@ -238,5 +333,3 @@ Tracing (OTLP) recommended around login, token, introspect; include tenant (non�
 - OWASP ASVS, NIST 800‑63
 - OAuth2/OIDC, RFC 7009/7662
 - Spring Authorization Server docs
-
-

@@ -24,4 +24,7 @@ public class MfaSecret {
     private String secret;
 
     private Instant createdAt = Instant.now();
+
+    @Lob
+    private byte[] secretEnc;
 }

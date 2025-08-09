@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "Identity Service",
+    "refresh": "30s",
+    "time": {"from": "now-1h", "to": "now"},
+    "panels": [
+      {
+        "id": 1,
+        "title": "Policy Eval Latency (P95)",
+        "type": "stat",
+        "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(policy_eval_latency_ms_bucket[5m])))"}],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "fieldConfig": {"defaults": {"unit": "ms"}}
+      },
+      {
+        "id": 2,
+        "title": "Authz Decisions",
+        "type": "graph",
+        "targets": [
+          {"expr": "sum(rate(authz_decisions_total{decision=\"allow\"}[5m]))", "legendFormat": "allow"},
+          {"expr": "sum(rate(authz_decisions_total{decision=\"deny\"}[5m]))", "legendFormat": "deny"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Rate Limit 429s",
+        "type": "stat",
+        "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{status=\"429\"}[5m]))"}],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 4}
+      },
+      {
+        "id": 4,
+        "title": "JWKS Cache Max-Age",
+        "type": "stat",
+        "targets": [{"expr": "jwks_cache_max_age_seconds"}],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 4},
+        "fieldConfig": {"defaults": {"unit": "s"}}
+      },
+      {
+        "id": 5,
+        "title": "DPoP Errors",
+        "type": "graph",
+        "targets": [
+          {"expr": "sum(rate(dpop_replay_errors_total[5m]))", "legendFormat": "DPoP replay"},
+          {"expr": "sum(rate(dpop_cnf_mismatch_total[5m]))", "legendFormat": "DPoP cnf mismatch"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "mTLS Handshake Failures",
+        "type": "stat",
+        "targets": [{"expr": "sum(rate(server_tls_handshake_failures_total[5m]))"}],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "DPoP Nonce Replays",
+        "type": "stat",
+        "targets": [{"expr": "sum(increase(dpop_replay_errors_total[10m]))"}],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8}
+      },
+      {
+        "id": 8,
+        "title": "SAS Endpoint Errors (5xx)",
+        "type": "graph",
+        "targets": [
+          {"expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/oauth2/.*|/oidc/.*\",status=~\"5..\"}[5m])) by (uri)", "legendFormat": "{{uri}}"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 9,
+        "title": "Token Endpoint Latency P95",
+        "type": "stat",
+        "targets": [
+          {"expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri=\"/oauth2/token\"}[5m])) by (le))"}
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+        "fieldConfig": {"defaults": {"unit": "s"}}
+      },
+      {
+        "id": 10,
+        "title": "WebAuthn Failure Ratio",
+        "type": "stat",
+        "targets": [
+          {"expr": "(sum(rate(webauthn_register_failure_total[5m])) + sum(rate(webauthn_assert_failure_total[5m]))) / ignoring() (sum(rate(webauthn_register_success_total[5m])) + sum(rate(webauthn_assert_success_total[5m])) + 1e-9)"}
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+        "fieldConfig": {"defaults": {"unit": "percentunit"}}
+      }
+    ]
+  }
+}
+
+

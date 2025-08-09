@@ -1,20 +1,22 @@
 package com.suuupra.identity.config;
 
-import com.suuupra.identity.rbac.RbacPermissionEvaluator;
+import com.suuupra.identity.rbac.CompositePermissionEvaluator;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.context.annotation.Bean;
 
 // Optional explicit wiring if needed in your Spring version
 @Configuration
-public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
-    private final RbacPermissionEvaluator evaluator;
-    public MethodSecurityConfig(RbacPermissionEvaluator evaluator) {
+@EnableMethodSecurity
+public class MethodSecurityConfig {
+    private final CompositePermissionEvaluator evaluator;
+    public MethodSecurityConfig(CompositePermissionEvaluator evaluator) {
         this.evaluator = evaluator;
     }
 
-    @Override
-    protected DefaultMethodSecurityExpressionHandler createExpressionHandler() {
+    @Bean
+    public DefaultMethodSecurityExpressionHandler methodSecurityExpressionHandler() {
         DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
         handler.setPermissionEvaluator(evaluator);
         return handler;
