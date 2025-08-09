@@ -272,6 +272,8 @@ Tracing (OTLP) recommended around login, token, introspect; include tenant (non�
 | POST | `/oauth2/token` | Token endpoint (DPoP nonce challenge supported) |
 | GET | `/userinfo` | OIDC UserInfo |
 
+See API Gateway’s Identity Integration guide for consumer configuration details: [API Gateway – Identity Integration](api-gateway.md#81-identity-integration-jwtjwks-with-es256)
+
 ### 12.6 Admin — RBAC, Tenants, Policies
 
 | Method | Path | Purpose |

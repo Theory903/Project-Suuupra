@@ -297,7 +297,9 @@ export interface RouteConfig {
 - **What**: Verify JWT with remote JWKS (OIDC discovery) or local secret; validate API keys with scopes.
 - **Why**: Secure access, rotate keys, decouple issuers.
 - **How**: `middleware/auth.ts` uses `jose` for JWKS and `apiKeys.ts` for Redis-backed keys. Per-route `requiredScopes`/`requiredRoles` optional.
-- **OIDC Integration**: Configure `issuer`, `audience` and `jwksUri` from Identity discovery (`/.well-known/openid-configuration`). Example route policy (conceptual):
+- **OIDC Integration**: Configure `issuer`, `audience` and `jwksUri` from Identity discovery (`/.well-known/openid-configuration`). Example route policy (conceptual).
+
+  See also: [Identity – OIDC / SAS](docs/apis/identity.md#125-oidc--sas)
 
   ```json
   {
