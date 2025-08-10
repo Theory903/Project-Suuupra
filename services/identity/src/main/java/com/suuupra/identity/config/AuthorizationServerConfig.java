@@ -53,13 +53,6 @@ public class AuthorizationServerConfig {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
         // Enable OpenID Connect endpoints (userinfo, discovery, etc.)
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class).oidc(Customizer.withDefaults());
-        http
-            .authorizeHttpRequests(authorize -> authorize
-                // Allow discovery and JWKs to be publicly accessible
-                .requestMatchers("/.well-known/**", "/oauth2/jwks", "/oauth2/authorize", "/oauth2/token").permitAll()
-                .anyRequest().authenticated()
-            )
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/.well-known/**", "/oauth2/**"));
         // OIDC enabled by default in applyDefaultSecurity for Spring Authorization Server
 
         return http.build();

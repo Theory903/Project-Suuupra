@@ -5,6 +5,8 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.EmptyResultDataAccessException;
+import jakarta.annotation.PostConstruct;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -29,21 +31,49 @@ public class SigningKeyService {
         this.kmsService = kmsService;
     }
 
+    @PostConstruct
+    public void ensureInitialKey() {
+        try {
+            // Check if any keys exist
+            Long count = jdbc.queryForObject("SELECT COUNT(*) FROM signing_keys WHERE enabled=TRUE", Long.class);
+            if (count == null || count == 0) {
+                // Generate and set the first key as current
+                String kid = rotateCreateNext();
+                promoteCurrent(kid);
+                System.out.println("Generated initial signing key: " + kid);
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: Could not initialize signing keys: " + e.getMessage());
+        }
+    }
+
     public ECPublicKey getCurrentPublicKey() {
-        Map<String, Object> row = jdbc.queryForMap("SELECT public_pem FROM signing_keys WHERE is_current=TRUE AND enabled=TRUE LIMIT 1");
-        return parsePublic((String) row.get("public_pem"));
+        try {
+            Map<String, Object> row = jdbc.queryForMap("SELECT public_pem FROM signing_keys WHERE is_current=TRUE AND enabled=TRUE LIMIT 1");
+            return parsePublic((String) row.get("public_pem"));
+        } catch (EmptyResultDataAccessException e) {
+            throw new IllegalStateException("No current signing key found. Service initialization may have failed.", e);
+        }
     }
 
     public ECPrivateKey getCurrentPrivateKey() {
-        Map<String, Object> row = jdbc.queryForMap("SELECT private_pem_enc FROM signing_keys WHERE is_current=TRUE AND enabled=TRUE LIMIT 1");
-        byte[] enc = (byte[]) row.get("private_pem_enc");
-        byte[] pem = kmsService.unwrap(enc);
-        return parsePrivate(new String(pem));
+        try {
+            Map<String, Object> row = jdbc.queryForMap("SELECT private_pem_enc FROM signing_keys WHERE is_current=TRUE AND enabled=TRUE LIMIT 1");
+            byte[] enc = (byte[]) row.get("private_pem_enc");
+            byte[] pem = kmsService.unwrap(enc);
+            return parsePrivate(new String(pem));
+        } catch (EmptyResultDataAccessException e) {
+            throw new IllegalStateException("No current signing key found. Service initialization may have failed.", e);
+        }
     }
 
     public String getCurrentKid() {
-        Map<String, Object> row = jdbc.queryForMap("SELECT kid FROM signing_keys WHERE is_current=TRUE AND enabled=TRUE LIMIT 1");
-        return (String) row.get("kid");
+        try {
+            Map<String, Object> row = jdbc.queryForMap("SELECT kid FROM signing_keys WHERE is_current=TRUE AND enabled=TRUE LIMIT 1");
+            return (String) row.get("kid");
+        } catch (EmptyResultDataAccessException e) {
+            throw new IllegalStateException("No current signing key found. Service initialization may have failed.", e);
+        }
     }
 
     public List<JWK> getAllPublicJwks() {

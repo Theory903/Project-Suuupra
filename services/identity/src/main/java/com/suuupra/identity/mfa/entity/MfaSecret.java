@@ -25,6 +25,6 @@ public class MfaSecret {
 
     private Instant createdAt = Instant.now();
 
-    @Lob
+    @Column(columnDefinition = "bytea")
     private byte[] secretEnc;
 }

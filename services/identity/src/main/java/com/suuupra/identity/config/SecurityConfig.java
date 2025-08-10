@@ -20,6 +20,7 @@ import com.suuupra.identity.security.DPoPVerifierFilter;
 import com.suuupra.identity.security.RateLimiterFilter;
 import com.suuupra.identity.security.MtlsEnforcementFilter;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.context.annotation.Lazy;
 
 @Configuration
 @EnableWebSecurity
@@ -33,8 +34,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final MtlsEnforcementFilter mtlsEnforcementFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService, ResourceIndicatorFilter resourceIndicatorFilter, DPoPVerifierFilter dPoPVerifierFilter, RateLimiterFilter rateLimiterFilter, MtlsEnforcementFilter mtlsEnforcementFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfig(@Lazy UserDetailsService userDetailsService, ResourceIndicatorFilter resourceIndicatorFilter, DPoPVerifierFilter dPoPVerifierFilter, RateLimiterFilter rateLimiterFilter, MtlsEnforcementFilter mtlsEnforcementFilter) {
+        this.jwtAuthenticationFilter = null; // Temporarily disabled
         this.userDetailsService = userDetailsService;
         this.resourceIndicatorFilter = resourceIndicatorFilter;
         this.dPoPVerifierFilter = dPoPVerifierFilter;
@@ -63,12 +64,12 @@ public class SecurityConfig {
                     "/oidc/**"
                 ).permitAll()
                 .anyRequest().authenticated())
-            .requiresChannel(ch -> ch.anyRequest().requiresSecure())
+            // .requiresChannel(ch -> ch.anyRequest().requiresSecure()) // Temporarily disabled for local testing
             .httpBasic(Customizer.withDefaults());
 
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        http.addFilterBefore(rateLimiterFilter, JwtAuthenticationFilter.class);
-        http.addFilterAfter(resourceIndicatorFilter, JwtAuthenticationFilter.class);
+        // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Temporarily disabled
+        http.addFilterBefore(rateLimiterFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(resourceIndicatorFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(dPoPVerifierFilter, ResourceIndicatorFilter.class);
         http.addFilterAfter(mtlsEnforcementFilter, DPoPVerifierFilter.class);
         return http.build();

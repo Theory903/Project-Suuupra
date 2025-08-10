@@ -9,6 +9,7 @@ import com.suuupra.identity.auth.service.EmailVerificationService;
 import com.suuupra.identity.notifications.EmailService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +25,7 @@ public class AuthController {
     private final EmailVerificationService emailVerificationService;
     private final EmailService emailService;
 
-    public AuthController(AuthService authService, EmailVerificationService emailVerificationService, EmailService emailService) {
+    public AuthController(@Lazy AuthService authService, EmailVerificationService emailVerificationService, EmailService emailService) {
         this.authService = authService;
         this.emailVerificationService = emailVerificationService;
         this.emailService = emailService;

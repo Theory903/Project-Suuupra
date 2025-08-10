@@ -7,6 +7,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.support.SimpleCacheManager;
+import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,25 +15,12 @@ import java.time.Duration;
 import java.util.List;
 
 @Configuration
-@EnableCaching
+// @EnableCaching - Temporarily disabled to resolve circular dependencies
 public class CacheConfig {
 
     @Bean
-    public CacheManager cacheManager(CacheMetricsRegistrar cacheMetricsRegistrar) {
-        SimpleCacheManager manager = new SimpleCacheManager();
-        Caffeine<Object, Object> spec = Caffeine.newBuilder()
-            .maximumSize(10_000)
-            .expireAfterWrite(Duration.ofMinutes(5))
-            .recordStats();
-        CaffeineCache permChecks = new CaffeineCache("permChecks", spec.build());
-        cacheMetricsRegistrar.bindCacheToRegistry(permChecks);
-        manager.setCaches(List.of(permChecks));
-        return manager;
-    }
-
-    @Bean
-    public CacheMetricsRegistrar cacheMetricsRegistrar(MeterRegistry registry) {
-        return new CacheMetricsRegistrar(registry);
+    public CacheManager cacheManager() {
+        return new NoOpCacheManager();
     }
 }
 
