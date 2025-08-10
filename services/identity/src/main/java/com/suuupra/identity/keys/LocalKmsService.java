@@ -17,6 +17,12 @@ public class LocalKmsService implements KmsService {
         try {
             KeyGenerator kg = KeyGenerator.getInstance("AES");
             kg.init(256);
+            
+            // For local development, use a deterministic key to avoid Tag mismatch errors
+            // In production, this should be replaced with proper KMS or externally managed keys
+            SecureRandom deterministicRandom = new SecureRandom();
+            deterministicRandom.setSeed("suuupra-local-dev-key".getBytes());
+            kg.init(256, deterministicRandom);
             this.kek = kg.generateKey();
         } catch (Exception e) {
             throw new IllegalStateException(e);

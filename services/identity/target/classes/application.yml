@@ -60,8 +60,7 @@ management:
     cache:
       instrument: false
   tracing:
-    sampling:
-      probability: 0.2
+    enabled: false
   otlp:
     tracing:
       endpoint: http://otel-collector:4317

@@ -190,7 +190,7 @@ app.all<{ Params: { service: string } }>('/:service/*', async (request, reply) =
 
     const { response, correlationId } = await handleGatewayProxy(request);
 
-    // Forward status and headers
+    // Forward status and headers and stream body to client
     const status = response.statusCode || 200;
     reply.header('x-correlation-id', correlationId);
     const hopByHop = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'transfer-encoding', 'upgrade']);
@@ -199,8 +199,15 @@ app.all<{ Params: { service: string } }>('/:service/*', async (request, reply) =
       if (!hopByHop.has(k.toLowerCase())) reply.header(k, v as any);
     }
     const routeId = String((headers['x-gateway-route-id'] as any) || 'unknown');
-    reply.status(status);
-    reply.send(response as unknown as IncomingMessage);
+    // Use hijack to stream the upstream response directly to the client
+    reply.hijack();
+    reply.raw.writeHead(status);
+    response.pipe(reply.raw);
+    response.on('end', () => {
+      try { reply.raw.end(); } catch {}
+    });
+    // early return since we took over the socket
+    return;
 
     // Log successful proxy operation
     const duration = timer.end({

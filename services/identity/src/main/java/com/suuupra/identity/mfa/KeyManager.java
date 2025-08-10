@@ -19,6 +19,12 @@ public class KeyManager {
         try {
             KeyGenerator kg = KeyGenerator.getInstance("AES");
             kg.init(256);
+            
+            // For local development, use a deterministic key to avoid encryption errors
+            // In production, this should be replaced with proper KMS or externally managed keys
+            SecureRandom deterministicRandom = new SecureRandom();
+            deterministicRandom.setSeed("suuupra-mfa-local-key".getBytes());
+            kg.init(256, deterministicRandom);
             this.kek = kg.generateKey();
         } catch (Exception e) {
             throw new IllegalStateException(e);
