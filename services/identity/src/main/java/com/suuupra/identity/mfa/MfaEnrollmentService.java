@@ -40,7 +40,7 @@ public class MfaEnrollmentService {
 
         MfaSecret e = mfaRepo.findByUserId(userId).orElse(new MfaSecret());
         e.setUserId(userId);
-        e.setSecret(base32); // legacy/plain for fallback
+        // Stop persisting plaintext secret; only store encrypted going forward
         e.setSecretEnc(enc);
         mfaRepo.save(e);
 

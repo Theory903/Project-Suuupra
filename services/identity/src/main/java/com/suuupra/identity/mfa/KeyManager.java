@@ -1,5 +1,6 @@
 package com.suuupra.identity.mfa;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -7,7 +8,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.security.SecureRandom;
-import java.util.Base64;
 
 @Component
 public class KeyManager {
@@ -15,17 +15,19 @@ public class KeyManager {
     private final SecretKey kek; // Simulated KEK; replace with KMS/Vault
     private final SecureRandom random = new SecureRandom();
 
-    public KeyManager() {
+    public KeyManager(@Value("${security.mfa.kekBase64:}") String kekBase64) {
         try {
-            KeyGenerator kg = KeyGenerator.getInstance("AES");
-            kg.init(256);
-            
-            // For local development, use a deterministic key to avoid encryption errors
-            // In production, this should be replaced with proper KMS or externally managed keys
-            SecureRandom deterministicRandom = new SecureRandom();
-            deterministicRandom.setSeed("suuupra-mfa-local-key".getBytes());
-            kg.init(256, deterministicRandom);
-            this.kek = kg.generateKey();
+            if (kekBase64 != null && !kekBase64.isBlank()) {
+                byte[] keyBytes = java.util.Base64.getDecoder().decode(kekBase64);
+                this.kek = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
+            } else {
+                // Deterministic dev key if no KEK provided
+                KeyGenerator kg = KeyGenerator.getInstance("AES");
+                SecureRandom deterministicRandom = new SecureRandom();
+                deterministicRandom.setSeed("suuupra-mfa-local-key".getBytes());
+                kg.init(256, deterministicRandom);
+                this.kek = kg.generateKey();
+            }
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

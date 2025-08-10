@@ -27,6 +27,8 @@ spring:
 # KMS settings (activate profile aws-kms to use AWS KMS)
 kms:
   key-id: ""
+  # Optional: base64-encoded 256-bit KEK for LocalKmsService in non-dev
+  kekBase64: ""
 
 security:
   jwt:
@@ -40,6 +42,10 @@ security:
       public-key-pem: ""
   auth:
     rate-limit-per-minute: 60
+  require-ssl: false
+  # Optional: provide a base64-encoded 256-bit KEK for MFA secret encryption (prod/staging)
+  mfa:
+    kekBase64: ""
   webauthn:
     rpId: identity.suuupra.local
     rpName: Suuupra Identity
@@ -55,7 +61,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,prometheus
   metrics:
     cache:
       instrument: false
@@ -85,6 +91,10 @@ spring:
     activate:
       on-profile: staging
 security:
+  require-ssl: true
+  jwt:
+    issuer: https://identity.staging.suuupra.com
+security:
   webauthn:
     rpId: identity.staging.suuupra.com
     rpName: Suuupra Identity (Staging)
@@ -102,6 +112,10 @@ spring:
     activate:
       on-profile: prod
 security:
+  require-ssl: true
+  jwt:
+    issuer: https://identity.suuupra.com
+security:
   webauthn:
     rpId: identity.suuupra.com
     rpName: Suuupra Identity
@@ -115,13 +129,6 @@ security:
 
 oauth:
   clients:
-    - clientId: sample-public-client
-      redirectUris:
-        - http://localhost:3000/callback
-      grants: [authorization_code, refresh_token]
-      scopes: [openid, profile, api]
-    - clientId: sample-confidential-client
-      clientSecret: "{noop}secret"
-      grants: [client_credentials]
-      scopes: [api]
+    # Production clients should be added via environment-specific configuration
+    # Do not add demo/test clients in production
 

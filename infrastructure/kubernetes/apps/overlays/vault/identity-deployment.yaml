@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity
+  namespace: suuupra
+spec:
+  selector:
+    matchLabels: { app: identity }
+  template:
+    metadata:
+      labels: { app: identity }
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "identity-role"
+        vault.hashicorp.com/agent-inject-secret-env: "secret/data/identity-service"
+        vault.hashicorp.com/agent-inject-template-env: |
+          {{- with secret "secret/data/identity-service" -}}
+          {{ range $k, $v := .Data.data -}}
+          export {{ $k }}="{{ $v }}"
+          {{ end -}}
+          {{- end }}
+        vault.hashicorp.com/agent-run-as-init: "true"
+        vault.hashicorp.com/agent-pre-populate-only: "true"
+        vault.hashicorp.com/agent-cpu-request: "50m"
+        vault.hashicorp.com/agent-memory-request: "64Mi"
+        vault.hashicorp.com/agent-cpu-limit: "200m"
+        vault.hashicorp.com/agent-memory-limit: "128Mi"
+    spec:
+      serviceAccountName: identity-sa
+      containers:
+        - name: identity
+          image: your/identity:tag
+          ports: [{ containerPort: 8081 }]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SECURITY_JWT_ISSUER
+              value: https://identity.your-domain.com
+          command: ["/bin/sh","-lc"]
+          args:
+            - . /vault/secrets/env && exec java -jar /app/app.jar
+

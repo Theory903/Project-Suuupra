@@ -102,6 +102,26 @@ export const gatewayConfig: GatewayConfig = {
         observability: { prometheusMetricsEnabled: true, structuredLoggingEnabled: true },
       },
     },
+    {
+      id: 'protected-default',
+      matcher: { pathPrefix: '/', methods: ['GET', 'POST', 'PUT', 'DELETE'] },
+      // The actual target is resolved later in the pipeline; we set a placeholder service to satisfy typing
+      target: { serviceName: 'content', discovery: { type: 'static' } },
+      policy: {
+        auth: {
+          requireJwt: true,
+          oidcDiscoveryUrl: process.env.OIDC_DISCOVERY_URL || 'https://identity.suuupra.com/.well-known/openid-configuration',
+          issuer: process.env.OIDC_ISSUER || 'https://identity.suuupra.com',
+          audience: process.env.OIDC_AUDIENCE || 'suuupra-api',
+          jwksCacheMaxAgeMs: 10 * 60 * 1000,
+        },
+        rateLimit: { enabled: true, tokensPerInterval: 200, intervalMs: 60_000, keys: ['ip', 'user'] },
+        retry: { enabled: true, maxAttempts: 2, backoffInitialMs: 50, backoffJitterMs: 25, retryOnMethods: ['GET'] },
+        timeout: { enabled: true, socketTimeoutMs: 5_000, connectTimeoutMs: 1_000 },
+        breaker: { enabled: true, timeoutMs: 5_000, errorThresholdPercentage: 50, resetTimeoutMs: 30_000 },
+        observability: { prometheusMetricsEnabled: true, structuredLoggingEnabled: true },
+      },
+    },
   ],
 };
 

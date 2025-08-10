@@ -2,11 +2,11 @@ package com.suuupra.identity.config;
 
 import com.suuupra.identity.auth.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -34,8 +34,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final MtlsEnforcementFilter mtlsEnforcementFilter;
 
-    public SecurityConfig(@Lazy UserDetailsService userDetailsService, ResourceIndicatorFilter resourceIndicatorFilter, DPoPVerifierFilter dPoPVerifierFilter, RateLimiterFilter rateLimiterFilter, MtlsEnforcementFilter mtlsEnforcementFilter) {
-        this.jwtAuthenticationFilter = null; // Temporarily disabled
+    public SecurityConfig(@Lazy UserDetailsService userDetailsService, JwtAuthenticationFilter jwtAuthenticationFilter, ResourceIndicatorFilter resourceIndicatorFilter, DPoPVerifierFilter dPoPVerifierFilter, RateLimiterFilter rateLimiterFilter, MtlsEnforcementFilter mtlsEnforcementFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.userDetailsService = userDetailsService;
         this.resourceIndicatorFilter = resourceIndicatorFilter;
         this.dPoPVerifierFilter = dPoPVerifierFilter;
@@ -44,7 +44,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, @Value("${security.require-ssl:false}") boolean requireSsl) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -53,6 +53,14 @@ public class SecurityConfig {
                 .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'; base-uri 'none'"))
                 .frameOptions(f -> f.sameOrigin())
             )
+            .cors(cors -> cors.configurationSource(unused -> {
+                var config = new org.springframework.web.cors.CorsConfiguration();
+                config.setAllowedOriginPatterns(java.util.List.of("https://*.suuupra.com", "https://localhost:*"));
+                config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(java.util.List.of("*"));
+                config.setAllowCredentials(true);
+                return config;
+            }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/actuator/**",
@@ -64,10 +72,12 @@ public class SecurityConfig {
                     "/oidc/**"
                 ).permitAll()
                 .anyRequest().authenticated())
-            // .requiresChannel(ch -> ch.anyRequest().requiresSecure()) // Temporarily disabled for local testing
-            .httpBasic(Customizer.withDefaults());
+            .httpBasic(h -> h.disable());
+        if (requireSsl) {
+            http.requiresChannel(ch -> ch.anyRequest().requiresSecure());
+        }
 
-        // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Temporarily disabled
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(rateLimiterFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(resourceIndicatorFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(dPoPVerifierFilter, ResourceIndicatorFilter.class);

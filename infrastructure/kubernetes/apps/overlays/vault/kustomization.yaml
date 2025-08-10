@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: suuupra
+
+resources:
+  - identity-deployment.yaml
+  - api-gateway-deployment.yaml
+  - identity-serviceaccount.yaml
+  - api-gateway-serviceaccount.yaml
+
+

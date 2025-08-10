@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: suuupra
+spec:
+  selector:
+    matchLabels: { app: api-gateway }
+  template:
+    metadata:
+      labels: { app: api-gateway }
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "gateway-role"
+        vault.hashicorp.com/agent-inject-secret-env: "secret/data/api-gateway"
+        vault.hashicorp.com/agent-inject-template-env: |
+          {{- with secret "secret/data/api-gateway" -}}
+          {{ range $k, $v := .Data.data -}}
+          export {{ $k }}="{{ $v }}"
+          {{ end -}}
+          {{- end }}
+        vault.hashicorp.com/agent-run-as-init: "true"
+        vault.hashicorp.com/agent-pre-populate-only: "true"
+        vault.hashicorp.com/agent-cpu-request: "50m"
+        vault.hashicorp.com/agent-memory-request: "64Mi"
+        vault.hashicorp.com/agent-cpu-limit: "200m"
+        vault.hashicorp.com/agent-memory-limit: "128Mi"
+    spec:
+      serviceAccountName: api-gateway-sa
+      containers:
+        - name: api-gateway
+          image: your/api-gateway:tag
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          command: ["/bin/sh","-lc"]
+          args:
+            - . /vault/secrets/env && exec node dist/src/server.js
+

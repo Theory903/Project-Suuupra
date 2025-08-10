@@ -20,7 +20,7 @@ public class MfaSecret {
     @Column(nullable = false)
     private UUID userId;
 
-    @Column(nullable = false)
+    // Legacy plaintext TOTP secret (to be removed after migration)
     private String secret;
 
     private Instant createdAt = Instant.now();

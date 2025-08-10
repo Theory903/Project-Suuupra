@@ -1,5 +1,6 @@
 package com.suuupra.identity.keys;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -13,17 +14,21 @@ public class LocalKmsService implements KmsService {
     private final SecretKey kek;
     private final SecureRandom random = new SecureRandom();
 
-    public LocalKmsService() {
+    public LocalKmsService(@Value("${kms.kekBase64:}") String kekBase64,
+                           @Value("${spring.profiles.active:}") String activeProfile) {
         try {
-            KeyGenerator kg = KeyGenerator.getInstance("AES");
-            kg.init(256);
-            
-            // For local development, use a deterministic key to avoid Tag mismatch errors
-            // In production, this should be replaced with proper KMS or externally managed keys
-            SecureRandom deterministicRandom = new SecureRandom();
-            deterministicRandom.setSeed("suuupra-local-dev-key".getBytes());
-            kg.init(256, deterministicRandom);
-            this.kek = kg.generateKey();
+            if (kekBase64 != null && !kekBase64.isBlank()) {
+                byte[] keyBytes = java.util.Base64.getDecoder().decode(kekBase64);
+                javax.crypto.spec.SecretKeySpec spec = new javax.crypto.spec.SecretKeySpec(keyBytes, "AES");
+                this.kek = spec;
+            } else {
+                KeyGenerator kg = KeyGenerator.getInstance("AES");
+                // Deterministic dev key if no KEK provided
+                SecureRandom deterministicRandom = new SecureRandom();
+                deterministicRandom.setSeed("suuupra-local-dev-key".getBytes());
+                kg.init(256, deterministicRandom);
+                this.kek = kg.generateKey();
+            }
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
