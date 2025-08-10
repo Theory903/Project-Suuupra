@@ -42,7 +42,7 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: SECURITY_JWT_ISSUER
-              value: https://identity.your-domain.com
+              value: https://identity.suuupra.com
           command: ["/bin/sh","-lc"]
           args:
             - . /vault/secrets/env && exec java -jar /app/app.jar

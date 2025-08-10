@@ -26,7 +26,9 @@
 ### Phase 3: MFA and Account Recovery (Done)
 
 - [x] TOTP enrollment/verification; QR provisioning; metrics; step-up annotation
-- [ ] Backup codes + secret encryption + drift window (optional next)
+- [x] Secret encryption with KEK management; plaintext migration completed
+- [x] Backup codes with secure hashing (RecoveryCodeService)
+- [ ] Drift window configuration (optional next)
 
 ### Phase 4: Observability and Security Hardening (Done)
 
@@ -34,8 +36,19 @@
 - [x] Alerts: SLO burn-rate, token P95, JWKS failures, WebAuthn failure spike, DPoP
 - [x] DPoP nonce challenges; cnf.jkt binding; mTLS enforcement annotation/filter
 - [x] JWKS TTL and ETag; key rotation admin endpoints
+- [x] Production hardening: removed demo clients, restricted actuator endpoints
+- [x] CORS locked to suuupra.com domains; strengthened password policy
+- [x] JWT authentication re-enabled; Basic auth disabled for app endpoints
+- [x] Signing key rotation runbook and operational procedures
 
-### Phase 5: Federation, Social Login, and Delivery (Planned)
+### Phase 5: Production Deployment Infrastructure (Done)
+
+- [x] Vault integration framework with Kubernetes overlays and Docker Compose support
+- [x] Automated deployment scripts with KEK generation and secret management
+- [x] Production-ready configurations with environment-specific profiles
+- [x] Migration verification and MFA cleanup automation
+
+### Phase 6: Federation, Social Login, and Advanced Features (Planned)
 
 - [ ] SAML 2.0 IdP with metadata and assertion attributes.
 - [ ] Social login providers (as OAuth2 clients).

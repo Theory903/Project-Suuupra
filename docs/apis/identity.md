@@ -140,7 +140,8 @@ Client → Gateway → Identity (AuthN/Z, SAS) → Postgres/Redis
 
 ### 8.1 Password Auth
 
-- Argon2id hashing; password policy checks
+- Argon2id hashing with strong parameters (32MB memory, 2 iterations)
+- Enhanced password policy: min 12 chars, 3+ character types, common pattern detection
 - HIBP k‑anonymity check (configurable)
 - Rate limits per email/IP + exponential backoff/lockout
 
@@ -181,8 +182,11 @@ Client → Gateway → Identity (AuthN/Z, SAS) → Postgres/Redis
 
 ### 8.5 MFA (TOTP)
 
-- TOTP enrollment (otpauth URI) and verification
-- Roadmap: backup codes (hashed), secret encryption, drift window, step-up policies
+- TOTP enrollment (otpauth URI) and verification with QR code generation
+- Encrypted secret storage with KEK management (Vault integration)
+- Backup codes (10 per user) with secure hashing and one-time consumption
+- Migration completed: no plaintext secrets stored
+- Roadmap: drift window configuration, step-up policies
 
 ### 8.6 Audit Logging
 
@@ -193,8 +197,10 @@ Client → Gateway → Identity (AuthN/Z, SAS) → Postgres/Redis
 
 ## 9 · Security
 
-- ES256 keys; JWKS with cache TTL/backoff; rotation scaffolding (`keys.rotate`)
-- HSTS, CSP, XSS, frame options enabled; no secrets in repo
+- ES256 keys with KMS/Vault KEK encryption; JWKS with cache TTL/backoff; rotation runbook
+- HSTS, CSP, XSS, frame options enabled; CORS restricted to suuupra.com domains
+- JWT authentication enforced; Basic auth disabled for application endpoints
+- Production hardening: demo clients removed, actuator endpoints restricted
 - Lockout/backoff + rate limits; device UA/IP capture per session
 - DPoP nonce challenges; `cnf.jkt` proof binding; optional mTLS on admin APIs
 - RFC alignment: revocation (7009), introspection (7662), userinfo
@@ -218,7 +224,11 @@ Tracing (OTLP) recommended around login, token, introspect; include tenant (non�
 
 ## 11 · Operations & Infra
 
-- HA Postgres/Redis, KMS/Vault for secrets/keys; Terraform modules + GitOps CD
+- HA Postgres/Redis, KMS/Vault for secrets/keys with automated setup scripts
+- Kubernetes deployment with Vault Agent Injector for secret management
+- Docker Compose production configuration with environment isolation
+- One-command deployment: `./deploy-prod.sh` handles KEK generation and deployment
+- Signing key rotation runbook: `docs/runbooks/signing-key-rotation.md`
 - Multi‑AZ; optional multi‑region DR; PITR backups and restore drills
 - Supply chain: SAST/DAST, SBOM, signing (cosign), provenance
 
@@ -244,6 +254,8 @@ Tracing (OTLP) recommended around login, token, introspect; include tenant (non�
 | GET | `/api/v1/users/sessions` | List sessions |
 | POST | `/api/v1/users/sessions/{sid}/revoke` | Revoke session by id |
 | POST | `/api/v1/users/token/revoke` | Denylist current access token |
+
+**Note**: All user APIs require JWT authentication (Bearer token).
 
 ### 12.3 MFA (TOTP)
 
@@ -321,12 +333,13 @@ Security notes: Admin routes require JWT with roles, DPoP, and may require mTLS 
 
 ---
 
-## 13 · What’s Next (Optional)
+## 13 · What's Next (Optional)
 
-- MFA backup codes and TOTP secret encryption, drift window, QR provisioning
+- TOTP drift window configuration and step-up authentication policies
 - Terraform modules for infra (Redis/KMS) and GitOps CD; renovate and provenance
 - DPoP alignment in resource services (cnf.jkt validation and nonce flow)
 - ABAC policy authoring UX and dry-run → enforce workflows
+- SAML 2.0 IdP and social login provider integration
 
 ---
 
