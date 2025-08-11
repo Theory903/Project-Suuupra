@@ -28,7 +28,7 @@ spring:
 kms:
   key-id: ""
   # Optional: base64-encoded 256-bit KEK for LocalKmsService in non-dev
-  kekBase64: ""
+  kekBase64: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 
 security:
   jwt:
@@ -94,7 +94,6 @@ security:
   require-ssl: true
   jwt:
     issuer: https://identity.staging.suuupra.com
-security:
   webauthn:
     rpId: identity.staging.suuupra.com
     rpName: Suuupra Identity (Staging)
@@ -115,7 +114,6 @@ security:
   require-ssl: true
   jwt:
     issuer: https://identity.suuupra.com
-security:
   webauthn:
     rpId: identity.suuupra.com
     rpName: Suuupra Identity
