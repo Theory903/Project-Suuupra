@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-gateway-vs
+  namespace: suuupra
+spec:
+  hosts:
+    - "gateway.suuupra.local"
+  gateways:
+    - suuupra-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/"
+      route:
+        - destination:
+            host: api-gateway.suuupra.svc.cluster.local
+            port:
+              number: 80
+
+

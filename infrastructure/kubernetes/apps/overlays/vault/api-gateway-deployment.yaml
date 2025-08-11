@@ -40,5 +40,5 @@ spec:
               memory: "256Mi"
           command: ["/bin/sh","-lc"]
           args:
-            - . /vault/secrets/env && exec node dist/src/server.js
+            - . /vault/secrets/env && exec node dist/server.js
 

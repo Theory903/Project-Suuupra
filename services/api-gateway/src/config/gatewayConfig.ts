@@ -36,7 +36,7 @@ export const gatewayConfig: GatewayConfig = {
     cors: true,
     staticAssetProxy: false,
     jwt: true,
-    oauthOidc: false,
+    oauthOidc: true,
     sessions: false,
     rbac: true,
     apiKeys: true,
@@ -110,8 +110,8 @@ export const gatewayConfig: GatewayConfig = {
       policy: {
         auth: {
           requireJwt: true,
-          oidcDiscoveryUrl: process.env.OIDC_DISCOVERY_URL || 'https://identity.suuupra.com/.well-known/openid-configuration',
-          issuer: process.env.OIDC_ISSUER || 'https://identity.suuupra.com',
+          oidcDiscoveryUrl: process.env.OIDC_DISCOVERY_URL || 'http://localhost:8081/.well-known/openid-configuration',
+          issuer: process.env.OIDC_ISSUER || 'http://localhost:8081',
           audience: process.env.OIDC_AUDIENCE || 'suuupra-api',
           jwksCacheMaxAgeMs: 10 * 60 * 1000,
         },

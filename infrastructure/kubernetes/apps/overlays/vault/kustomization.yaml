@@ -4,9 +4,13 @@ kind: Kustomization
 namespace: suuupra
 
 resources:
+  - namespace.yaml
   - identity-deployment.yaml
   - api-gateway-deployment.yaml
   - identity-serviceaccount.yaml
   - api-gateway-serviceaccount.yaml
+  - identity-service.yaml
+  - api-gateway-service.yaml
+  - api-gateway-ingress.yaml
 
 
