@@ -1,8 +1,8 @@
-# UPI Core Service
+# Beyond‑UPI Core (UPI Switch)
 
-## 🏛️ Overview
+## Overview
 
-The **UPI Core Service** is the central transaction processing engine and orchestrator of the entire UPI ecosystem. It acts as the authoritative switch that routes transactions between banks, ensures security through cryptographic verification, maintains transaction integrity, and provides real-time settlement capabilities.
+The Core service is the UPI‑compatible switch for Beyond‑UPI. It performs cryptographic verification, VPA resolution, intelligent bank routing, settlement accounting, and emits authoritative transaction events. It must meet strict SLOs and provide deterministic behavior for refunds, reversals, and reconciliation.
 
 ## 🎯 Purpose
 
@@ -14,7 +14,7 @@ This service serves as the backbone of the UPI network, providing:
 - **VPA Resolution**: Virtual Payment Address to bank account mapping
 - **Audit Trail**: Complete transaction history and reconciliation
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Component | Technology | Version | Purpose |
 |-----------|------------|---------|---------|
@@ -27,7 +27,7 @@ This service serves as the backbone of the UPI network, providing:
 | **Monitoring** | OpenTelemetry | Latest | Distributed tracing and metrics |
 | **Service Discovery** | Consul/etcd | Latest | Dynamic service registration |
 
-## 🏗 Architecture
+## Architecture
 
 The service follows **Clean Architecture** principles with clear separation of concerns:
 
@@ -67,7 +67,7 @@ The service follows **Clean Architecture** principles with clear separation of c
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Go 1.21+
@@ -157,7 +157,7 @@ ENABLE_TRACING=true
 JAEGER_ENDPOINT=http://localhost:14268/api/traces
 ```
 
-## 📊 Database Schema
+## Database Schema (abridged)
 
 ### Core Tables
 
@@ -238,7 +238,7 @@ CREATE INDEX idx_vpa_mappings_bank_code ON vpa_mappings(bank_code);
 CREATE INDEX idx_banks_status ON banks(status);
 ```
 
-## 🔌 gRPC API
+## gRPC API (core services)
 
 ### Core Services
 
@@ -298,7 +298,7 @@ response, err := client.ProcessTransaction(ctx, &pb.TransactionRequest{
 })
 ```
 
-## 🔐 Security Features
+## Security Features
 
 ### Digital Signatures
 - **RSA-SHA256** signatures for all transaction requests
@@ -318,7 +318,7 @@ response, err := client.ProcessTransaction(ctx, &pb.TransactionRequest{
 - **Rate limiting** to prevent abuse
 - **Audit logging** for all sensitive operations
 
-## 🔄 Transaction Flow
+## Transaction Flow
 
 ### Standard P2P Transaction
 1. **Request Validation**: Verify transaction format and signature
@@ -337,7 +337,7 @@ response, err := client.ProcessTransaction(ctx, &pb.TransactionRequest{
 - **Timeout Management**: Configurable timeouts for each operation
 - **Dead Letter Queue**: Handle permanently failed transactions
 
-## 📈 Performance & Scalability
+## Performance & Scalability
 
 ### Performance Metrics
 - **Transaction Throughput**: 10,000+ TPS sustained
@@ -352,7 +352,7 @@ response, err := client.ProcessTransaction(ctx, &pb.TransactionRequest{
 - **Load Balancing**: gRPC load balancing with health checks
 - **Connection Pooling**: Efficient database connection management
 
-## 🔍 Monitoring & Observability
+## Monitoring & Observability
 
 ### Metrics (Prometheus)
 ```go

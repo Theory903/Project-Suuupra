@@ -1,0 +1,292 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Content Service Dashboard",
+    "tags": ["content", "microservices", "suuupra"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"content-service\"}",
+            "legendFormat": "Service Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "Down"}}, "type": "value"},
+              {"options": {"1": {"text": "Up"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(content_http_requests_total[5m]))",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(content_http_requests_total{status_code=~\"4..|5..\"}[5m])) / sum(rate(content_http_requests_total[5m])) * 100",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Response Time (P95)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(content_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95 Latency"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.2},
+                {"color": "red", "value": 0.5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "HTTP Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(content_http_requests_total[5m])) by (method, status_code)",
+            "legendFormat": "{{method}} {{status_code}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Requests/sec", "unit": "reqps"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "Response Time Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(content_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(content_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(content_http_request_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yAxes": [
+          {"label": "Response Time", "unit": "s"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "Content Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(content_operations_total[5m])) by (operation)",
+            "legendFormat": "{{operation}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations/sec", "unit": "ops"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Upload Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(content_uploads_total[5m])) by (operation, status)",
+            "legendFormat": "{{operation}} {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Uploads/sec", "unit": "ops"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "Search Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(content_search_queries_total[5m]))",
+            "legendFormat": "Search Queries/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(content_search_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "P95 Search Latency"
+          }
+        ],
+        "yAxes": [
+          {"label": "Queries/sec | Latency", "unit": "short"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+      },
+      {
+        "id": 10,
+        "title": "Elasticsearch Sync",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(content_elasticsearch_sync_events_total[5m])) by (operation, status)",
+            "legendFormat": "{{operation}} {{status}}"
+          },
+          {
+            "expr": "avg(content_elasticsearch_sync_lag_seconds)",
+            "legendFormat": "Sync Lag (seconds)"
+          }
+        ],
+        "yAxes": [
+          {"label": "Events/sec | Lag", "unit": "short"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+      },
+      {
+        "id": 11,
+        "title": "WebSocket Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(content_websocket_connections)",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "sum(rate(content_websocket_messages_total[5m])) by (message_type, direction)",
+            "legendFormat": "{{message_type}} {{direction}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Connections | Messages/sec", "unit": "short"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+      },
+      {
+        "id": 12,
+        "title": "Database Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(content_database_query_duration_seconds_bucket[5m])) by (le, collection))",
+            "legendFormat": "P95 {{collection}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Query Duration", "unit": "s"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+      },
+      {
+        "id": 13,
+        "title": "Content by Status",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(content_by_status) by (status)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 36}
+      },
+      {
+        "id": 14,
+        "title": "Content by Type",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(content_by_type) by (content_type)",
+            "legendFormat": "{{content_type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 36}
+      },
+      {
+        "id": 15,
+        "title": "System Resources",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"content-service\"}",
+            "legendFormat": "Memory Usage"
+          },
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"content-service\"}[5m])",
+            "legendFormat": "CPU Usage"
+          }
+        ],
+        "yAxes": [
+          {"label": "Memory (bytes) | CPU %", "unit": "bytes"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36}
+      }
+    ]
+  }
+}

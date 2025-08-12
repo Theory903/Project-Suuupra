@@ -1,8 +1,8 @@
-# UPI PSP (Payment Service Provider) Mobile App
+# Beyond‑UPI PSP (Mobile App)
 
-## 🏦 Overview
+## Overview
 
-The **UPI PSP Mobile App** is a cross-platform Flutter application that provides a complete UPI payment experience. It serves as the user-facing interface for the UPI ecosystem, enabling users to send money, receive payments, manage bank accounts, and perform various financial transactions securely.
+The PSP app is the user‑facing experience for Beyond‑UPI. It enables secure peer and merchant payments, alias privacy UX, delegated pay controls, MINI (minor) policies, group commits/splits, offline vouchers, device linking/session handoff, and a unified ledger view. It integrates with the Payments API and Core gRPC, applying strong device binding and passkey‑first authentication.
 
 ## 🎯 Features
 
@@ -37,7 +37,7 @@ The **UPI PSP Mobile App** is a cross-platform Flutter application that provides
 - **Push Notifications** for transaction updates
 - **Voice Commands** for accessibility
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Component | Technology | Version | Purpose |
 |-----------|------------|---------|---------|
@@ -51,7 +51,7 @@ The **UPI PSP Mobile App** is a cross-platform Flutter application that provides
 | **Database** | Hive/SQLite | Latest | Local data persistence |
 | **Testing** | Flutter Test + Mockito | Latest | Unit and widget testing |
 
-## 🏗 Architecture
+## Architecture
 
 The app follows **Clean Architecture** principles with clear separation of concerns:
 
@@ -84,7 +84,7 @@ The app follows **Clean Architecture** principles with clear separation of conce
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Flutter SDK 3.16+

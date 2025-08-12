@@ -1,0 +1,1157 @@
+openapi: 3.1.0
+info:
+  title: Content Service API
+  version: 1.0.0
+  description: |
+    Production-grade content management service for the Suuupra platform.
+    
+    ## Features
+    - Content CRUD operations with rich metadata
+    - Large file uploads with S3 multipart and progress tracking
+    - Elasticsearch-powered search and discovery
+    - Content approval workflow with versioning
+    - Real-time WebSocket notifications
+    - Multi-tenant architecture with RBAC
+    
+    ## Authentication
+    All endpoints require JWT authentication via the `Authorization: Bearer <token>` header.
+    
+    ## Rate Limiting
+    API endpoints are rate limited. Check response headers for current limits.
+    
+    ## Versioning
+    Content uses semantic versioning (major.minor.patch) with immutable history.
+  contact:
+    name: Suuupra Platform Team
+    email: platform-team@suuupra.com
+  license:
+    name: Proprietary
+servers:
+  - url: http://localhost:8082/api/v1
+    description: Development server
+  - url: https://api.suuupra.com/content/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check service health and status
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content:
+    post:
+      summary: Create content
+      description: Create new content with metadata
+      operationId: createContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContentRequest'
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Idempotency key conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List content
+      description: List content with pagination and filtering
+      operationId: listContent
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Order'
+        - name: status
+          in: query
+          description: Filter by content status
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContentStatus'
+        - name: contentType
+          in: query
+          description: Filter by content type
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContentType'
+        - name: category
+          in: query
+          description: Filter by category IDs
+          schema:
+            type: array
+            items:
+              type: string
+        - name: tags
+          in: query
+          description: Filter by tags
+          schema:
+            type: array
+            items:
+              type: string
+        - name: createdBy
+          in: query
+          description: Filter by creator user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /content/{id}:
+    get:
+      summary: Get content by ID
+      description: Retrieve content by ID with ETag support
+      operationId: getContent
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+        - name: If-None-Match
+          in: header
+          description: ETag for conditional requests
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content retrieved successfully
+          headers:
+            ETag:
+              description: Entity tag for caching
+              schema:
+                type: string
+            Last-Modified:
+              description: Last modification date
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '304':
+          description: Not modified (cached version is current)
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update content
+      description: Update content with optimistic concurrency control
+      operationId: updateContent
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+        - name: If-Match
+          in: header
+          description: ETag for optimistic concurrency control
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContentRequest'
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          description: Precondition failed (ETag mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete content
+      description: Soft delete content (can be restored)
+      operationId: deleteContent
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+      responses:
+        '200':
+          description: Content deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /content/{id}/upload:
+    post:
+      summary: Initiate file upload
+      description: Start multipart file upload to S3
+      operationId: initiateUpload
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateUploadRequest'
+      responses:
+        '201':
+          description: Upload initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiateUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Upload already in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content/{id}/upload/{uploadId}/complete:
+    post:
+      summary: Complete file upload
+      description: Complete multipart upload and finalize file
+      operationId: completeUpload
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+        - $ref: '#/components/parameters/UploadId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteUploadRequest'
+      responses:
+        '200':
+          description: Upload completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /upload/{uploadId}/progress:
+    get:
+      summary: Get upload progress
+      description: Get current upload progress and status
+      operationId: getUploadProgress
+      parameters:
+        - $ref: '#/components/parameters/UploadId'
+      responses:
+        '200':
+          description: Upload progress retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadProgressResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /upload/{uploadId}/resume:
+    post:
+      summary: Resume upload
+      description: Resume a paused or failed upload
+      operationId: resumeUpload
+      parameters:
+        - $ref: '#/components/parameters/UploadId'
+      responses:
+        '200':
+          description: Upload resumed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /upload/{uploadId}:
+    delete:
+      summary: Abort upload
+      description: Cancel an ongoing upload
+      operationId: abortUpload
+      parameters:
+        - $ref: '#/components/parameters/UploadId'
+      responses:
+        '200':
+          description: Upload aborted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /search:
+    get:
+      summary: Search content
+      description: Search content using Elasticsearch with faceted filtering
+      operationId: searchContent
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [relevance, created_at, updated_at, title, views]
+            default: relevance
+        - $ref: '#/components/parameters/Order'
+        - name: filters
+          in: query
+          description: Search filters (JSON object)
+          schema:
+            type: string
+            description: JSON-encoded filter object
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /search/suggestions:
+    get:
+      summary: Get search suggestions
+      description: Get autocomplete suggestions for search queries
+      operationId: getSearchSuggestions
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Partial search query
+          schema:
+            type: string
+            minLength: 2
+        - name: limit
+          in: query
+          description: Maximum number of suggestions
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+      responses:
+        '200':
+          description: Suggestions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestionsResponse'
+
+  # Workflow endpoints
+  /content/{id}/submit-approval:
+    post:
+      summary: Submit for approval
+      description: Submit content for approval workflow
+      operationId: submitForApproval
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+      responses:
+        '200':
+          description: Content submitted for approval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/content/{id}/approve:
+    post:
+      summary: Approve content
+      description: Approve content (moderator/admin only)
+      operationId: approveContent
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowActionRequest'
+      responses:
+        '200':
+          description: Content approved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/content/{id}/reject:
+    post:
+      summary: Reject content
+      description: Reject content with reason (moderator/admin only)
+      operationId: rejectContent
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WorkflowActionRequest'
+                - type: object
+                  required: [reason]
+      responses:
+        '200':
+          description: Content rejected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/content/{id}/publish:
+    post:
+      summary: Publish content
+      description: Publish approved content (moderator/admin only)
+      operationId: publishContent
+      parameters:
+        - $ref: '#/components/parameters/ContentId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WorkflowActionRequest'
+                - type: object
+                  properties:
+                    versionBump:
+                      $ref: '#/components/schemas/VersionBump'
+      responses:
+        '200':
+          description: Content published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ContentId:
+      name: id
+      in: path
+      required: true
+      description: Content ID
+      schema:
+        type: string
+        format: uuid
+
+    UploadId:
+      name: uploadId
+      in: path
+      required: true
+      description: Upload session ID
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      description: Page number
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    Limit:
+      name: limit
+      in: query
+      description: Items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    Sort:
+      name: sort
+      in: query
+      description: Sort field
+      schema:
+        type: string
+        default: created_at
+
+    Order:
+      name: order
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  schemas:
+    # Enums
+    ContentType:
+      type: string
+      enum: [video, article, quiz, document]
+
+    ContentStatus:
+      type: string
+      enum: [draft, pending_approval, approved, published, archived]
+
+    VersionBump:
+      type: string
+      enum: [major, minor, patch]
+
+    # Core Models
+    Content:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        contentType:
+          $ref: '#/components/schemas/ContentType'
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+        version:
+          type: string
+          pattern: '^\\d+\\.\\d+\\.\\d+$'
+        categoryId:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          maxItems: 20
+        metadata:
+          type: object
+          additionalProperties: true
+        fileInfo:
+          $ref: '#/components/schemas/FileInfo'
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        etag:
+          type: string
+      required:
+        - id
+        - tenantId
+        - title
+        - contentType
+        - status
+        - version
+        - createdBy
+        - createdAt
+        - updatedAt
+        - etag
+
+    FileInfo:
+      type: object
+      properties:
+        filename:
+          type: string
+        contentType:
+          type: string
+        fileSize:
+          type: integer
+          minimum: 1
+        s3Key:
+          type: string
+        cdnUrl:
+          type: string
+          format: uri
+        checksumSha256:
+          type: string
+          pattern: '^[a-fA-F0-9]{64}$'
+        uploadedAt:
+          type: string
+          format: date-time
+      required:
+        - filename
+        - contentType
+        - fileSize
+        - s3Key
+        - checksumSha256
+        - uploadedAt
+
+    # Request/Response Schemas
+    CreateContentRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        contentType:
+          $ref: '#/components/schemas/ContentType'
+        categoryId:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          maxItems: 20
+          uniqueItems: true
+        metadata:
+          type: object
+          additionalProperties: true
+        idempotencyKey:
+          type: string
+          format: uuid
+      required:
+        - title
+        - contentType
+        - idempotencyKey
+
+    UpdateContentRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        categoryId:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          maxItems: 20
+          uniqueItems: true
+        metadata:
+          type: object
+          additionalProperties: true
+        versionBump:
+          $ref: '#/components/schemas/VersionBump'
+      minProperties: 1
+
+    InitiateUploadRequest:
+      type: object
+      properties:
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+        contentType:
+          type: string
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_]*\\/[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_.]*$'
+        fileSize:
+          type: integer
+          minimum: 1
+          maximum: 10737418240
+        checksumSha256:
+          type: string
+          pattern: '^[a-fA-F0-9]{64}$'
+      required:
+        - filename
+        - contentType
+        - fileSize
+        - checksumSha256
+
+    CompleteUploadRequest:
+      type: object
+      properties:
+        parts:
+          type: array
+          items:
+            type: object
+            properties:
+              partNumber:
+                type: integer
+                minimum: 1
+                maximum: 10000
+              etag:
+                type: string
+                minLength: 1
+            required:
+              - partNumber
+              - etag
+          minItems: 1
+      required:
+        - parts
+
+    WorkflowActionRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+        metadata:
+          type: object
+          additionalProperties: true
+
+    # Response Schemas
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        error:
+          $ref: '#/components/schemas/ApiError'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+      required:
+        - success
+
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+      required:
+        - code
+        - message
+
+    ResponseMeta:
+      type: object
+      properties:
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+      required:
+        - requestId
+        - timestamp
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+        - hasNext
+        - hasPrev
+
+    ContentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Content'
+
+    ContentListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Content'
+
+    SearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/SearchResult'
+            meta:
+              allOf:
+                - $ref: '#/components/schemas/ResponseMeta'
+                - type: object
+                  properties:
+                    aggregations:
+                      type: object
+                      additionalProperties: true
+                    queryTimeMs:
+                      type: integer
+                    totalHits:
+                      type: integer
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        contentType:
+          $ref: '#/components/schemas/ContentType'
+        category:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            path:
+              type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        fileInfo:
+          type: object
+        _score:
+          type: number
+        highlights:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    SuggestionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: string
+
+    InitiateUploadResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                uploadId:
+                  type: string
+                  format: uuid
+                uploadParts:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      partNumber:
+                        type: integer
+                      signedUrl:
+                        type: string
+                        format: uri
+                      expiresAt:
+                        type: string
+                        format: date-time
+
+    CompleteUploadResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                s3Key:
+                  type: string
+                cdnUrl:
+                  type: string
+                  format: uri
+                fileSize:
+                  type: integer
+                etag:
+                  type: string
+                content:
+                  $ref: '#/components/schemas/Content'
+
+    UploadProgressResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                uploadId:
+                  type: string
+                contentId:
+                  type: string
+                filename:
+                  type: string
+                totalSize:
+                  type: integer
+                uploadedSize:
+                  type: integer
+                percentage:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                status:
+                  type: string
+                  enum: [initiated, uploading, completed, failed, aborted]
+                partsCompleted:
+                  type: integer
+                totalParts:
+                  type: integer
+                estimatedTimeRemaining:
+                  type: integer
+                canResume:
+                  type: boolean
+
+    ResumeUploadResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                uploadParts:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      partNumber:
+                        type: integer
+                      signedUrl:
+                        type: string
+                        format: uri
+                      expiresAt:
+                        type: string
+                        format: date-time
+
+    DeleteResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                deleted:
+                  type: boolean
+                  enum: [true]
+
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                service:
+                  type: string
+                version:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                uptime:
+                  type: number
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              enum: [false]
+          required:
+            - success
+            - error
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: VALIDATION_ERROR
+              message: Validation failed
+              details:
+                errors:
+                  - field: title
+                    message: must not be empty
+                    value: ""
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+
+    Forbidden:
+      description: Insufficient privileges
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: FORBIDDEN
+              message: Insufficient privileges
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: NOT_FOUND
+              message: Content not found
