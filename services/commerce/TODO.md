@@ -3,9 +3,11 @@
 ## 1. 🎯 The Challenge: Problem Statement & Mission
 
 ### **Problem Statement**
+
 > As the Suuupra platform grows, managing orders and ensuring data consistency across multiple services becomes a significant challenge. A simple monolithic approach to order management will not scale and will lead to a tightly coupled and brittle system. The challenge is to build a highly available, scalable, and resilient order management system that can handle complex, multi-service order fulfillment while maintaining data consistency.
 
 ### **Mission**
+
 > To build a sophisticated order management system that serves as the backbone of all monetization on the Suuupra platform, enabling seamless and reliable e-commerce experiences.
 
 ---
@@ -49,6 +51,7 @@ graph TD
     B --> E[Inventory Service]
     B --> F[Payment Service]
     B --> G[Notification Service]
+    ```mermaid
 
 3.2. Tech Stack Deep Dive
 
