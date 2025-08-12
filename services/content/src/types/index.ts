@@ -1,4 +1,91 @@
-// Core application types
+export interface AuthUser {
+  requestId: string;
+  userId: string;
+  tenantId: string;
+  roles: string[];
+  permissions: string[];
+  clientId: string;
+  sessionId: string;
+}
+
+export interface PaginationOptions {
+  page: number;
+  limit: number;
+  offset: number;
+}
+
+export type SortOrder = 'asc' | 'desc';
+
+export interface FilterOptions {
+  [key: string]: string | number | boolean | string[];
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: ApiError;
+  meta?: ResponseMeta;
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}
+
+export interface ResponseMeta {
+  requestId: string;
+  timestamp: string;
+  pagination?: PaginationMeta;
+  [key: string]: any;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+// Custom Error Classes
+export class ValidationError extends Error {
+  constructor(message: string, public details?: any) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+export class NotFoundError extends Error {
+  constructor(resource: string, id: string) {
+    super(`${resource} with id ${id} not found`);
+    this.name = 'NotFoundError';
+  }
+}
+
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConflictError';
+  }
+}
+
+export class UnauthorizedError extends Error {
+  constructor(message: string = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor(message: string = 'Forbidden') {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
+// Configuration types
 export interface ServiceConfig {
   port: number;
   serviceName: string;
@@ -52,53 +139,10 @@ export interface UploadConfig {
   uploadExpiryHours: number;
 }
 
-// Request context types
-export interface RequestContext {
-  requestId: string;
-  userId?: string;
-  tenantId?: string;
-  roles: string[];
-  permissions: string[];
-  clientId?: string;
-  sessionId?: string;
-}
-
-// API Response types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: Record<string, any>;
-  };
-  meta?: {
-    pagination?: PaginationMeta;
-    requestId: string;
-    timestamp: string;
-  };
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
-
-export interface PaginationQuery {
-  page?: number;
-  limit?: number;
-  sort?: string;
-  order?: 'asc' | 'desc';
-}
-
-// Content types
+// Content-related types
 export type ContentType = 'video' | 'article' | 'quiz' | 'document';
 export type ContentStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'archived';
-export type VersionBump = 'major' | 'minor' | 'patch';
+export type UploadStatus = 'initiated' | 'uploading' | 'completed' | 'failed' | 'aborted';
 
 export interface FileInfo {
   filename: string;
@@ -110,48 +154,34 @@ export interface FileInfo {
   uploadedAt: Date;
 }
 
+export interface MultipartUploadPart {
+  partNumber: number;
+  etag: string;
+  size: number;
+  uploadedAt?: Date;
+}
+
+// Query types
+export interface PaginationQuery {
+  page?: number;
+  limit?: number;
+}
+
 export interface ContentFilters {
   status?: ContentStatus[];
   contentType?: ContentType[];
   category?: string[];
   tags?: string[];
   createdBy?: string;
-  dateRange?: {
-    from: Date;
-    to: Date;
-  };
 }
 
-// Upload types
-export type UploadStatus = 'initiated' | 'uploading' | 'completed' | 'failed' | 'aborted';
-
-export interface MultipartUploadPart {
-  partNumber: number;
-  etag: string;
-  size: number;
-}
-
-export interface UploadProgress {
-  uploadId: string;
-  contentId: string;
-  filename: string;
-  totalSize: number;
-  uploadedSize: number;
-  percentage: number;
-  status: UploadStatus;
-  partsCompleted: number;
-  totalParts: number;
-  estimatedTimeRemaining?: number;
-}
-
-// Search types
 export interface SearchQuery {
   q: string;
-  filters?: ContentFilters;
+  filters?: Record<string, any>;
   page?: number;
   limit?: number;
   sort?: string;
-  order?: 'asc' | 'desc';
+  order?: SortOrder;
 }
 
 export interface SearchResult {
@@ -166,105 +196,37 @@ export interface SearchResult {
   };
   tags: string[];
   createdBy: string;
-  createdAt: Date;
-  publishedAt?: Date;
+  createdAt: string;
+  publishedAt?: string;
   fileInfo?: Partial<FileInfo>;
   _score: number;
   highlights?: Record<string, string[]>;
 }
 
 export interface SearchResponse {
-  results: SearchResult[];
-  pagination: PaginationMeta;
-  aggregations?: Record<string, any>;
-  queryTimeMs: number;
-  totalHits: number;
+  data: SearchResult[];
+  meta: ResponseMeta & {
+    aggregations?: Record<string, any>;
+    queryTimeMs: number;
+    totalHits: number;
+  };
 }
 
-// Webhook types
-export interface WebhookEvent {
-  id: string;
-  type: string;
-  data: Record<string, any>;
-  tenantId: string;
-  timestamp: Date;
-  version: string;
+// Request context
+export interface RequestContext {
+  requestId: string;
+  userId?: string;
+  tenantId?: string;
+  userAgent?: string;
+  ip?: string;
 }
 
-export interface WebhookDelivery {
-  id: string;
-  eventId: string;
-  url: string;
-  payload: WebhookEvent;
-  status: 'pending' | 'delivered' | 'failed';
-  attempts: number;
-  lastAttemptAt?: Date;
-  nextRetryAt?: Date;
-  responseStatus?: number;
-  responseBody?: string;
-  createdAt: Date;
-}
-
-// Error types
-export class AppError extends Error {
-  public readonly statusCode: number;
-  public readonly code: string;
-  public readonly details?: Record<string, any>;
-
-  constructor(
-    message: string,
-    statusCode: number = 500,
-    code: string = 'INTERNAL_ERROR',
-    details?: Record<string, any>
-  ) {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = code;
-    this.details = details;
-    this.name = 'AppError';
-
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class ValidationError extends AppError {
-  constructor(message: string, details?: Record<string, any>) {
-    super(message, 400, 'VALIDATION_ERROR', details);
-    this.name = 'ValidationError';
-  }
-}
-
-export class NotFoundError extends AppError {
-  constructor(resource: string, id: string) {
-    super(`${resource} not found: ${id}`, 404, 'NOT_FOUND');
-    this.name = 'NotFoundError';
-  }
-}
-
-export class ConflictError extends AppError {
-  constructor(message: string, details?: Record<string, any>) {
-    super(message, 409, 'CONFLICT', details);
-    this.name = 'ConflictError';
-  }
-}
-
-export class UnauthorizedError extends AppError {
-  constructor(message: string = 'Unauthorized') {
-    super(message, 401, 'UNAUTHORIZED');
-    this.name = 'UnauthorizedError';
-  }
-}
-
-export class ForbiddenError extends AppError {
-  constructor(message: string = 'Forbidden') {
-    super(message, 403, 'FORBIDDEN');
-    this.name = 'ForbiddenError';
-  }
-}
-
-export class RateLimitError extends AppError {
-  constructor(retryAfter: number) {
-    super('Rate limit exceeded', 429, 'RATE_LIMIT_EXCEEDED', { retryAfter });
-    this.name = 'RateLimitError';
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+      requestId?: string;
+    }
   }
 }
