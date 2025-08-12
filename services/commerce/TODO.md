@@ -43,15 +43,9 @@
 
 ### **3.1. System Architecture Diagram**
 
-```mermaid
-graph TD
-    A[API Gateway] --> B(Commerce Service)
-    B --> C[(PostgreSQL)]
-    B --> D[(Redis)]
-    B --> E[Inventory Service]
-    B --> F[Payment Service]
-    B --> G[Notification Service]
-    ```mermaid
+
+
+
 
 3.2. Tech Stack Deep Dive
 
