@@ -48,7 +48,7 @@ class EventBus:
             "event_type": event.event_type,
             "aggregate_id": event.aggregate_id,
             "aggregate_type": event.aggregate_type,
-            "data": json.dumps(event.model_dump()),
+            "data": json.dumps(event.model_dump(mode='json')),
             "timestamp": event.occurred_at.isoformat(),
         }
         

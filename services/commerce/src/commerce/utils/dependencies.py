@@ -41,7 +41,7 @@ async def get_current_user(
     return {
         "sub": "user-123",  # User ID
         "email": "user@example.com",
-        "roles": ["customer"],
+        "roles": ["customer", "admin"],
         "session_id": "session-456",
     }
 
@@ -74,4 +74,49 @@ def get_aggregate_repository() -> AggregateRepository:
     """Get aggregate repository instance."""
     event_store = get_event_store()
     return AggregateRepository(event_store)
+
+
+# Service Dependencies
+
+def get_order_service():
+    """Get order service instance."""
+    from ..application.order_service import OrderService
+    from ..infrastructure.persistence.saga_repository import SagaRepository
+    
+    saga_repo = SagaRepository()
+    saga_orchestrator = SagaOrchestrator(saga_repo)
+    
+    return OrderService(
+        aggregate_repo=get_aggregate_repository(),
+        cart_repo=get_cart_repository(),
+        saga_orchestrator=saga_orchestrator,
+    )
+
+
+def get_saga_orchestrator():
+    """Get saga orchestrator instance."""
+    from ..application.saga_orchestrator import SagaOrchestrator
+    from ..infrastructure.persistence.saga_repository import SagaRepository
+    
+    saga_repo = SagaRepository()
+    return SagaOrchestrator(saga_repo)
+
+
+def get_inventory_service():
+    """Get inventory service instance."""
+    from ..application.inventory_service import InventoryService
+    from ..infrastructure.persistence.inventory_repository import InventoryRepository
+    
+    # Create dependencies inline for now
+    from ..infrastructure.database import get_session_factory
+    from ..infrastructure.messaging.event_bus import EventBus
+    
+    session_factory = get_session_factory()
+    db_session = session_factory()
+    
+    event_store = get_event_store()
+    event_bus = EventBus()
+    
+    inventory_repo = InventoryRepository(db_session, event_store)
+    return InventoryService(inventory_repo, event_bus)
 

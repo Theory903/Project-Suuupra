@@ -56,9 +56,9 @@ def setup_tracing(settings: Settings) -> None:
         logger.info("OTLP exporter configured", endpoint=settings.jaeger_endpoint)
     
     # Auto-instrument libraries
-    FastAPIInstrumentor.instrument()
-    AsyncPGInstrumentor.instrument()
-    RedisInstrumentor.instrument()
+    FastAPIInstrumentor().instrument()
+    AsyncPGInstrumentor().instrument()
+    RedisInstrumentor().instrument()
     
     logger.info("OpenTelemetry tracing configured successfully")
 

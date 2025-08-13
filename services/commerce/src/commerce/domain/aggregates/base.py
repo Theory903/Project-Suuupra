@@ -113,13 +113,15 @@ class AggregateRoot(ABC):
                 try:
                     # Import all event modules to ensure classes are available
                     from ..events import order_events
+                    from ..events import inventory_events
                     
                     # Look for the event class in the events modules
-                    for module in [order_events]:
+                    for module in [order_events, inventory_events]:
                         if hasattr(module, event_name):
                             event_class = getattr(module, event_name)
                             if issubclass(event_class, DomainEvent):
                                 self._event_handlers[event_class] = attr_name
+
                                 break
                 except ImportError:
                     # Handle case where event modules don't exist yet

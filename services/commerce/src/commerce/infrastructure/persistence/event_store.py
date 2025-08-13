@@ -64,7 +64,7 @@ class EventRecord(Base):
     tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     
     # Additional metadata
-    metadata = Column(JSONB, nullable=False, default=dict)
+    event_metadata = Column('metadata', JSONB, nullable=False, default=dict)
     
     # Constraints
     __table_args__ = (
@@ -91,16 +91,18 @@ class EventStore:
         """Register all domain event types for deserialization."""
         # Import all event modules to register types
         from ...domain.events import order_events
+        from ...domain.events import inventory_events
         
-        # Register event types from order_events module
-        for attr_name in dir(order_events):
-            attr = getattr(order_events, attr_name)
-            if (
-                isinstance(attr, type) 
-                and issubclass(attr, DomainEvent) 
-                and attr != DomainEvent
-            ):
-                self._event_type_registry[attr.__name__] = attr
+        # Register event types from modules
+        for module in [order_events, inventory_events]:
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (
+                    isinstance(attr, type)
+                    and issubclass(attr, DomainEvent)
+                    and attr != DomainEvent
+                ):
+                    self._event_type_registry[attr.__name__] = attr
     
     async def save_events(
         self,
@@ -136,22 +138,25 @@ class EventStore:
             # Create event records
             event_records = []
             for i, event in enumerate(events):
-                version = expected_version + i + 1
+                # Use the version from the event itself
+                version = event.aggregate_version
                 
-                # Ensure event has correct aggregate and version info
-                event.aggregate_id = aggregate_id
-                event.aggregate_version = version
+                # Event should already have correct aggregate and version info
+                # (events are frozen and cannot be modified)
                 
                 event_record = EventRecord(
                     id=uuid.UUID(event.event_id),
                     aggregate_id=uuid.UUID(aggregate_id),
                     aggregate_type=event.aggregate_type,
                     event_type=event.event_type,
-                    event_data=event.model_dump(exclude={
-                        'event_id', 'aggregate_id', 'aggregate_type', 
-                        'aggregate_version', 'correlation_id', 'causation_id',
-                        'user_id', 'tenant_id', 'metadata'
-                    }),
+                    event_data=event.model_dump(
+                        mode='json',
+                        exclude={
+                            'event_id', 'aggregate_id', 'aggregate_type', 
+                            'aggregate_version', 'occurred_at', 'correlation_id', 'causation_id',
+                            'user_id', 'tenant_id', 'metadata'
+                        }
+                    ),
                     event_version=event.event_version,
                     version=version,
                     created_at=event.occurred_at,
@@ -159,7 +164,7 @@ class EventStore:
                     causation_id=uuid.UUID(event.causation_id) if event.causation_id else None,
                     user_id=uuid.UUID(event.user_id) if event.user_id else None,
                     tenant_id=uuid.UUID(event.tenant_id) if event.tenant_id else None,
-                    metadata=event.metadata,
+                    event_metadata=event.metadata,
                 )
                 event_records.append(event_record)
             
@@ -305,7 +310,7 @@ class EventStore:
                 'causation_id': str(record.causation_id) if record.causation_id else None,
                 'user_id': str(record.user_id) if record.user_id else None,
                 'tenant_id': str(record.tenant_id) if record.tenant_id else None,
-                'metadata': record.metadata,
+                'metadata': record.event_metadata,
             })
             
             return event_class.model_validate(event_data)

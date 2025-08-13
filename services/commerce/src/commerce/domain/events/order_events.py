@@ -7,7 +7,7 @@ to an order during its lifecycle.
 
 from decimal import Decimal
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -184,7 +184,7 @@ class PaymentFailedEvent(DomainEvent):
 class InventoryReservedEvent(DomainEvent):
     """Event fired when inventory is reserved for an order."""
     
-    reservations: List[Dict[str, any]] = Field(description="List of inventory reservations")
+    reservations: List[Dict[str, Any]] = Field(description="List of inventory reservations")
     reservation_id: str = Field(description="Reservation identifier")
 
 
