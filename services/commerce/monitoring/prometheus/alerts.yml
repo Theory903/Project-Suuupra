@@ -1,0 +1,327 @@
+groups:
+- name: commerce-service.rules
+  rules:
+  
+  # Service Health Alerts
+  - alert: CommerceServiceDown
+    expr: up{job="commerce-service"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Commerce Service is down"
+      description: "Commerce Service has been down for more than 1 minute in namespace {{ $labels.namespace }}"
+      runbook_url: "https://runbooks.suuupra.com/commerce-service-down"
+
+  - alert: CommerceServiceHighErrorRate
+    expr: sum(rate(http_requests_total{service="commerce-service", code!~"2.."}[5m])) / sum(rate(http_requests_total{service="commerce-service"}[5m])) * 100 > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High error rate in Commerce Service"
+      description: "Commerce Service error rate is {{ $value | humanizePercentage }} which is above 5% threshold"
+      runbook_url: "https://runbooks.suuupra.com/high-error-rate"
+
+  - alert: CommerceServiceHighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="commerce-service"}[5m])) > 2
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High latency in Commerce Service"
+      description: "Commerce Service P95 latency is {{ $value }}s which is above 2s threshold"
+      runbook_url: "https://runbooks.suuupra.com/high-latency"
+
+  - alert: CommerceServiceVeryHighLatency
+    expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{service="commerce-service"}[5m])) > 5
+    for: 5m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Very high latency in Commerce Service"
+      description: "Commerce Service P99 latency is {{ $value }}s which is above 5s threshold"
+      runbook_url: "https://runbooks.suuupra.com/very-high-latency"
+
+  # Database Alerts
+  - alert: CommerceServiceDatabaseConnectionHigh
+    expr: db_connections_active{service="commerce-service"} / db_connection_pool_size{service="commerce-service"} * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High database connection usage"
+      description: "Commerce Service is using {{ $value | humanizePercentage }} of database connections"
+      runbook_url: "https://runbooks.suuupra.com/high-db-connections"
+
+  - alert: CommerceServiceDatabaseConnectionExhausted
+    expr: db_connections_active{service="commerce-service"} >= db_connection_pool_size{service="commerce-service"}
+    for: 1m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Database connection pool exhausted"
+      description: "Commerce Service has exhausted all database connections"
+      runbook_url: "https://runbooks.suuupra.com/db-connections-exhausted"
+
+  - alert: CommerceServiceDatabaseSlowQueries
+    expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket{service="commerce-service"}[5m])) > 1
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Slow database queries detected"
+      description: "Commerce Service P95 database query time is {{ $value }}s"
+      runbook_url: "https://runbooks.suuupra.com/slow-queries"
+
+  # Business Logic Alerts
+  - alert: CommerceServiceOrderProcessingStalled
+    expr: increase(orders_created_total{service="commerce-service"}[10m]) > 0 and increase(orders_completed_total{service="commerce-service"}[10m]) == 0
+    for: 15m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: business
+    annotations:
+      summary: "Order processing appears to be stalled"
+      description: "Orders are being created but none have been completed in the last 10 minutes"
+      runbook_url: "https://runbooks.suuupra.com/order-processing-stalled"
+
+  - alert: CommerceServiceHighOrderCancellationRate
+    expr: sum(rate(orders_cancelled_total{service="commerce-service"}[5m])) / sum(rate(orders_created_total{service="commerce-service"}[5m])) * 100 > 20
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: business
+    annotations:
+      summary: "High order cancellation rate"
+      description: "Order cancellation rate is {{ $value | humanizePercentage }} which is above 20% threshold"
+      runbook_url: "https://runbooks.suuupra.com/high-cancellation-rate"
+
+  - alert: CommerceServiceInventoryLowStock
+    expr: inventory_low_stock_items{service="commerce-service"} > 10
+    for: 5m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: operations
+    annotations:
+      summary: "Multiple items are low in stock"
+      description: "{{ $value }} items are currently low in stock"
+      runbook_url: "https://runbooks.suuupra.com/low-stock-items"
+
+  - alert: CommerceServiceInventoryReservationFailures
+    expr: sum(rate(inventory_reservation_failures_total{service="commerce-service"}[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Inventory reservation failures detected"
+      description: "{{ $value }} inventory reservations are failing per second"
+      runbook_url: "https://runbooks.suuupra.com/reservation-failures"
+
+  # Payment Processing Alerts
+  - alert: CommerceServicePaymentFailureRate
+    expr: sum(rate(payment_authorizations_total{service="commerce-service", status="failed"}[5m])) / sum(rate(payment_authorizations_total{service="commerce-service"}[5m])) * 100 > 10
+    for: 5m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: payments
+    annotations:
+      summary: "High payment failure rate"
+      description: "Payment authorization failure rate is {{ $value | humanizePercentage }}"
+      runbook_url: "https://runbooks.suuupra.com/payment-failures"
+
+  - alert: CommerceServiceRefundProcessingStalled
+    expr: sum(payment_refunds_pending{service="commerce-service"}) > 50
+    for: 30m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: payments
+    annotations:
+      summary: "Refund processing appears stalled"
+      description: "{{ $value }} refunds have been pending for more than 30 minutes"
+      runbook_url: "https://runbooks.suuupra.com/refund-processing-stalled"
+
+  # Event Processing Alerts
+  - alert: CommerceServiceEventProcessingLag
+    expr: events_processing_lag_seconds{service="commerce-service"} > 300
+    for: 5m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Event processing lag is high"
+      description: "Event processing lag is {{ $value }}s which is above 5 minutes"
+      runbook_url: "https://runbooks.suuupra.com/event-processing-lag"
+
+  - alert: CommerceServiceEventProcessingFailures
+    expr: sum(rate(events_processing_failures_total{service="commerce-service"}[5m])) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Event processing failures detected"
+      description: "{{ $value }} events are failing to process per second"
+      runbook_url: "https://runbooks.suuupra.com/event-processing-failures"
+
+  # Saga Alerts
+  - alert: CommerceServiceSagaFailureRate
+    expr: sum(rate(saga_failed_total{service="commerce-service"}[5m])) / sum(rate(saga_started_total{service="commerce-service"}[5m])) * 100 > 5
+    for: 10m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High saga failure rate"
+      description: "Saga failure rate is {{ $value | humanizePercentage }} which is above 5%"
+      runbook_url: "https://runbooks.suuupra.com/saga-failures"
+
+  - alert: CommerceServiceSagaCompensationRate
+    expr: sum(rate(saga_compensations_total{service="commerce-service"}[5m])) / sum(rate(saga_started_total{service="commerce-service"}[5m])) * 100 > 2
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High saga compensation rate"
+      description: "Saga compensation rate is {{ $value | humanizePercentage }} which is above 2%"
+      runbook_url: "https://runbooks.suuupra.com/saga-compensations"
+
+  # Resource Alerts
+  - alert: CommerceServiceHighMemoryUsage
+    expr: container_memory_usage_bytes{container="commerce-service"} / container_spec_memory_limit_bytes{container="commerce-service"} * 100 > 85
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High memory usage"
+      description: "Commerce Service memory usage is {{ $value | humanizePercentage }}"
+      runbook_url: "https://runbooks.suuupra.com/high-memory-usage"
+
+  - alert: CommerceServiceHighCPUUsage
+    expr: rate(container_cpu_usage_seconds_total{container="commerce-service"}[5m]) * 100 > 80
+    for: 15m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "High CPU usage"
+      description: "Commerce Service CPU usage is {{ $value | humanizePercentage }}"
+      runbook_url: "https://runbooks.suuupra.com/high-cpu-usage"
+
+  # External Service Alerts
+  - alert: CommerceServiceExternalServiceFailures
+    expr: sum(rate(external_service_requests_total{service="commerce-service", status="error"}[5m])) by (external_service) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "External service failures detected"
+      description: "{{ $labels.external_service }} is failing {{ $value }} requests per second"
+      runbook_url: "https://runbooks.suuupra.com/external-service-failures"
+
+  - alert: CommerceServiceShippingIntegrationDown
+    expr: shipping_service_health{service="commerce-service"} == 0
+    for: 5m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: operations
+    annotations:
+      summary: "Shipping integration is down"
+      description: "Shipping service integration is not responding"
+      runbook_url: "https://runbooks.suuupra.com/shipping-integration-down"
+
+  - alert: CommerceServiceNotificationFailures
+    expr: sum(rate(notifications_failed_total{service="commerce-service"}[5m])) > 1
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Notification delivery failures"
+      description: "{{ $value }} notifications are failing per second"
+      runbook_url: "https://runbooks.suuupra.com/notification-failures"
+
+  # Redis Alerts
+  - alert: CommerceServiceRedisConnectionFailures
+    expr: sum(rate(redis_connection_errors_total{service="commerce-service"}[5m])) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Redis connection failures"
+      description: "{{ $value }} Redis connection errors per second"
+      runbook_url: "https://runbooks.suuupra.com/redis-connection-failures"
+
+  - alert: CommerceServiceRedisHighMemoryUsage
+    expr: redis_memory_used_bytes{service="commerce-service"} / redis_memory_max_bytes{service="commerce-service"} * 100 > 80
+    for: 10m
+    labels:
+      severity: warning
+      service: commerce-service
+      team: platform
+    annotations:
+      summary: "Redis high memory usage"
+      description: "Redis memory usage is {{ $value | humanizePercentage }}"
+      runbook_url: "https://runbooks.suuupra.com/redis-high-memory"
+
+  # SLA/SLO Alerts
+  - alert: CommerceServiceSLOBreach
+    expr: (sum(rate(http_requests_total{service="commerce-service", code=~"2.."}[5m])) / sum(rate(http_requests_total{service="commerce-service"}[5m]))) < 0.999
+    for: 5m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+      slo: availability
+    annotations:
+      summary: "SLO breach: Availability below 99.9%"
+      description: "Service availability is {{ $value | humanizePercentage }} which breaches 99.9% SLO"
+      runbook_url: "https://runbooks.suuupra.com/slo-breach-availability"
+
+  - alert: CommerceServiceLatencySLOBreach
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="commerce-service"}[5m])) > 0.2
+    for: 10m
+    labels:
+      severity: critical
+      service: commerce-service
+      team: platform
+      slo: latency
+    annotations:
+      summary: "SLO breach: P95 latency above 200ms"
+      description: "P95 latency is {{ $value }}s which breaches 200ms SLO"
+      runbook_url: "https://runbooks.suuupra.com/slo-breach-latency"

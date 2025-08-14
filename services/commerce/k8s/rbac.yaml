@@ -1,0 +1,261 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: commerce-service
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: commerce-service-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    environment: staging
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: commerce-service-role
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: commerce-service-role-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    environment: staging
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: commerce-service-rolebinding
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+subjects:
+- kind: ServiceAccount
+  name: commerce-service
+  namespace: commerce
+roleRef:
+  kind: Role
+  name: commerce-service-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: commerce-service-rolebinding-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    environment: staging
+subjects:
+- kind: ServiceAccount
+  name: commerce-service-staging
+  namespace: commerce-staging
+roleRef:
+  kind: Role
+  name: commerce-service-role-staging
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: commerce-service-cluster-role
+  labels:
+    app: commerce-service
+    version: v1
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: commerce-service-cluster-rolebinding
+  labels:
+    app: commerce-service
+    version: v1
+subjects:
+- kind: ServiceAccount
+  name: commerce-service
+  namespace: commerce
+- kind: ServiceAccount
+  name: commerce-service-staging
+  namespace: commerce-staging
+roleRef:
+  kind: ClusterRole
+  name: commerce-service-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: policy/v1
+kind: PodSecurityPolicy
+metadata:
+  name: commerce-service-psp
+  labels:
+    app: commerce-service
+    version: v1
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  seLinux:
+    rule: 'RunAsAny'
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: commerce-service-psp-role
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+  - commerce-service-psp
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: commerce-service-psp-role-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    environment: staging
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+  - commerce-service-psp
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: commerce-service-psp-rolebinding
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+subjects:
+- kind: ServiceAccount
+  name: commerce-service
+  namespace: commerce
+roleRef:
+  kind: Role
+  name: commerce-service-psp-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: commerce-service-psp-rolebinding-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    environment: staging
+subjects:
+- kind: ServiceAccount
+  name: commerce-service-staging
+  namespace: commerce-staging
+roleRef:
+  kind: Role
+  name: commerce-service-psp-role-staging
+  apiGroup: rbac.authorization.k8s.io

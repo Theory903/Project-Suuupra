@@ -1,204 +1,263 @@
 """
-Order-related domain events for the Commerce Service.
+Order domain events for the Commerce Service.
 
-These events represent all the important business events that can happen
-to an order during its lifecycle.
+These events capture all significant business events related to order lifecycle,
+including creation, updates, payments, fulfillment, and cancellations.
 """
 
 from decimal import Decimal
 from datetime import datetime
-from typing import Dict, List, Optional, Any
-from enum import Enum
-
-from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any, List
+from uuid import UUID
 
 from .base import DomainEvent
 
 
-class OrderStatus(str, Enum):
-    """Order status enumeration."""
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    PROCESSING = "processing"
-    SHIPPED = "shipped"
-    DELIVERED = "delivered"
-    CANCELLED = "cancelled"
-    REFUNDED = "refunded"
-
-
-class PaymentMethod(str, Enum):
-    """Payment method enumeration."""
-    CREDIT_CARD = "credit_card"
-    DEBIT_CARD = "debit_card"
-    PAYPAL = "paypal"
-    BANK_TRANSFER = "bank_transfer"
-    CRYPTO = "crypto"
-
-
-class OrderItem(BaseModel):
-    """Order item data structure."""
-    product_id: str = Field(description="Product identifier")
-    product_name: str = Field(description="Product name at time of order")
-    quantity: int = Field(gt=0, description="Quantity ordered")
-    unit_price: Decimal = Field(ge=0, description="Unit price at time of order")
-    total_price: Decimal = Field(ge=0, description="Total price for this item")
-    
-    class Config:
-        frozen = True
-
-
-class ShippingAddress(BaseModel):
-    """Shipping address data structure."""
-    recipient_name: str = Field(description="Recipient full name")
-    street: str = Field(description="Street address")
-    city: str = Field(description="City")
-    state: str = Field(description="State or province")
-    postal_code: str = Field(description="Postal or ZIP code")
-    country: str = Field(description="Country")
-    
-    class Config:
-        frozen = True
-
-
-# Order Lifecycle Events
-
 class OrderCreatedEvent(DomainEvent):
-    """Event fired when a new order is created."""
+    """Event raised when a new order is created."""
     
-    customer_id: str = Field(description="Customer who placed the order")
-    items: List[OrderItem] = Field(description="Items in the order")
-    subtotal: Decimal = Field(ge=0, description="Subtotal before taxes and fees")
-    tax_amount: Decimal = Field(ge=0, description="Tax amount")
-    shipping_amount: Decimal = Field(ge=0, description="Shipping cost")
-    total_amount: Decimal = Field(ge=0, description="Total order amount")
-    currency: str = Field(default="USD", description="Currency code")
-    payment_method: PaymentMethod = Field(description="Selected payment method")
-    shipping_address: ShippingAddress = Field(description="Shipping address")
-    idempotency_key: Optional[str] = Field(default=None, description="Idempotency key")
+    order_id: UUID
+    customer_id: str
+    items: List[Dict[str, Any]]
+    total_amount: Decimal
+    currency: str
+    shipping_address: Dict[str, Any]
+    billing_address: Dict[str, Any]
+    payment_method: str
+    created_by: str
 
 
-class OrderConfirmedEvent(DomainEvent):
-    """Event fired when an order is confirmed (payment authorized)."""
+class OrderUpdatedEvent(DomainEvent):
+    """Event raised when an order is updated."""
     
-    payment_transaction_id: str = Field(description="Payment transaction identifier")
-    confirmed_at: datetime = Field(description="When the order was confirmed")
-
-
-class OrderProcessingStartedEvent(DomainEvent):
-    """Event fired when order processing begins."""
-    
-    processing_started_at: datetime = Field(description="When processing started")
-    estimated_ship_date: Optional[datetime] = Field(default=None, description="Estimated shipping date")
-
-
-class OrderShippedEvent(DomainEvent):
-    """Event fired when an order is shipped."""
-    
-    tracking_number: str = Field(description="Shipping tracking number")
-    carrier: str = Field(description="Shipping carrier")
-    shipped_at: datetime = Field(description="When the order was shipped")
-    estimated_delivery_date: Optional[datetime] = Field(default=None, description="Estimated delivery date")
-
-
-class OrderDeliveredEvent(DomainEvent):
-    """Event fired when an order is delivered."""
-    
-    delivered_at: datetime = Field(description="When the order was delivered")
-    delivery_confirmation: Optional[str] = Field(default=None, description="Delivery confirmation details")
+    order_id: UUID
+    previous_status: str
+    new_status: str
+    changes: Dict[str, Any]
+    updated_by: str
+    reason: Optional[str] = None
 
 
 class OrderCancelledEvent(DomainEvent):
-    """Event fired when an order is cancelled."""
+    """Event raised when an order is cancelled."""
     
-    reason: str = Field(description="Cancellation reason")
-    cancelled_by: str = Field(description="Who cancelled the order (customer, system, admin)")
-    cancelled_at: datetime = Field(description="When the order was cancelled")
-    refund_amount: Optional[Decimal] = Field(default=None, description="Amount to be refunded")
-
-
-class OrderRefundedEvent(DomainEvent):
-    """Event fired when an order is refunded."""
+    order_id: UUID
+    customer_id: str
+    previous_status: str
+    cancellation_reason: str
+    cancelled_by: str
+    cancelled_at: datetime
+    refund_amount: Decimal
+    inventory_to_release: List[Dict[str, Any]]
     
-    refund_amount: Decimal = Field(ge=0, description="Amount refunded")
-    refund_transaction_id: str = Field(description="Refund transaction identifier")
-    refunded_at: datetime = Field(description="When the refund was processed")
-    reason: Optional[str] = Field(default=None, description="Refund reason")
-
-
-# Order Modification Events
-
-class OrderItemAddedEvent(DomainEvent):
-    """Event fired when an item is added to an existing order."""
     
-    item: OrderItem = Field(description="Item that was added")
-    new_total_amount: Decimal = Field(ge=0, description="New total after adding item")
-
-
-class OrderItemRemovedEvent(DomainEvent):
-    """Event fired when an item is removed from an order."""
+class OrderCancellationRequestedEvent(DomainEvent):
+    """Event raised when order cancellation is requested."""
     
-    product_id: str = Field(description="Product ID of removed item")
-    quantity_removed: int = Field(gt=0, description="Quantity removed")
-    new_total_amount: Decimal = Field(ge=0, description="New total after removing item")
+    order_id: UUID
+    customer_id: str
+    current_status: str
+    cancellation_reason: str
+    requested_by: str
+    auto_approve: bool = False
 
 
-class OrderItemQuantityUpdatedEvent(DomainEvent):
-    """Event fired when item quantity is updated."""
+class OrderCancellationApprovedEvent(DomainEvent):
+    """Event raised when order cancellation is approved."""
     
-    product_id: str = Field(description="Product ID of updated item")
-    old_quantity: int = Field(ge=0, description="Previous quantity")
-    new_quantity: int = Field(ge=0, description="New quantity")
-    new_total_amount: Decimal = Field(ge=0, description="New total after quantity update")
+    order_id: UUID
+    customer_id: str
+    cancellation_reason: str
+    approved_by: str
+    refund_amount: Decimal
+    inventory_to_release: List[Dict[str, Any]]
 
 
-# Payment Events
+class OrderCancellationRejectedEvent(DomainEvent):
+    """Event raised when order cancellation is rejected."""
+    
+    order_id: UUID
+    customer_id: str
+    cancellation_reason: str
+    rejection_reason: str
+    rejected_by: str
 
+
+class OrderRefundInitiatedEvent(DomainEvent):
+    """Event raised when order refund is initiated."""
+    
+    order_id: UUID
+    customer_id: str
+    refund_id: str
+    refund_amount: Decimal
+    payment_method: str
+    initiated_by: str
+
+
+class OrderRefundCompletedEvent(DomainEvent):
+    """Event raised when order refund is completed."""
+    
+    order_id: UUID
+    customer_id: str
+    refund_id: str
+    refund_amount: Decimal
+    completed_at: datetime
+    transaction_id: str
+
+
+class OrderRefundFailedEvent(DomainEvent):
+    """Event raised when order refund fails."""
+    
+    order_id: UUID
+    customer_id: str
+    refund_id: str
+    refund_amount: Decimal
+    failure_reason: str
+    retry_count: int
+
+
+class OrderShippedEvent(DomainEvent):
+    """Event raised when order is shipped."""
+    
+    order_id: UUID
+    customer_id: str
+    shipment_id: str
+    carrier: str
+    tracking_number: str
+    shipped_at: datetime
+    estimated_delivery: Optional[datetime] = None
+
+
+class OrderDeliveredEvent(DomainEvent):
+    """Event raised when order is delivered."""
+    
+    order_id: UUID
+    customer_id: str
+    shipment_id: str
+    delivered_at: datetime
+    delivered_to: str
+    signature: Optional[str] = None
+
+
+class OrderReturnRequestedEvent(DomainEvent):
+    """Event raised when order return is requested."""
+    
+    order_id: UUID
+    customer_id: str
+    items_to_return: List[Dict[str, Any]]
+    return_reason: str
+    requested_by: str
+
+
+class OrderReturnApprovedEvent(DomainEvent):
+    """Event raised when order return is approved."""
+    
+    order_id: UUID
+    customer_id: str
+    return_id: str
+    items_to_return: List[Dict[str, Any]]
+    refund_amount: Decimal
+    approved_by: str
+
+
+class OrderPaymentAuthorizedEvent(DomainEvent):
+    """Event raised when order payment is authorized."""
+    
+    order_id: UUID
+    customer_id: str
+    payment_id: str
+    authorization_id: str
+    amount: Decimal
+    payment_method: str
+
+
+class OrderPaymentCapturedEvent(DomainEvent):
+    """Event raised when order payment is captured."""
+    
+    order_id: UUID
+    customer_id: str
+    payment_id: str
+    transaction_id: str
+    amount: Decimal
+    captured_at: datetime
+
+
+class OrderPaymentFailedEvent(DomainEvent):
+    """Event raised when order payment fails."""
+    
+    order_id: UUID
+    customer_id: str
+    payment_id: str
+    amount: Decimal
+    failure_reason: str
+    failure_code: str
+    retry_count: int
+
+
+class OrderFulfillmentStartedEvent(DomainEvent):
+    """Event raised when order fulfillment starts."""
+    
+    order_id: UUID
+    customer_id: str
+    fulfillment_center: str
+    estimated_ship_date: datetime
+    started_by: str
+
+
+class OrderFulfillmentCompletedEvent(DomainEvent):
+    """Event raised when order fulfillment is completed."""
+    
+    order_id: UUID
+    customer_id: str
+    fulfillment_center: str
+    completed_at: datetime
+    completed_by: str
+
+
+class OrderInventoryReservedEvent(DomainEvent):
+    """Event raised when inventory is reserved for order."""
+    
+    order_id: UUID
+    customer_id: str
+    reservations: List[Dict[str, Any]]
+    reserved_until: datetime
+
+
+class OrderInventoryReleasedEvent(DomainEvent):
+    """Event raised when inventory is released from order."""
+    
+    order_id: UUID
+    customer_id: str
+    released_items: List[Dict[str, Any]]
+    release_reason: str
+    released_by: str
+
+
+# Additional events needed by sagas
 class PaymentAuthorizedEvent(DomainEvent):
-    """Event fired when payment is authorized."""
+    """Event raised when payment is authorized."""
     
-    payment_transaction_id: str = Field(description="Payment transaction identifier")
-    amount: Decimal = Field(gt=0, description="Authorized amount")
-    payment_method: PaymentMethod = Field(description="Payment method used")
-    authorization_code: Optional[str] = Field(default=None, description="Authorization code from payment processor")
+    order_id: UUID
+    customer_id: str
+    payment_id: str
+    authorization_id: str
+    amount: Decimal
+    payment_method: str
 
-
-class PaymentCapturedEvent(DomainEvent):
-    """Event fired when payment is captured."""
-    
-    payment_transaction_id: str = Field(description="Payment transaction identifier")
-    amount: Decimal = Field(gt=0, description="Captured amount")
-    captured_at: datetime = Field(description="When payment was captured")
-
-
-class PaymentFailedEvent(DomainEvent):
-    """Event fired when payment fails."""
-    
-    payment_transaction_id: Optional[str] = Field(default=None, description="Payment transaction identifier")
-    failure_reason: str = Field(description="Why the payment failed")
-    error_code: Optional[str] = Field(default=None, description="Payment processor error code")
-    retry_allowed: bool = Field(default=True, description="Whether payment can be retried")
-
-
-# Inventory Events
 
 class InventoryReservedEvent(DomainEvent):
-    """Event fired when inventory is reserved for an order."""
+    """Event raised when inventory is reserved."""
     
-    reservations: List[Dict[str, Any]] = Field(description="List of inventory reservations")
-    reservation_id: str = Field(description="Reservation identifier")
+    order_id: UUID
+    customer_id: str
+    reservations: List[Dict[str, Any]]
+    reserved_until: datetime
 
 
-class InventoryReleasedEvent(DomainEvent):
-    """Event fired when reserved inventory is released."""
+class OrderConfirmedEvent(DomainEvent):
+    """Event raised when order is confirmed."""
     
-    reservation_id: str = Field(description="Reservation identifier that was released")
-    reason: str = Field(description="Why inventory was released")
-
-
-class InventoryAllocationFailedEvent(DomainEvent):
-    """Event fired when inventory allocation fails."""
-    
-    product_id: str = Field(description="Product that couldn't be allocated")
-    requested_quantity: int = Field(gt=0, description="Requested quantity")
-    available_quantity: int = Field(ge=0, description="Available quantity")
-    reason: str = Field(description="Why allocation failed")
+    order_id: UUID
+    customer_id: str
+    confirmed_at: datetime
+    confirmed_by: str

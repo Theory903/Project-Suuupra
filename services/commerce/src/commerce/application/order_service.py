@@ -11,7 +11,7 @@ import structlog
 
 from ..domain.aggregates.order import OrderAggregate
 from ..domain.entities.cart import ShoppingCart
-from ..domain.events.order_events import PaymentMethod, ShippingAddress
+from ..domain.entities.order import PaymentMethod, ShippingAddress
 from ..infrastructure.persistence.event_store import AggregateRepository
 from ..infrastructure.persistence.cart_repository import CartRepository
 from .saga_orchestrator import SagaOrchestrator

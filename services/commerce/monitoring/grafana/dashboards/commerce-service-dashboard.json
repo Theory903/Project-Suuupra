@@ -1,0 +1,325 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Commerce Service - Production Dashboard",
+    "tags": ["commerce", "microservices", "production"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"commerce-service\"}",
+            "legendFormat": "Service Status"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Requests/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "P95 Latency (s)"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{service=\"commerce-service\", code!~\"2..\"}[5m])) / sum(rate(http_requests_total{service=\"commerce-service\"}[5m])) * 100",
+            "legendFormat": "Error Rate (%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "displayMode": "list",
+              "orientation": "horizontal"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=\"commerce-service\"}[5m])) by (method, endpoint)",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "HTTP Response Times",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response time (seconds)",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Rates by Endpoint",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=\"commerce-service\", code!~\"2..\"}[5m])) by (endpoint, code)",
+            "legendFormat": "{{endpoint}} ({{code}})"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Errors per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Database Connections",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "db_connections_active{service=\"commerce-service\"}",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "db_connections_idle{service=\"commerce-service\"}",
+            "legendFormat": "Idle Connections"
+          },
+          {
+            "expr": "db_connection_pool_size{service=\"commerce-service\"}",
+            "legendFormat": "Pool Size"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Order Processing Metrics",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(rate(orders_created_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Orders Created/sec"
+          },
+          {
+            "expr": "sum(rate(orders_completed_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Orders Completed/sec"
+          },
+          {
+            "expr": "sum(rate(orders_cancelled_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Orders Cancelled/sec"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Inventory Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(rate(inventory_reservations_created_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Reservations Created/sec"
+          },
+          {
+            "expr": "sum(rate(inventory_reservations_confirmed_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Reservations Confirmed/sec"
+          },
+          {
+            "expr": "sum(rate(inventory_reservations_cancelled_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Reservations Cancelled/sec"
+          },
+          {
+            "expr": "sum(rate(inventory_fulfilled_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Inventory Fulfilled/sec"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Event Processing",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(rate(events_published_total{service=\"commerce-service\"}[5m])) by (event_type)",
+            "legendFormat": "{{event_type}} Published/sec"
+          },
+          {
+            "expr": "sum(rate(events_processed_total{service=\"commerce-service\"}[5m])) by (event_type)",
+            "legendFormat": "{{event_type}} Processed/sec"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Saga Execution",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(rate(saga_started_total{service=\"commerce-service\"}[5m])) by (saga_type)",
+            "legendFormat": "{{saga_type}} Started/sec"
+          },
+          {
+            "expr": "sum(rate(saga_completed_total{service=\"commerce-service\"}[5m])) by (saga_type)",
+            "legendFormat": "{{saga_type}} Completed/sec"
+          },
+          {
+            "expr": "sum(rate(saga_failed_total{service=\"commerce-service\"}[5m])) by (saga_type)",
+            "legendFormat": "{{saga_type}} Failed/sec"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "System Resources",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{container=\"commerce-service\"}[5m]) * 100",
+            "legendFormat": "CPU Usage (%)"
+          },
+          {
+            "expr": "container_memory_usage_bytes{container=\"commerce-service\"} / 1024 / 1024",
+            "legendFormat": "Memory Usage (MB)"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Redis Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+        "targets": [
+          {
+            "expr": "sum(rate(redis_commands_total{service=\"commerce-service\"}[5m])) by (command)",
+            "legendFormat": "{{command}}/sec"
+          },
+          {
+            "expr": "redis_connected_clients{service=\"commerce-service\"}",
+            "legendFormat": "Connected Clients"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Payment Processing",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48},
+        "targets": [
+          {
+            "expr": "sum(rate(payment_authorizations_total{service=\"commerce-service\"}[5m])) by (status)",
+            "legendFormat": "Authorizations {{status}}/sec"
+          },
+          {
+            "expr": "sum(rate(payment_captures_total{service=\"commerce-service\"}[5m])) by (status)",
+            "legendFormat": "Captures {{status}}/sec"
+          },
+          {
+            "expr": "sum(rate(payment_refunds_total{service=\"commerce-service\"}[5m])) by (status)",
+            "legendFormat": "Refunds {{status}}/sec"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Shipping Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48},
+        "targets": [
+          {
+            "expr": "sum(rate(shipments_created_total{service=\"commerce-service\"}[5m])) by (carrier)",
+            "legendFormat": "{{carrier}} Shipments/sec"
+          },
+          {
+            "expr": "sum(rate(shipments_delivered_total{service=\"commerce-service\"}[5m]))",
+            "legendFormat": "Deliveries/sec"
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Notification Delivery",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 56},
+        "targets": [
+          {
+            "expr": "sum(rate(notifications_sent_total{service=\"commerce-service\"}[5m])) by (channel, status)",
+            "legendFormat": "{{channel}} {{status}}/sec"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(up{job=\"commerce-service\"}, namespace)",
+          "refresh": 1
+        },
+        {
+          "name": "pod",
+          "type": "query",
+          "query": "label_values(up{job=\"commerce-service\", namespace=\"$namespace\"}, pod)",
+          "refresh": 1
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(commerce_service_info{namespace=\"$namespace\"}[5m]) > 0",
+          "textFormat": "Deployment: {{version}}",
+          "iconColor": "green"
+        }
+      ]
+    }
+  }
+}

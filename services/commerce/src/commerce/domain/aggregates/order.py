@@ -1,445 +1,699 @@
 """
-Order Aggregate - Core business entity for order management.
+Order Aggregate for the Commerce Service.
 
-The Order aggregate encapsulates all business logic related to orders,
-including creation, modification, payment processing, and fulfillment.
+This aggregate manages the complete order lifecycle including creation, updates,
+payments, fulfillment, cancellations, and returns. It implements the business
+rules and invariants for order management.
 """
 
+import uuid
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
+from uuid import UUID
 from enum import Enum
 
-from .base import AggregateRoot
 from ..events.order_events import (
-    OrderCreatedEvent,
-    OrderConfirmedEvent,
-    OrderProcessingStartedEvent,
-    OrderShippedEvent,
-    OrderDeliveredEvent,
-    OrderCancelledEvent,
-    OrderRefundedEvent,
-    PaymentAuthorizedEvent,
-    PaymentCapturedEvent,
-    PaymentFailedEvent,
-    InventoryReservedEvent,
-    InventoryReleasedEvent,
-    OrderStatus,
-    PaymentMethod,
-    OrderItem,
-    ShippingAddress,
+    OrderCreatedEvent, OrderUpdatedEvent, OrderCancelledEvent,
+    OrderCancellationRequestedEvent, OrderCancellationApprovedEvent,
+    OrderCancellationRejectedEvent, OrderRefundInitiatedEvent,
+    OrderRefundCompletedEvent, OrderRefundFailedEvent,
+    OrderShippedEvent, OrderDeliveredEvent, OrderReturnRequestedEvent,
+    OrderReturnApprovedEvent, OrderPaymentAuthorizedEvent,
+    OrderPaymentCapturedEvent, OrderPaymentFailedEvent,
+    OrderFulfillmentStartedEvent, OrderFulfillmentCompletedEvent,
+    OrderInventoryReservedEvent, OrderInventoryReleasedEvent
 )
+from ..entities.order import Order, OrderStatus, PaymentStatus, FulfillmentStatus
+from .base import AggregateRoot
 
 
-class OrderState(str, Enum):
-    """Internal order state for business logic."""
-    DRAFT = "draft"
-    PENDING_PAYMENT = "pending_payment"
-    PAYMENT_AUTHORIZED = "payment_authorized"
-    CONFIRMED = "confirmed"
-    PROCESSING = "processing"
-    SHIPPED = "shipped"
-    DELIVERED = "delivered"
-    CANCELLED = "cancelled"
-    REFUNDED = "refunded"
-
-
-class PaymentState(str, Enum):
-    """Payment state tracking."""
-    PENDING = "pending"
-    AUTHORIZED = "authorized"
-    CAPTURED = "captured"
-    FAILED = "failed"
-    REFUNDED = "refunded"
+class OrderCancellationPolicy(Enum):
+    """Order cancellation policies."""
+    IMMEDIATE = "immediate"  # Can be cancelled immediately
+    APPROVAL_REQUIRED = "approval_required"  # Requires approval
+    NOT_CANCELLABLE = "not_cancellable"  # Cannot be cancelled
 
 
 class OrderAggregate(AggregateRoot):
     """
-    Order aggregate root implementing business logic for order management.
+    Order Aggregate Root.
     
-    This aggregate ensures that all order operations maintain business invariants
-    and generates appropriate domain events for external systems to react to.
+    Manages the complete order lifecycle and enforces business rules
+    for order operations, payments, fulfillment, and cancellations.
     """
     
-    def __init__(self, aggregate_id: Optional[str] = None):
+    def __init__(self, aggregate_id: str):
         super().__init__(aggregate_id)
+        self.order: Optional[Order] = None
+        self.payment_attempts: List[Dict[str, Any]] = []
+        self.cancellation_requests: List[Dict[str, Any]] = []
+        self.return_requests: List[Dict[str, Any]] = []
         
-        # Order basic information
-        self.customer_id: Optional[str] = None
-        self.status: OrderState = OrderState.DRAFT
-        self.created_at: Optional[datetime] = None
-        self.updated_at: Optional[datetime] = None
-        
-        # Order items and pricing
-        self.items: List[OrderItem] = []
-        self.subtotal: Decimal = Decimal('0.00')
-        self.tax_amount: Decimal = Decimal('0.00')
-        self.shipping_amount: Decimal = Decimal('0.00')
-        self.total_amount: Decimal = Decimal('0.00')
-        self.currency: str = "USD"
-        
-        # Payment information
-        self.payment_method: Optional[PaymentMethod] = None
-        self.payment_state: PaymentState = PaymentState.PENDING
-        self.payment_transaction_id: Optional[str] = None
-        
-        # Shipping information
-        self.shipping_address: Optional[ShippingAddress] = None
-        self.tracking_number: Optional[str] = None
-        self.carrier: Optional[str] = None
-        
-        # Fulfillment tracking
-        self.confirmed_at: Optional[datetime] = None
-        self.processing_started_at: Optional[datetime] = None
-        self.shipped_at: Optional[datetime] = None
-        self.delivered_at: Optional[datetime] = None
-        
-        # Cancellation/Refund
-        self.cancelled_at: Optional[datetime] = None
-        self.cancellation_reason: Optional[str] = None
-        self.refunded_at: Optional[datetime] = None
-        self.refund_amount: Optional[Decimal] = None
-        
-        # Business metadata
-        self.idempotency_key: Optional[str] = None
-        self.reservation_id: Optional[str] = None
-    
     def create_order(
         self,
         customer_id: str,
         items: List[Dict[str, Any]],
-        payment_method: PaymentMethod,
         shipping_address: Dict[str, str],
-        idempotency_key: Optional[str] = None,
-        user_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-    ) -> None:
+        billing_address: Dict[str, str],
+        payment_method: str,
+        created_by: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
-        Create a new order with the given parameters.
+        Create a new order.
         
-        Business Rules:
-        - Order must have at least one item
-        - All items must have positive quantity and price
-        - Customer ID must be provided
-        - Shipping address must be complete
+        Args:
+            customer_id: ID of the customer placing the order
+            items: List of order items with product details
+            shipping_address: Shipping address details
+            billing_address: Billing address details
+            payment_method: Payment method identifier
+            created_by: User creating the order
+            metadata: Additional order metadata
+            
+        Returns:
+            True if order created successfully
         """
-        # Validate business rules
-        if not items:
-            raise ValueError("Order must contain at least one item")
-        
-        if not customer_id:
-            raise ValueError("Customer ID is required")
-        
-        if self.status != OrderState.DRAFT:
-            raise ValueError("Cannot create order that is not in draft state")
-        
-        # Convert items to OrderItem objects and calculate totals
-        order_items = []
-        subtotal = Decimal('0.00')
-        
-        for item_data in items:
-            if item_data['quantity'] <= 0:
-                raise ValueError(f"Item {item_data['product_id']} must have positive quantity")
+        if self.order is not None:
+            return False  # Order already exists
             
-            if item_data['unit_price'] < 0:
-                raise ValueError(f"Item {item_data['product_id']} must have non-negative price")
+        # Calculate total amount
+        total_amount = sum(
+            Decimal(str(item.get('unit_price', 0))) * item.get('quantity', 0)
+            for item in items
+        )
+        
+        if total_amount <= 0:
+            return False  # Invalid order total
             
-            total_price = Decimal(str(item_data['unit_price'])) * item_data['quantity']
-            
-            order_item = OrderItem(
-                product_id=item_data['product_id'],
-                product_name=item_data['product_name'],
-                quantity=item_data['quantity'],
-                unit_price=Decimal(str(item_data['unit_price'])),
-                total_price=total_price,
-            )
-            order_items.append(order_item)
-            subtotal += total_price
+        # Create order entity
+        self.order = Order(
+            id=UUID(self.aggregate_id),
+            customer_id=customer_id,
+            items=items,
+            total_amount=total_amount,
+            currency="USD",
+            status=OrderStatus.PENDING,
+            payment_status=PaymentStatus.PENDING,
+            fulfillment_status=FulfillmentStatus.PENDING,
+            shipping_address=shipping_address,
+            billing_address=billing_address,
+            payment_method=payment_method,
+            created_by=created_by,
+            metadata=metadata or {}
+        )
         
-        # Calculate tax and shipping (simplified - in real system this would be more complex)
-        tax_amount = subtotal * Decimal('0.08')  # 8% tax
-        shipping_amount = Decimal('10.00')  # Flat shipping
-        total_amount = subtotal + tax_amount + shipping_amount
-        
-        # Create shipping address object
-        shipping_addr = ShippingAddress(**shipping_address)
-        
-        # Raise the domain event
+        # Raise domain event
         event = OrderCreatedEvent(
             aggregate_id=self.aggregate_id,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
             customer_id=customer_id,
-            items=order_items,
-            subtotal=subtotal,
-            tax_amount=tax_amount,
-            shipping_amount=shipping_amount,
+            items=items,
             total_amount=total_amount,
+            currency="USD",
+            shipping_address=shipping_address,
+            billing_address=billing_address,
             payment_method=payment_method,
-            shipping_address=shipping_addr,
-            idempotency_key=idempotency_key,
-            user_id=user_id,
-            tenant_id=tenant_id,
+            created_by=created_by
         )
+        self._apply_event(event, is_new=True)
+        self._version += 1
         
-        self._raise_event(event)
+        return True
     
-    def authorize_payment(
+    def update_status(
         self,
-        payment_transaction_id: str,
-        amount: Decimal,
-        authorization_code: Optional[str] = None,
-    ) -> None:
-        """Authorize payment for the order."""
-        if self.status != OrderState.PENDING_PAYMENT:
-            raise ValueError("Can only authorize payment for orders pending payment")
+        new_status: OrderStatus,
+        updated_by: str,
+        reason: Optional[str] = None
+    ) -> bool:
+        """Update order status."""
+        if not self.order or not self._can_update_status(new_status):
+            return False
+            
+        previous_status = self.order.status
+        changes = {"status": f"{previous_status.value} -> {new_status.value}"}
         
-        if amount != self.total_amount:
-            raise ValueError("Payment amount must match order total")
+        if reason:
+            changes["reason"] = reason
+            
+        self.order.status = new_status
+        self.order.updated_at = datetime.now(timezone.utc)
+        self.order.updated_by = updated_by
         
-        event = PaymentAuthorizedEvent(
+        # Raise domain event
+        event = OrderUpdatedEvent(
             aggregate_id=self.aggregate_id,
-            payment_transaction_id=payment_transaction_id,
-            amount=amount,
-            payment_method=self.payment_method,
-            authorization_code=authorization_code,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            previous_status=previous_status.value,
+            new_status=new_status.value,
+            changes=changes,
+            updated_by=updated_by,
+            reason=reason
         )
+        self._apply_event(event, is_new=True)
+        self._version += 1
         
-        self._raise_event(event)
+        return True
     
-    def confirm_order(self, payment_transaction_id: str) -> None:
-        """Confirm the order after successful payment authorization."""
-        if self.payment_state != PaymentState.AUTHORIZED:
-            raise ValueError("Cannot confirm order without authorized payment")
-        
-        event = OrderConfirmedEvent(
-            aggregate_id=self.aggregate_id,
-            payment_transaction_id=payment_transaction_id,
-            confirmed_at=datetime.now(timezone.utc),
-        )
-        
-        self._raise_event(event)
-    
-    def start_processing(self, estimated_ship_date: Optional[datetime] = None) -> None:
-        """Start processing the order for fulfillment."""
-        if self.status != OrderState.CONFIRMED:
-            raise ValueError("Can only start processing confirmed orders")
-        
-        event = OrderProcessingStartedEvent(
-            aggregate_id=self.aggregate_id,
-            processing_started_at=datetime.now(timezone.utc),
-            estimated_ship_date=estimated_ship_date,
-        )
-        
-        self._raise_event(event)
-    
-    def ship_order(
+    def request_cancellation(
         self,
-        tracking_number: str,
-        carrier: str,
-        estimated_delivery_date: Optional[datetime] = None,
-    ) -> None:
-        """Mark the order as shipped."""
-        if self.status != OrderState.PROCESSING:
-            raise ValueError("Can only ship orders that are being processed")
+        cancellation_reason: str,
+        requested_by: str
+    ) -> bool:
+        """
+        Request order cancellation.
         
-        event = OrderShippedEvent(
+        Args:
+            cancellation_reason: Reason for cancellation
+            requested_by: User requesting cancellation
+            
+        Returns:
+            True if cancellation request created
+        """
+        if not self.order or not self._can_request_cancellation():
+            return False
+            
+        policy = self._get_cancellation_policy()
+        auto_approve = policy == OrderCancellationPolicy.IMMEDIATE
+        
+        # Add to cancellation requests
+        request = {
+            "id": str(uuid.uuid4()),
+            "reason": cancellation_reason,
+            "requested_by": requested_by,
+            "requested_at": datetime.now(timezone.utc),
+            "status": "approved" if auto_approve else "pending",
+            "auto_approve": auto_approve
+        }
+        self.cancellation_requests.append(request)
+        
+        # Raise domain event
+        event = OrderCancellationRequestedEvent(
             aggregate_id=self.aggregate_id,
-            tracking_number=tracking_number,
-            carrier=carrier,
-            shipped_at=datetime.now(timezone.utc),
-            estimated_delivery_date=estimated_delivery_date,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            current_status=self.order.status.value,
+            cancellation_reason=cancellation_reason,
+            requested_by=requested_by,
+            auto_approve=auto_approve
         )
+        self._apply_event(event, is_new=True)
+        self._version += 1
         
-        self._raise_event(event)
+        # Auto-approve if policy allows
+        if auto_approve:
+            return self._approve_cancellation(request["id"], requested_by)
+            
+        return True
     
-    def deliver_order(self, delivery_confirmation: Optional[str] = None) -> None:
-        """Mark the order as delivered."""
-        if self.status != OrderState.SHIPPED:
-            raise ValueError("Can only deliver orders that have been shipped")
+    def approve_cancellation(
+        self,
+        request_id: str,
+        approved_by: str
+    ) -> bool:
+        """
+        Approve order cancellation request.
         
-        event = OrderDeliveredEvent(
+        Args:
+            request_id: ID of the cancellation request
+            approved_by: User approving the cancellation
+            
+        Returns:
+            True if cancellation approved
+        """
+        return self._approve_cancellation(request_id, approved_by)
+    
+    def _approve_cancellation(
+        self,
+        request_id: str,
+        approved_by: str
+    ) -> bool:
+        """Internal method to approve cancellation."""
+        if not self.order:
+            return False
+            
+        # Find the request
+        request = None
+        for req in self.cancellation_requests:
+            if req["id"] == request_id:
+                request = req
+                break
+                
+        if not request or request["status"] != "pending":
+            return False
+            
+        # Calculate refund amount
+        refund_amount = self._calculate_refund_amount()
+        
+        # Prepare inventory to release
+        inventory_to_release = [
+            {
+                "product_id": item["product_id"],
+                "variant_id": item.get("variant_id"),
+                "quantity": item["quantity"],
+                "reservation_id": item.get("reservation_id")
+            }
+            for item in self.order.items
+        ]
+        
+        # Update request status
+        request["status"] = "approved"
+        request["approved_by"] = approved_by
+        request["approved_at"] = datetime.now(timezone.utc)
+        
+        # Raise domain event
+        event = OrderCancellationApprovedEvent(
             aggregate_id=self.aggregate_id,
-            delivered_at=datetime.now(timezone.utc),
-            delivery_confirmation=delivery_confirmation,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            cancellation_reason=request["reason"],
+            approved_by=approved_by,
+            refund_amount=refund_amount,
+            inventory_to_release=inventory_to_release
         )
+        self._apply_event(event, is_new=True)
+        self._version += 1
         
-        self._raise_event(event)
+        return True
+    
+    def reject_cancellation(
+        self,
+        request_id: str,
+        rejection_reason: str,
+        rejected_by: str
+    ) -> bool:
+        """
+        Reject order cancellation request.
+        
+        Args:
+            request_id: ID of the cancellation request
+            rejection_reason: Reason for rejection
+            rejected_by: User rejecting the cancellation
+            
+        Returns:
+            True if cancellation rejected
+        """
+        if not self.order:
+            return False
+            
+        # Find the request
+        request = None
+        for req in self.cancellation_requests:
+            if req["id"] == request_id:
+                request = req
+                break
+                
+        if not request or request["status"] != "pending":
+            return False
+            
+        # Update request status
+        request["status"] = "rejected"
+        request["rejected_by"] = rejected_by
+        request["rejected_at"] = datetime.now(timezone.utc)
+        request["rejection_reason"] = rejection_reason
+        
+        # Raise domain event
+        event = OrderCancellationRejectedEvent(
+            aggregate_id=self.aggregate_id,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            cancellation_reason=request["reason"],
+            rejection_reason=rejection_reason,
+            rejected_by=rejected_by
+        )
+        self._apply_event(event, is_new=True)
+        self._version += 1
+        
+        return True
     
     def cancel_order(
         self,
-        reason: str,
-        cancelled_by: str,
-        refund_amount: Optional[Decimal] = None,
-    ) -> None:
-        """Cancel the order."""
-        if self.status in [OrderState.DELIVERED, OrderState.CANCELLED, OrderState.REFUNDED]:
-            raise ValueError(f"Cannot cancel order in {self.status} state")
+        cancellation_reason: str,
+        cancelled_by: str
+    ) -> bool:
+        """
+        Cancel the order (final cancellation).
         
+        Args:
+            cancellation_reason: Reason for cancellation
+            cancelled_by: User cancelling the order
+            
+        Returns:
+            True if order cancelled
+        """
+        if not self.order or not self._can_cancel():
+            return False
+            
+        previous_status = self.order.status
+        refund_amount = self._calculate_refund_amount()
+        
+        # Prepare inventory to release
+        inventory_to_release = [
+            {
+                "product_id": item["product_id"],
+                "variant_id": item.get("variant_id"),
+                "quantity": item["quantity"],
+                "reservation_id": item.get("reservation_id")
+            }
+            for item in self.order.items
+        ]
+        
+        # Update order status
+        self.order.status = OrderStatus.CANCELLED
+        self.order.updated_at = datetime.now(timezone.utc)
+        self.order.updated_by = cancelled_by
+        
+        # Raise domain event
         event = OrderCancelledEvent(
             aggregate_id=self.aggregate_id,
-            reason=reason,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            previous_status=previous_status.value,
+            cancellation_reason=cancellation_reason,
             cancelled_by=cancelled_by,
             cancelled_at=datetime.now(timezone.utc),
             refund_amount=refund_amount,
+            inventory_to_release=inventory_to_release
         )
+        self._apply_event(event, is_new=True)
+        self._version += 1
         
-        self._raise_event(event)
+        return True
     
-    def process_refund(
+    def authorize_payment(
         self,
-        refund_amount: Decimal,
-        refund_transaction_id: str,
-        reason: Optional[str] = None,
-    ) -> None:
-        """Process a refund for the order."""
-        if self.status != OrderState.CANCELLED:
-            raise ValueError("Can only refund cancelled orders")
+        payment_id: str,
+        authorization_id: str,
+        amount: Decimal
+    ) -> bool:
+        """Authorize payment for the order."""
+        if not self.order or self.order.payment_status != PaymentStatus.PENDING:
+            return False
+            
+        self.order.payment_status = PaymentStatus.AUTHORIZED
+        self.order.updated_at = datetime.now(timezone.utc)
         
-        if refund_amount > self.total_amount:
-            raise ValueError("Refund amount cannot exceed order total")
+        # Track payment attempt
+        self.payment_attempts.append({
+            "payment_id": payment_id,
+            "authorization_id": authorization_id,
+            "amount": amount,
+            "status": "authorized",
+            "timestamp": datetime.now(timezone.utc)
+        })
         
-        event = OrderRefundedEvent(
+        # Raise domain event
+        event = OrderPaymentAuthorizedEvent(
             aggregate_id=self.aggregate_id,
-            refund_amount=refund_amount,
-            refund_transaction_id=refund_transaction_id,
-            refunded_at=datetime.now(timezone.utc),
-            reason=reason,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            payment_id=payment_id,
+            authorization_id=authorization_id,
+            amount=amount,
+            payment_method=self.order.payment_method
         )
+        self._apply_event(event, is_new=True)
+        self._version += 1
         
-        self._raise_event(event)
+        return True
     
-    # Event Handlers - These methods apply events to aggregate state
+    def capture_payment(
+        self,
+        payment_id: str,
+        transaction_id: str,
+        amount: Decimal
+    ) -> bool:
+        """Capture authorized payment."""
+        if not self.order or self.order.payment_status != PaymentStatus.AUTHORIZED:
+            return False
+            
+        self.order.payment_status = PaymentStatus.PAID
+        self.order.updated_at = datetime.now(timezone.utc)
+        
+        # Update payment attempt
+        for attempt in self.payment_attempts:
+            if attempt["payment_id"] == payment_id:
+                attempt["status"] = "captured"
+                attempt["transaction_id"] = transaction_id
+                break
+        
+        # Raise domain event
+        event = OrderPaymentCapturedEvent(
+            aggregate_id=self.aggregate_id,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            payment_id=payment_id,
+            transaction_id=transaction_id,
+            amount=amount,
+            captured_at=datetime.now(timezone.utc)
+        )
+        self._apply_event(event, is_new=True)
+        self._version += 1
+        
+        return True
+    
+    def ship_order(
+        self,
+        shipment_id: str,
+        carrier: str,
+        tracking_number: str,
+        estimated_delivery: Optional[datetime] = None
+    ) -> bool:
+        """Mark order as shipped."""
+        if not self.order or self.order.fulfillment_status != FulfillmentStatus.PROCESSING:
+            return False
+            
+        self.order.fulfillment_status = FulfillmentStatus.SHIPPED
+        self.order.updated_at = datetime.now(timezone.utc)
+        
+        # Raise domain event
+        event = OrderShippedEvent(
+            aggregate_id=self.aggregate_id,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            shipment_id=shipment_id,
+            carrier=carrier,
+            tracking_number=tracking_number,
+            shipped_at=datetime.now(timezone.utc),
+            estimated_delivery=estimated_delivery
+        )
+        self._apply_event(event, is_new=True)
+        self._version += 1
+        
+        return True
+    
+    def deliver_order(
+        self,
+        shipment_id: str,
+        delivered_to: str,
+        signature: Optional[str] = None
+    ) -> bool:
+        """Mark order as delivered."""
+        if not self.order or self.order.fulfillment_status != FulfillmentStatus.SHIPPED:
+            return False
+            
+        self.order.fulfillment_status = FulfillmentStatus.DELIVERED
+        self.order.status = OrderStatus.COMPLETED
+        self.order.updated_at = datetime.now(timezone.utc)
+        
+        # Raise domain event
+        event = OrderDeliveredEvent(
+            aggregate_id=self.aggregate_id,
+            aggregate_type="order",
+            aggregate_version=self.version + 1,
+            order_id=UUID(self.aggregate_id),
+            customer_id=self.order.customer_id,
+            shipment_id=shipment_id,
+            delivered_at=datetime.now(timezone.utc),
+            delivered_to=delivered_to,
+            signature=signature
+        )
+        self._apply_event(event, is_new=True)
+        self._version += 1
+        
+        return True
+    
+    def _can_update_status(self, new_status: OrderStatus) -> bool:
+        """Check if status update is allowed."""
+        if not self.order:
+            return False
+            
+        current = self.order.status
+        
+        # Define allowed transitions
+        allowed_transitions = {
+            OrderStatus.PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+            OrderStatus.CONFIRMED: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+            OrderStatus.PROCESSING: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+            OrderStatus.SHIPPED: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
+            OrderStatus.DELIVERED: [OrderStatus.COMPLETED, OrderStatus.RETURNED],
+            OrderStatus.COMPLETED: [OrderStatus.RETURNED],
+            OrderStatus.CANCELLED: [],  # Terminal state
+            OrderStatus.RETURNED: []  # Terminal state
+        }
+        
+        return new_status in allowed_transitions.get(current, [])
+    
+    def _can_request_cancellation(self) -> bool:
+        """Check if cancellation can be requested."""
+        if not self.order:
+            return False
+            
+        # Cannot cancel if already cancelled or completed
+        if self.order.status in [OrderStatus.CANCELLED, OrderStatus.COMPLETED, OrderStatus.RETURNED]:
+            return False
+            
+        # Check if there's already a pending request
+        for request in self.cancellation_requests:
+            if request["status"] == "pending":
+                return False
+                
+        return True
+    
+    def _can_cancel(self) -> bool:
+        """Check if order can be cancelled."""
+        if not self.order:
+            return False
+            
+        return self.order.status not in [
+            OrderStatus.CANCELLED, 
+            OrderStatus.COMPLETED, 
+            OrderStatus.RETURNED
+        ]
+    
+    def _get_cancellation_policy(self) -> OrderCancellationPolicy:
+        """Determine cancellation policy based on order status."""
+        if not self.order:
+            return OrderCancellationPolicy.NOT_CANCELLABLE
+            
+        # Immediate cancellation for pending/confirmed orders
+        if self.order.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED]:
+            return OrderCancellationPolicy.IMMEDIATE
+            
+        # Approval required for processing orders
+        if self.order.status == OrderStatus.PROCESSING:
+            return OrderCancellationPolicy.APPROVAL_REQUIRED
+            
+        # Cannot cancel shipped/delivered orders
+        return OrderCancellationPolicy.NOT_CANCELLABLE
+    
+    def _calculate_refund_amount(self) -> Decimal:
+        """Calculate refund amount based on order status."""
+        if not self.order:
+            return Decimal("0.00")
+            
+        # Full refund for early stages
+        if self.order.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED]:
+            return self.order.total_amount
+            
+        # Partial refund for processing (minus processing fee)
+        if self.order.status == OrderStatus.PROCESSING:
+            processing_fee = self.order.total_amount * Decimal("0.05")  # 5% processing fee
+            return max(Decimal("0.00"), self.order.total_amount - processing_fee)
+            
+        # No refund for shipped/delivered orders
+        return Decimal("0.00")
+    
+    # Event Handlers for State Reconstruction
     
     def on_OrderCreatedEvent(self, event: OrderCreatedEvent) -> None:
-        """Handle OrderCreatedEvent."""
-        self.customer_id = event.customer_id
-        self.items = event.items
-        self.subtotal = event.subtotal
-        self.tax_amount = event.tax_amount
-        self.shipping_amount = event.shipping_amount
-        self.total_amount = event.total_amount
-        self.currency = event.currency
-        self.payment_method = event.payment_method
-        self.shipping_address = event.shipping_address
-        self.idempotency_key = event.idempotency_key
-        self.status = OrderState.PENDING_PAYMENT
-        self.created_at = event.occurred_at
-        self.updated_at = event.occurred_at
+        """Handle OrderCreatedEvent during state reconstruction."""
+        from ..entities.order import Order, OrderStatus, PaymentStatus, FulfillmentStatus
+        
+        self.order = Order(
+            id=event.order_id,
+            customer_id=event.customer_id,
+            items=event.items,
+            total_amount=event.total_amount,
+            currency=event.currency,
+            status=OrderStatus.PENDING,
+            payment_status=PaymentStatus.PENDING,
+            fulfillment_status=FulfillmentStatus.PENDING,
+            shipping_address=event.shipping_address,
+            billing_address=event.billing_address,
+            payment_method=event.payment_method,
+            created_by=event.created_by,
+            created_at=event.occurred_at
+        )
     
-    def on_PaymentAuthorizedEvent(self, event: PaymentAuthorizedEvent) -> None:
-        """Handle PaymentAuthorizedEvent."""
-        self.payment_transaction_id = event.payment_transaction_id
-        self.payment_state = PaymentState.AUTHORIZED
-        self.status = OrderState.PAYMENT_AUTHORIZED
-        self.updated_at = event.occurred_at
-    
-    def on_OrderConfirmedEvent(self, event: OrderConfirmedEvent) -> None:
-        """Handle OrderConfirmedEvent."""
-        self.status = OrderState.CONFIRMED
-        self.confirmed_at = event.confirmed_at
-        self.updated_at = event.occurred_at
-    
-    def on_OrderProcessingStartedEvent(self, event: OrderProcessingStartedEvent) -> None:
-        """Handle OrderProcessingStartedEvent."""
-        self.status = OrderState.PROCESSING
-        self.processing_started_at = event.processing_started_at
-        self.updated_at = event.occurred_at
-    
-    def on_OrderShippedEvent(self, event: OrderShippedEvent) -> None:
-        """Handle OrderShippedEvent."""
-        self.status = OrderState.SHIPPED
-        self.tracking_number = event.tracking_number
-        self.carrier = event.carrier
-        self.shipped_at = event.shipped_at
-        self.updated_at = event.occurred_at
-    
-    def on_OrderDeliveredEvent(self, event: OrderDeliveredEvent) -> None:
-        """Handle OrderDeliveredEvent."""
-        self.status = OrderState.DELIVERED
-        self.delivered_at = event.delivered_at
-        self.updated_at = event.occurred_at
+    def on_OrderUpdatedEvent(self, event: OrderUpdatedEvent) -> None:
+        """Handle OrderUpdatedEvent during state reconstruction."""
+        if self.order:
+            self.order.status = OrderStatus(event.new_status)
+            self.order.updated_at = event.occurred_at
     
     def on_OrderCancelledEvent(self, event: OrderCancelledEvent) -> None:
-        """Handle OrderCancelledEvent."""
-        self.status = OrderState.CANCELLED
-        self.cancelled_at = event.cancelled_at
-        self.cancellation_reason = event.reason
-        self.updated_at = event.occurred_at
+        """Handle OrderCancelledEvent during state reconstruction."""
+        if self.order:
+            self.order.status = OrderStatus.CANCELLED
+            self.order.updated_at = event.occurred_at
     
-    def on_OrderRefundedEvent(self, event: OrderRefundedEvent) -> None:
-        """Handle OrderRefundedEvent."""
-        self.status = OrderState.REFUNDED
-        self.refunded_at = event.refunded_at
-        self.refund_amount = event.refund_amount
-        self.updated_at = event.occurred_at
-    
-    def get_snapshot(self) -> Dict[str, Any]:
-        """Get a snapshot of the current order state."""
-        return {
-            "aggregate_id": self.aggregate_id,
-            "version": self.version,
-            "customer_id": self.customer_id,
-            "status": self.status.value if self.status else None,
-            "items": [item.model_dump() for item in self.items],
-            "subtotal": str(self.subtotal),
-            "tax_amount": str(self.tax_amount),
-            "shipping_amount": str(self.shipping_amount),
-            "total_amount": str(self.total_amount),
-            "currency": self.currency,
-            "payment_method": self.payment_method.value if self.payment_method else None,
-            "payment_state": self.payment_state.value,
-            "payment_transaction_id": self.payment_transaction_id,
-            "shipping_address": self.shipping_address.model_dump() if self.shipping_address else None,
-            "tracking_number": self.tracking_number,
-            "carrier": self.carrier,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "confirmed_at": self.confirmed_at.isoformat() if self.confirmed_at else None,
-            "shipped_at": self.shipped_at.isoformat() if self.shipped_at else None,
-            "delivered_at": self.delivered_at.isoformat() if self.delivered_at else None,
-            "cancelled_at": self.cancelled_at.isoformat() if self.cancelled_at else None,
-            "refunded_at": self.refunded_at.isoformat() if self.refunded_at else None,
-            "idempotency_key": self.idempotency_key,
-            "reservation_id": self.reservation_id,
+    def on_OrderCancellationRequestedEvent(self, event: OrderCancellationRequestedEvent) -> None:
+        """Handle OrderCancellationRequestedEvent during state reconstruction."""
+        request = {
+            "id": str(uuid.uuid4()),
+            "reason": event.cancellation_reason,
+            "requested_by": event.requested_by,
+            "requested_at": event.occurred_at,
+            "status": "approved" if event.auto_approve else "pending",
+            "auto_approve": event.auto_approve
         }
+        self.cancellation_requests.append(request)
     
-    def load_from_snapshot(self, snapshot: Dict[str, Any]) -> None:
-        """Load order state from a snapshot."""
-        self._aggregate_id = snapshot["aggregate_id"]
-        self._version = snapshot["version"]
-        self.customer_id = snapshot["customer_id"]
-        self.status = OrderState(snapshot["status"]) if snapshot["status"] else OrderState.DRAFT
-        
-        # Reconstruct items
-        self.items = [OrderItem.model_validate(item) for item in snapshot["items"]]
-        
-        # Reconstruct monetary values
-        self.subtotal = Decimal(snapshot["subtotal"])
-        self.tax_amount = Decimal(snapshot["tax_amount"])
-        self.shipping_amount = Decimal(snapshot["shipping_amount"])
-        self.total_amount = Decimal(snapshot["total_amount"])
-        self.currency = snapshot["currency"]
-        
-        # Reconstruct payment info
-        self.payment_method = PaymentMethod(snapshot["payment_method"]) if snapshot["payment_method"] else None
-        self.payment_state = PaymentState(snapshot["payment_state"])
-        self.payment_transaction_id = snapshot["payment_transaction_id"]
-        
-        # Reconstruct shipping info
-        if snapshot["shipping_address"]:
-            self.shipping_address = ShippingAddress.model_validate(snapshot["shipping_address"])
-        self.tracking_number = snapshot["tracking_number"]
-        self.carrier = snapshot["carrier"]
-        
-        # Reconstruct timestamps
-        self.created_at = datetime.fromisoformat(snapshot["created_at"]) if snapshot["created_at"] else None
-        self.updated_at = datetime.fromisoformat(snapshot["updated_at"]) if snapshot["updated_at"] else None
-        self.confirmed_at = datetime.fromisoformat(snapshot["confirmed_at"]) if snapshot["confirmed_at"] else None
-        self.shipped_at = datetime.fromisoformat(snapshot["shipped_at"]) if snapshot["shipped_at"] else None
-        self.delivered_at = datetime.fromisoformat(snapshot["delivered_at"]) if snapshot["delivered_at"] else None
-        self.cancelled_at = datetime.fromisoformat(snapshot["cancelled_at"]) if snapshot["cancelled_at"] else None
-        self.refunded_at = datetime.fromisoformat(snapshot["refunded_at"]) if snapshot["refunded_at"] else None
-        
-        # Reconstruct metadata
-        self.idempotency_key = snapshot["idempotency_key"]
-        self.reservation_id = snapshot["reservation_id"]
-
+    def on_OrderPaymentAuthorizedEvent(self, event: OrderPaymentAuthorizedEvent) -> None:
+        """Handle OrderPaymentAuthorizedEvent during state reconstruction."""
+        if self.order:
+            self.order.payment_status = PaymentStatus.AUTHORIZED
+            
+        self.payment_attempts.append({
+            "payment_id": event.payment_id,
+            "authorization_id": event.authorization_id,
+            "amount": event.amount,
+            "status": "authorized",
+            "timestamp": event.occurred_at
+        })
+    
+    def on_OrderPaymentCapturedEvent(self, event: OrderPaymentCapturedEvent) -> None:
+        """Handle OrderPaymentCapturedEvent during state reconstruction."""
+        if self.order:
+            self.order.payment_status = PaymentStatus.PAID
+            
+        # Update payment attempt
+        for attempt in self.payment_attempts:
+            if attempt["payment_id"] == event.payment_id:
+                attempt["status"] = "captured"
+                attempt["transaction_id"] = event.transaction_id
+                break
+    
+    def on_OrderShippedEvent(self, event: OrderShippedEvent) -> None:
+        """Handle OrderShippedEvent during state reconstruction."""
+        if self.order:
+            self.order.fulfillment_status = FulfillmentStatus.SHIPPED
+            self.order.updated_at = event.occurred_at
+    
+    def on_OrderDeliveredEvent(self, event: OrderDeliveredEvent) -> None:
+        """Handle OrderDeliveredEvent during state reconstruction."""
+        if self.order:
+            self.order.fulfillment_status = FulfillmentStatus.DELIVERED
+            self.order.status = OrderStatus.COMPLETED
+            self.order.updated_at = event.occurred_at

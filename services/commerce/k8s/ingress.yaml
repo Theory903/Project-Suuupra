@@ -1,0 +1,214 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: commerce-service-ingress
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.suuupra.com,https://admin.suuupra.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-Correlation-ID"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "X-Correlation-ID,X-Request-ID"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Content-Security-Policy: default-src 'self'";
+spec:
+  tls:
+  - hosts:
+    - api.suuupra.com
+    - commerce.suuupra.com
+    secretName: commerce-tls
+  rules:
+  - host: api.suuupra.com
+    http:
+      paths:
+      - path: /api/v1/commerce
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service
+            port:
+              number: 80
+      - path: /api/v1/orders
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service
+            port:
+              number: 80
+      - path: /api/v1/inventory
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service
+            port:
+              number: 80
+      - path: /api/v1/carts
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service
+            port:
+              number: 80
+  - host: commerce.suuupra.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service
+            port:
+              number: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: commerce-service-ingress-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    environment: staging
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://staging.suuupra.com,https://staging-admin.suuupra.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-Correlation-ID"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+spec:
+  tls:
+  - hosts:
+    - staging-api.suuupra.com
+    - staging-commerce.suuupra.com
+    secretName: commerce-staging-tls
+  rules:
+  - host: staging-api.suuupra.com
+    http:
+      paths:
+      - path: /api/v1/commerce
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service-staging
+            port:
+              number: 80
+      - path: /api/v1/orders
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service-staging
+            port:
+              number: 80
+      - path: /api/v1/inventory
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service-staging
+            port:
+              number: 80
+      - path: /api/v1/carts
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service-staging
+            port:
+              number: 80
+  - host: staging-commerce.suuupra.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: commerce-service-staging
+            port:
+              number: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: commerce-service-network-policy
+  namespace: commerce
+  labels:
+    app: commerce-service
+spec:
+  podSelector:
+    matchLabels:
+      app: commerce-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - protocol: TCP
+      port: 8084
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: database
+    - namespaceSelector:
+        matchLabels:
+          name: redis
+    - podSelector:
+        matchLabels:
+          app: postgres
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS for external APIs
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS

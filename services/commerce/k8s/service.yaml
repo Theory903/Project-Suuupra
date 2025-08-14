@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: commerce-service
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+    tier: backend
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "5"
+    service.beta.kubernetes.io/aws-load-balancer-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-unhealthy-threshold: "2"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: commerce-service
+    version: v1
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commerce-service-headless
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+    tier: backend
+    component: api
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8084
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: commerce-service
+    version: v1
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commerce-service-staging
+  namespace: commerce-staging
+  labels:
+    app: commerce-service
+    version: v1
+    tier: backend
+    component: api
+    environment: staging
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: commerce-service
+    version: v1
+    environment: staging
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commerce-service-external
+  namespace: commerce
+  labels:
+    app: commerce-service
+    version: v1
+    tier: backend
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:123456789012:certificate/your-ssl-cert-arn"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: https
+    port: 443
+    targetPort: http
+    protocol: TCP
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: commerce-service
+    version: v1
+  loadBalancerSourceRanges:
+  - 0.0.0.0/0  # Allow all IPs (restrict in production)
