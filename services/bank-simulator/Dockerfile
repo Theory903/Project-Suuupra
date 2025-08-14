@@ -1,13 +1,16 @@
 # Multi-stage build for optimized production image
 FROM node:18-alpine AS base
 
+# Install OpenSSL for Prisma compatibility
+RUN apk add --no-cache openssl libc6-compat
+
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --legacy-peer-deps
 
 # Build the source code
 FROM base AS builder
@@ -15,7 +18,7 @@ WORKDIR /app
 
 # Copy package files and install all dependencies (including devDependencies)
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -27,7 +30,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Production image
-FROM node:18-alpine AS runner
+FROM base AS runner
 WORKDIR /app
 
 # Create non-root user for security
@@ -39,9 +42,10 @@ COPY --from=deps --chown=bankapp:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=bankapp:nodejs /app/dist ./dist
 COPY --from=builder --chown=bankapp:nodejs /app/package.json ./
 COPY --from=builder --chown=bankapp:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=bankapp:nodejs /app/proto ./proto
 
 # Install production dependencies for Prisma
-RUN npm install prisma --save-dev && npx prisma generate
+RUN npm install prisma --save-dev --legacy-peer-deps && npx prisma generate
 
 # Create directories for logs and temp files
 RUN mkdir -p /app/logs && chown -R bankapp:nodejs /app/logs

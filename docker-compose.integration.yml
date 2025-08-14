@@ -77,12 +77,12 @@ services:
     container_name: bank-simulator
     ports:
       - "3000:3000"   # HTTP API
-      - "50051:50051" # gRPC
-      - "9090:9090"   # Metrics
+      - "50050:50050" # gRPC (different from UPI Core)
+      - "9094:9090"   # Metrics (different from UPI Core and Kafka)
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:password@postgres:5432/bank_simulator
-      GRPC_PORT: 50051
+      GRPC_PORT: 50050
       PORT: 3000
       HOST: 0.0.0.0
       JWT_SECRET: your-super-secret-jwt-key-development

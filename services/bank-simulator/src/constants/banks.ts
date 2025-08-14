@@ -4,10 +4,17 @@ export interface BankConfig {
   name: string;
   ifscPrefix: string;
   dailyLimitPaisa: number;
+  dailyDebitLimitPaisa: number;
+  dailyCreditLimitPaisa: number;
   minBalancePaisa: number;
   features: string[];
   processingDelayMs: number;
   failureRate: number;
+  transactionFees: {
+    processingFeePaisa: number;
+    serviceTaxPaisa: number;
+    totalFeePaisa: number;
+  };
 }
 
 export const SUPPORTED_BANKS: Record<string, BankConfig> = {
@@ -15,51 +22,86 @@ export const SUPPORTED_BANKS: Record<string, BankConfig> = {
     code: 'HDFC',
     name: 'HDFC Bank',
     ifscPrefix: 'HDFC',
-    dailyLimitPaisa: 10000000, // 1 lakh
+    dailyLimitPaisa: 10000000, // 1 crore
+    dailyDebitLimitPaisa: 5000000, // 50 lakhs
+    dailyCreditLimitPaisa: 10000000, // 1 crore
     minBalancePaisa: 1000000,  // 10k
     features: ['UPI', 'IMPS', 'NEFT', 'RTGS'],
     processingDelayMs: 50,
     failureRate: 0.005, // 0.5%
+    transactionFees: {
+      processingFeePaisa: 10, // 10 paisa
+      serviceTaxPaisa: 2,    // 2 paisa
+      totalFeePaisa: 12,
+    },
   },
   SBI: {
     code: 'SBI',
     name: 'State Bank of India',
     ifscPrefix: 'SBIN',
     dailyLimitPaisa: 10000000,
+    dailyDebitLimitPaisa: 5000000,
+    dailyCreditLimitPaisa: 10000000,
     minBalancePaisa: 300000,   // 3k
     features: ['UPI', 'IMPS', 'NEFT', 'RTGS'],
     processingDelayMs: 80,
     failureRate: 0.008, // 0.8%
+    transactionFees: {
+      processingFeePaisa: 15,
+      serviceTaxPaisa: 3,
+      totalFeePaisa: 18,
+    },
   },
   ICICI: {
     code: 'ICICI',
     name: 'ICICI Bank',
     ifscPrefix: 'ICIC',
-    dailyLimitPaisa: 20000000, // 2 lakh
+    dailyLimitPaisa: 20000000, // 2 crore
+    dailyDebitLimitPaisa: 10000000,
+    dailyCreditLimitPaisa: 20000000,
     minBalancePaisa: 1000000,
     features: ['UPI', 'IMPS', 'NEFT', 'RTGS'],
     processingDelayMs: 45,
     failureRate: 0.003, // 0.3%
+    transactionFees: {
+      processingFeePaisa: 8,
+      serviceTaxPaisa: 1,
+      totalFeePaisa: 9,
+    },
   },
   AXIS: {
     code: 'AXIS',
     name: 'Axis Bank',
     ifscPrefix: 'UTIB',
     dailyLimitPaisa: 10000000,
+    dailyDebitLimitPaisa: 5000000,
+    dailyCreditLimitPaisa: 10000000,
     minBalancePaisa: 1000000,
     features: ['UPI', 'IMPS', 'NEFT', 'RTGS'],
     processingDelayMs: 60,
     failureRate: 0.007, // 0.7%
+    transactionFees: {
+      processingFeePaisa: 12,
+      serviceTaxPaisa: 2,
+      totalFeePaisa: 14,
+    },
   },
   KOTAK: {
     code: 'KOTAK',
     name: 'Kotak Mahindra Bank',
     ifscPrefix: 'KKBK',
     dailyLimitPaisa: 10000000,
+    dailyDebitLimitPaisa: 5000000,
+    dailyCreditLimitPaisa: 10000000,
     minBalancePaisa: 1000000,
     features: ['UPI', 'IMPS', 'NEFT', 'RTGS'],
     processingDelayMs: 55,
     failureRate: 0.006, // 0.6%
+    transactionFees: {
+      processingFeePaisa: 11,
+      serviceTaxPaisa: 2,
+      totalFeePaisa: 13,
+    },
   }
 };
 

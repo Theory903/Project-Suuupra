@@ -1,208 +1,196 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { TransactionService } from '../../services/transaction-service';
 import logger from '../../utils/logger';
+import { z } from 'zod';
 
-interface CreateAccountRequest {
-  bankCode: string;
-  customerId: string;
-  accountType: string;
-  accountHolderName: string;
-  mobileNumber: string;
-  email?: string;
-  initialDepositPaisa: number;
-}
+const processTransactionSchema = z.object({
+  transactionId: z.string(),
+  bankCode: z.string(),
+  accountNumber: z.string(),
+  amountPaisa: z.number().int().positive(),
+  type: z.enum(['DEBIT', 'CREDIT']),
+  reference: z.string().nullable().optional(), // Allow null
+  description: z.string().nullable().optional(), // Allow null
+  metadata: z.record(z.any()).optional(),
+});
 
-interface LinkVPARequest {
-  vpa: string;
-  bankCode: string;
-  accountNumber: string;
-  isPrimary: boolean;
-}
-
-interface GetAccountsQuery {
-  customerId?: string;
-  bankCode?: string;
-}
-
-interface GetBalanceQuery {
-  bankCode: string;
-  accountNumber: string;
-}
-
-interface ResolveVPAQuery {
-  vpa: string;
-}
-
-export async function registerRealTransactionRoutes(
-  fastify: FastifyInstance,
-  prisma: PrismaClient
-) {
+export async function registerRealTransactionRoutes(server: FastifyInstance, prisma: PrismaClient) {
   const transactionService = new TransactionService(prisma);
 
-  // Create Account endpoint
-  fastify.post<{ Body: CreateAccountRequest }>('/admin/accounts', async (request, reply) => {
-    try {
-      const {
-        bankCode,
-        customerId,
-        accountType,
-        accountHolderName,
-        mobileNumber,
-        email,
-        initialDepositPaisa
-      } = request.body;
-
-      logger.info('Creating account', {
-        bankCode,
-        customerId,
-        accountHolderName,
-        initialDepositPaisa
+  server.post('/api/real-transactions/process', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['transactionId', 'bankCode', 'accountNumber', 'amountPaisa', 'type'],
+        properties: {
+          transactionId: { type: 'string' },
+          bankCode: { type: 'string' },
+          accountNumber: { type: 'string' },
+          amountPaisa: { type: 'integer', minimum: 1 },
+          type: { type: 'string', enum: ['DEBIT', 'CREDIT'] },
+          reference: { type: ['string', 'null'] },
+          description: { type: ['string', 'null'] },
+          metadata: { type: 'object' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            transactionId: { type: 'string' },
+            bankReferenceId: { type: 'string' },
+            status: { type: 'string' },
+            errorCode: { type: ['string', 'null'] },
+            errorMessage: { type: ['string', 'null'] },
+            accountBalancePaisa: { type: 'integer' },
+            processedAt: { type: 'string' },
+            fees: {
+              type: 'object',
+              properties: {
+                processingFeePaisa: { type: 'integer' },
+                serviceTaxPaisa: { type: 'integer' },
+                totalFeePaisa: { type: 'integer' },
+              },
+            },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            statusCode: { type: 'integer' },
+            errorCode: { type: ['string', 'null'] },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            statusCode: { type: 'integer' },
+          },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      const requestBody = request.body as z.infer<typeof processTransactionSchema>;
+      const requestLogger = logger.child({
+        transactionId: requestBody.transactionId,
+        bankCode: requestBody.bankCode,
+        method: 'RealProcessTransaction',
       });
 
-      const result = await transactionService.createAccount(
-        bankCode,
-        customerId,
-        accountType,
-        accountHolderName,
-        mobileNumber,
-        email,
-        initialDepositPaisa
-      );
+      try {
+        requestLogger.info('Processing real transaction request', requestBody);
 
-      reply.code(201).send({
-        success: true,
-        account: result
-      });
-    } catch (error) {
-      logger.error('Failed to create account', { error: error.message });
-      reply.code(400).send({
-        success: false,
-        error: error.message
-      });
-    }
+        const transactionRequest = {
+          ...requestBody,
+          reference: requestBody.reference === undefined ? null : requestBody.reference,
+          description: requestBody.description === undefined ? null : requestBody.description,
+          metadata: requestBody.metadata || undefined,
+        };
+
+        const result = await transactionService.processTransaction(transactionRequest);
+
+        if (result.status === 'SUCCESS') {
+          requestLogger.info('Real transaction processed successfully', { result });
+          return reply.send({
+            transactionId: result.transactionId,
+            bankReferenceId: result.bankReferenceId,
+            status: result.status,
+            accountBalancePaisa: Number(result.accountBalancePaisa), // Convert BigInt to Number for JSON
+            processedAt: result.processedAt.toISOString(),
+            fees: result.fees,
+            errorCode: result.errorCode === undefined ? null : result.errorCode,
+            errorMessage: result.errorMessage === undefined ? null : result.errorMessage,
+          });
+        } else {
+          requestLogger.warn('Real transaction failed', { result });
+          return reply.status(400).send({
+            error: result.errorMessage || 'Transaction failed',
+            statusCode: 400,
+            errorCode: result.errorCode === undefined ? null : result.errorCode,
+          });
+        }
+      } catch (error: unknown) {
+        requestLogger.error('Real transaction processing error', { error });
+        return reply.status(500).send({
+          error: (error as Error).message || 'Internal Server Error',
+          statusCode: 500,
+        });
+      }
+    },
   });
 
-  // Link VPA endpoint
-  fastify.post<{ Body: LinkVPARequest }>('/admin/vpa', async (request, reply) => {
-    try {
-      const { vpa, bankCode, accountNumber, isPrimary } = request.body;
-
-      logger.info('Linking VPA', { vpa, bankCode, accountNumber });
-
-      const result = await transactionService.linkVPA(vpa, bankCode, accountNumber, isPrimary);
-
-      reply.send({
-        success: true,
-        result
-      });
-    } catch (error) {
-      logger.error('Failed to link VPA', { error: error.message });
-      reply.code(400).send({
-        success: false,
-        error: error.message
-      });
-    }
-  });
-
-  // Get accounts endpoint
-  fastify.get<{ Querystring: GetAccountsQuery }>('/admin/accounts', async (request, reply) => {
-    try {
-      const { customerId, bankCode } = request.query;
-
-      // For now, return mock data since we need to implement the actual query
-      // In a real implementation, you'd query the database
-      const accounts = await prisma.account.findMany({
-        where: {
-          ...(customerId && { customerId }),
-          ...(bankCode && { bank: { bankCode } })
+  server.get('/api/real-accounts/:bankCode/:accountNumber/balance', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['bankCode', 'accountNumber'],
+        properties: {
+          bankCode: { type: 'string' },
+          accountNumber: { type: 'string' },
         },
-        include: {
-          bank: true
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            bankCode: { type: 'string' },
+            accountNumber: { type: 'string' },
+            balancePaisa: { type: 'integer' },
+            availableBalancePaisa: { type: 'integer' },
+          },
         },
-        take: 10
-      });
+        404: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            statusCode: { type: 'integer' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            statusCode: { type: 'integer' },
+          },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      const { bankCode, accountNumber } = request.params as { bankCode: string, accountNumber: string };
+      const requestLogger = logger.child({ bankCode, accountNumber, method: 'GetAccountBalance' });
 
-      reply.send({
-        success: true,
-        accounts: accounts.map(account => ({
+      try {
+        requestLogger.info('Fetching account balance');
+        const account: any = await prisma.account.findFirst({
+          where: {
+            accountNumber,
+            bank: { bankCode },
+          },
+          include: {
+            bank: true, // Include the bank relation to access bankCode
+          },
+        });
+
+        if (!account) {
+          return reply.status(404).send({ error: 'Account not found', statusCode: 404 });
+        }
+
+        return reply.send({
+          bankCode: account.bank.bankCode, // Access bankCode via the bank relation
           accountNumber: account.accountNumber,
-          customerId: account.customerId,
-          accountHolderName: account.accountHolderName,
-          bankCode: account.bank.bankCode,
           balancePaisa: Number(account.balancePaisa),
-          status: account.status
-        }))
-      });
-    } catch (error) {
-      logger.error('Failed to get accounts', { error: error.message });
-      reply.code(500).send({
-        success: false,
-        error: error.message
-      });
-    }
-  });
-
-  // Get account balance endpoint
-  fastify.get<{ Querystring: GetBalanceQuery }>('/admin/accounts/balance', async (request, reply) => {
-    try {
-      const { bankCode, accountNumber } = request.query;
-
-      if (!bankCode || !accountNumber) {
-        return reply.code(400).send({
-          success: false,
-          error: 'bankCode and accountNumber are required'
+          availableBalancePaisa: Number(account.availableBalancePaisa),
+        });
+      } catch (error: unknown) {
+        requestLogger.error('Error fetching account balance', { error });
+        return reply.status(500).send({
+          error: (error as Error).message || 'Internal Server Error',
+          statusCode: 500,
         });
       }
-
-      const balance = await transactionService.getAccountBalance(bankCode, accountNumber);
-
-      reply.send({
-        success: true,
-        ...balance
-      });
-    } catch (error) {
-      logger.error('Failed to get account balance', { error: error.message });
-      reply.code(404).send({
-        success: false,
-        error: error.message
-      });
-    }
-  });
-
-  // Resolve VPA endpoint
-  fastify.get<{ Querystring: ResolveVPAQuery }>('/admin/vpa/resolve', async (request, reply) => {
-    try {
-      const { vpa } = request.query;
-
-      if (!vpa) {
-        return reply.code(400).send({
-          success: false,
-          error: 'vpa is required'
-        });
-      }
-
-      const result = await transactionService.resolveVPA(vpa);
-
-      reply.send({
-        success: true,
-        ...result
-      });
-    } catch (error) {
-      logger.error('Failed to resolve VPA', { error: error.message });
-      reply.code(404).send({
-        success: false,
-        error: error.message
-      });
-    }
-  });
-
-  // Health check endpoint
-  fastify.get('/health', async (request, reply) => {
-    reply.send({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      service: 'bank-simulator'
-    });
+    },
   });
 }

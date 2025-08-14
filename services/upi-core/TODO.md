@@ -8,10 +8,25 @@ Authoritative UPI‑compatible switch with cryptographic verification, routing, 
 - Switch success ≥ 99.99% p50 day; duplicate route ≤ 1 in 10M
 - Deterministic reversals on partial failures; exactly‑once event emission
 
-## Milestone A — Foundations [Weeks 1‑3]
+## Milestone A — Foundations [Weeks 1‑3] ✅ **Infrastructure Complete**
+
+- [x] **Database & Configuration** ✅ **COMPLETED**
+  - [x] PostgreSQL database connection with proper timeout handling
+  - [x] Environment variable configuration with defaults and validation
+  - [x] Database health checks and connection pooling
+  - [x] Proper error handling and logging for database operations
+  - Acceptance: ✅ Service starts reliably, maintains stable DB connections
+
+- [x] **Service Infrastructure** ✅ **COMPLETED**  
+  - [x] Go service with gRPC and HTTP servers running concurrently
+  - [x] Docker containerization with proper health checks
+  - [x] Service discovery and port configuration (gRPC: 50052, HTTP: 8081)
+  - [x] Graceful shutdown and signal handling
+  - Acceptance: ✅ Both servers operational, health endpoints responding
 
 - [ ] Protocol and schemas
-  - [ ] Finalize `upi_core.proto` with versioning and error model
+  - [x] Basic `upi_core.proto` structure established
+  - [ ] Finalize versioning and comprehensive error model
   - [ ] Correlation IDs, dedupe keys, idempotency tokens
   - Acceptance: Same request + same features ⇒ same response
 
@@ -21,7 +36,8 @@ Authoritative UPI‑compatible switch with cryptographic verification, routing, 
   - Acceptance: invalid signature rejection path and audit
 
 - [ ] Storage and state
-  - [ ] Transactions, VPAs, banks, settlements schema and indices
+  - [x] Basic database schema foundation established
+  - [ ] Complete transactions, VPAs, banks, settlements schema and indices
   - [ ] Redis caches for VPA and bank health; distributed locking for idempotency
   - Acceptance: failover without duplicate commit
 

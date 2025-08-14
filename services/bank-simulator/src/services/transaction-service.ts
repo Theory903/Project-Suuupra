@@ -9,9 +9,9 @@ export interface ProcessTransactionRequest {
   accountNumber: string;
   amountPaisa: number;
   type: 'DEBIT' | 'CREDIT';
-  reference?: string;
-  description?: string;
-  metadata?: Record<string, any>;
+  reference?: string | null;
+  description?: string | null;
+  metadata?: Record<string, any> | undefined;
 }
 
 export interface ProcessTransactionResponse {
@@ -82,7 +82,7 @@ export class TransactionService {
       // Process transaction with ACID guarantees using Prisma transaction
       const result = await this.prisma.$transaction(
         async (tx) => {
-          return await this.processTransactionWithinTransaction(tx, request, bankConfig, logger);
+          return await this.processTransactionWithinTransaction(tx, request, bankConfig);
         },
         {
           isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
@@ -111,7 +111,7 @@ export class TransactionService {
 
       return result;
 
-    } catch (error) {
+    } catch (error: unknown) {
       const duration = (Date.now() - startTime) / 1000;
       transactionCounter.inc({ 
         bank_code: request.bankCode, 
@@ -123,7 +123,7 @@ export class TransactionService {
         duration
       );
 
-      logger.error('Transaction processing failed', { error: error.message });
+      logger.error('Transaction processing failed', { error: (error as Error).message });
 
       // Return error response instead of throwing
       return {
@@ -131,7 +131,7 @@ export class TransactionService {
         bankReferenceId: `ERR_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         status: TRANSACTION_STATUSES.FAILED,
         errorCode: this.getErrorCode(error),
-        errorMessage: error.message,
+        errorMessage: (error as Error).message,
         accountBalancePaisa: 0,
         processedAt: new Date(),
         fees: { processingFeePaisa: 0, serviceTaxPaisa: 0, totalFeePaisa: 0 },
@@ -146,8 +146,7 @@ export class TransactionService {
   private async processTransactionWithinTransaction(
     tx: Prisma.TransactionClient,
     request: ProcessTransactionRequest,
-    bankConfig: any,
-    logger: any
+    bankConfig: any
   ): Promise<ProcessTransactionResponse> {
     
     // Step 1: Get and lock the account for update (prevents concurrent modifications)
@@ -236,8 +235,8 @@ export class TransactionService {
         balanceBeforePaisa: account.balancePaisa,
         balanceAfterPaisa: newBalance,
         status: TRANSACTION_STATUSES.SUCCESS,
-        reference: request.reference,
-        description: request.description,
+        reference: request.reference || null,
+        description: request.description || null,
         metadata: request.metadata || {},
         processedAt: new Date(),
       },
@@ -391,7 +390,7 @@ export class TransactionService {
           accountType,
           accountHolderName,
           mobileNumber,
-          email,
+          email: email || null,
           balancePaisa: BigInt(initialDepositPaisa),
           availableBalancePaisa: BigInt(initialDepositPaisa),
           status: 'ACTIVE',
@@ -488,9 +487,9 @@ export class TransactionService {
   /**
    * Calculate transaction fees based on amount and bank configuration
    */
-  private calculateTransactionFees(amountPaisa: number, bankConfig: any) {
-    const processingFeePaisa = Math.max(1, Math.floor(amountPaisa * 0.001)); // 0.1% with min 1 paisa
-    const serviceTaxPaisa = Math.floor(processingFeePaisa * 0.18); // 18% service tax
+  private calculateTransactionFees(amountPaisa: number, _bankConfig: any) {
+    const processingFeePaisa = Math.max(1, Math.floor(amountPaisa * 0.001));
+    const serviceTaxPaisa = Math.floor(processingFeePaisa * 0.18);
     const totalFeePaisa = processingFeePaisa + serviceTaxPaisa;
 
     return {
@@ -503,8 +502,8 @@ export class TransactionService {
   /**
    * Map errors to appropriate error codes
    */
-  private getErrorCode(error: Error): string {
-    const message = error.message.toLowerCase();
+  private getErrorCode(error: unknown): string {
+    const message = (error as Error).message.toLowerCase();
     
     if (message.includes('account not found')) {
       return ERROR_CODES.ACCOUNT_NOT_FOUND;

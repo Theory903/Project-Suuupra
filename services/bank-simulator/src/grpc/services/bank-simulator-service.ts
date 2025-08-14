@@ -85,21 +85,20 @@ export class BankSimulatorService {
       
       callback(null, response);
 
-    } catch (error) {
+    } catch (error: unknown) {
       requestLogger.error('Transaction processing error', { error });
       callback({
         code: status.INTERNAL,
         message: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: (error as Error).message || 'Unknown error',
       });
     }
   }
 
   async getTransactionStatus(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
-    const request = call.request;
     
     try {
       // Mock response for now
@@ -115,20 +114,19 @@ export class BankSimulatorService {
       };
 
       callback(null, response);
-    } catch (error) {
+    } catch (error: unknown) {
       callback({
         code: status.INTERNAL,
         message: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: (error as Error).message || 'Unknown error',
       });
     }
   }
 
   async createAccount(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
-    const request = call.request;
     
     try {
       const bank = SUPPORTED_BANKS[request.bank_code];
@@ -154,20 +152,19 @@ export class BankSimulatorService {
       };
 
       callback(null, response);
-    } catch (error) {
+    } catch (error: unknown) {
       callback({
         code: status.INTERNAL,
         message: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: (error as Error).message || 'Unknown error',
       });
     }
   }
 
   async getAccountBalance(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
-    const request = call.request;
     
     try {
       const bank = SUPPORTED_BANKS[request.bank_code];
@@ -189,22 +186,22 @@ export class BankSimulatorService {
       };
 
       callback(null, response);
-    } catch (error) {
+    } catch (error: unknown) {
       callback({
         code: status.INTERNAL,
         message: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: (error as Error).message || 'Unknown error',
       });
     }
   }
 
   async getAccountDetails(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
     // Mock implementation
     callback(null, {
-      account_number: call.request.account_number,
+      account_number: request.account_number,
       ifsc_code: 'MOCK0000001',
       account_holder_name: 'Mock User',
       account_type: 'ACCOUNT_TYPE_SAVINGS',
@@ -218,7 +215,7 @@ export class BankSimulatorService {
   }
 
   async linkVPA(
-    call: GrpcCall<any>,
+    _request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
     // Mock implementation
@@ -230,7 +227,7 @@ export class BankSimulatorService {
   }
 
   async unlinkVPA(
-    call: GrpcCall<any>,
+    _request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
     // Mock implementation
@@ -242,7 +239,7 @@ export class BankSimulatorService {
   }
 
   async resolveVPA(
-    call: GrpcCall<any>,
+    _request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
     // Mock implementation
@@ -258,10 +255,10 @@ export class BankSimulatorService {
   }
 
   async getBankInfo(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
-    const request = call.request;
+    
     const bank = SUPPORTED_BANKS[request.bank_code];
     
     if (!bank) {
@@ -285,10 +282,10 @@ export class BankSimulatorService {
   }
 
   async checkBankHealth(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
-    const request = call.request;
+    
     const bank = SUPPORTED_BANKS[request.bank_code];
     
     if (!bank) {
@@ -312,10 +309,9 @@ export class BankSimulatorService {
   }
 
   async getBankStats(
-    call: GrpcCall<any>,
+    request: any,
     callback: GrpcCallback<any>
   ): Promise<void> {
-    const request = call.request;
     
     // Mock statistics
     callback(null, {
@@ -336,6 +332,60 @@ export class BankSimulatorService {
           success_rate_percent: 99.5,
         },
       ],
+    });
+  }
+
+  // New methods for BankSimulatorService
+  async getBankConfig(
+    request: any,
+    callback: GrpcCallback<any>
+  ): Promise<void> {
+    const bank = SUPPORTED_BANKS[request.bank_code];
+    if (!bank) {
+      callback({ code: status.NOT_FOUND, message: 'Bank not found' });
+      return;
+    }
+    callback(null, {
+      bank_code: bank.code,
+      bank_name: bank.name,
+      ifsc_prefix: bank.ifscPrefix,
+      is_active: true,
+      features: bank.features,
+      daily_debit_limit_paisa: bank.dailyDebitLimitPaisa,
+      daily_credit_limit_paisa: bank.dailyCreditLimitPaisa,
+      min_balance_paisa: bank.minBalancePaisa,
+      transaction_fees: {
+        processing_fee_paisa: bank.transactionFees.processingFeePaisa,
+        service_tax_paisa: bank.transactionFees.serviceTaxPaisa,
+        total_fee_paisa: bank.transactionFees.totalFeePaisa,
+      },
+      processing_delay_ms: bank.processingDelayMs,
+      failure_rate: bank.failureRate,
+    });
+  }
+
+  async updateBankStatus(
+    request: any,
+    callback: GrpcCallback<any>
+  ): Promise<void> {
+    // Mock implementation for updating bank status
+    logger.info('Mock: Update bank status', request);
+    callback(null, { success: true });
+  }
+
+  async getMetrics(
+    request: any,
+    callback: GrpcCallback<any>
+  ): Promise<void> {
+    // Mock implementation for getting metrics
+    logger.info('Mock: Get metrics', request);
+    callback(null, {
+      total_transactions: 100,
+      successful_transactions: 90,
+      failed_transactions: 10,
+      total_accounts: 50,
+      active_accounts: 45,
+      // ... other mock metrics
     });
   }
 }

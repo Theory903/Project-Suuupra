@@ -1,10 +1,9 @@
-import { FastifyPluginAsync } from 'fastify';
-import { z } from 'zod';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { SUPPORTED_BANKS } from '../../constants/banks';
 
 const banksRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all supported banks
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
     const banks = Object.values(SUPPORTED_BANKS).map(bank => ({
       code: bank.code,
       name: bank.name,
@@ -22,7 +21,7 @@ const banksRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get specific bank information
-  fastify.get('/:bankCode', async (request, reply) => {
+  fastify.get('/:bankCode', async (request: FastifyRequest, reply: FastifyReply) => {
     const { bankCode } = request.params as { bankCode: string };
     
     const bank = SUPPORTED_BANKS[bankCode.toUpperCase()];
@@ -52,7 +51,7 @@ const banksRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get bank health status
-  fastify.get('/:bankCode/health', async (request, reply) => {
+  fastify.get('/:bankCode/health', async (request: FastifyRequest, reply: FastifyReply) => {
     const { bankCode } = request.params as { bankCode: string };
     
     const bank = SUPPORTED_BANKS[bankCode.toUpperCase()];

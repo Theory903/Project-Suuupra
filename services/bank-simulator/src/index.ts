@@ -42,7 +42,7 @@ async function shutdown(): Promise<void> {
 async function bootstrap(): Promise<void> {
   try {
     logger.info('Starting Bank Simulator Service', {
-      version: process.env.npm_package_version || '1.0.0',
+      version: process.env['npm_package_version'] || '1.0.0',
       environment: config.env,
       nodeVersion: process.version,
     });
@@ -52,8 +52,17 @@ async function bootstrap(): Promise<void> {
     logger.info('Database connection established');
 
     // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
-    logger.info('Database health check passed');
+    try {
+      const result = await prisma.$queryRaw`SELECT 1 as test`;
+      logger.info('Database health check passed', { result });
+    } catch (dbError) {
+      logger.error('Database test query failed', { 
+        error: dbError instanceof Error ? dbError.message : dbError,
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+        databaseUrl: config.database.url
+      });
+      throw dbError;
+    }
 
     // Start the server (HTTP + gRPC)
     await startServer();

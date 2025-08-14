@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -222,6 +223,8 @@ func initConfig() (*config.Config, error) {
 	// Environment variables
 	viper.SetEnvPrefix("UPI_CORE")
 	viper.AutomaticEnv()
+	// Replace dots with underscores for environment variables
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	// Set defaults
 	viper.SetDefault("app.name", "upi-core")
@@ -229,8 +232,35 @@ func initConfig() (*config.Config, error) {
 	viper.SetDefault("app.environment", "development")
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 50051)
+	viper.SetDefault("server.read_timeout", "30s")
+	viper.SetDefault("server.write_timeout", "30s")
+	viper.SetDefault("server.idle_timeout", "120s")
+	viper.SetDefault("database.host", "localhost")
+	viper.SetDefault("database.port", 5432)
+	viper.SetDefault("database.username", "postgres")
+	viper.SetDefault("database.password", "password")
+	viper.SetDefault("database.database", "upi_core")
+	viper.SetDefault("database.ssl_mode", "disable")
+	viper.SetDefault("database.max_open_conns", 25)
+	viper.SetDefault("database.max_idle_conns", 5)
+	viper.SetDefault("database.conn_timeout", "30s")
+	viper.SetDefault("redis.host", "localhost")
+	viper.SetDefault("redis.port", 6379)
+	viper.SetDefault("redis.password", "")
+	viper.SetDefault("redis.db", 0)
+	viper.SetDefault("redis.pool_size", 10)
+	viper.SetDefault("kafka.brokers", []string{"localhost:9092"})
+	viper.SetDefault("kafka.group_id", "upi-core")
+	viper.SetDefault("kafka.topics.transactions", "upi.transactions")
+	viper.SetDefault("kafka.topics.settlements", "upi.settlements")
+	viper.SetDefault("kafka.topics.events", "upi.events")
 	viper.SetDefault("logging.level", "info")
 	viper.SetDefault("logging.format", "text")
+	viper.SetDefault("telemetry.enabled", false)
+	viper.SetDefault("telemetry.service_name", "upi-core")
+	viper.SetDefault("telemetry.jaeger_endpoint", "http://localhost:14268/api/traces")
+	viper.SetDefault("telemetry.metrics_port", 9090)
+	viper.SetDefault("telemetry.sample_rate", 0.1)
 
 	// Read config file
 	if err := viper.ReadInConfig(); err != nil {

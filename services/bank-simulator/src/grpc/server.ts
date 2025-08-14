@@ -1,9 +1,8 @@
 import { Server } from '@grpc/grpc-js';
-import { loadPackageDefinition } from '@grpc/proto-loader';
+import { loadPackageDefinition } from '@grpc/grpc-js'; // Correct import path
 import * as protoLoader from '@grpc/proto-loader';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { config } from '../config';
 import logger from '../utils/logger';
 import { BankSimulatorService } from './services/bank-simulator-service';
 
@@ -22,38 +21,27 @@ export async function setupGrpcServer(prisma: PrismaClient): Promise<Server> {
       oneofs: true,
     });
 
-    const bankSimulatorProto = loadPackageDefinition(packageDefinition) as any;
+    const bankSimulatorProto = (loadPackageDefinition(packageDefinition) as any).bank_simulator as any;
 
     // Create service implementation
     const bankSimulatorService = new BankSimulatorService(prisma);
 
     // Add service to server
-    server.addService(bankSimulatorProto.bank_simulator.BankSimulator.service, {
+    server.addService(bankSimulatorProto.BankSimulator.service, {
       ProcessTransaction: bankSimulatorService.processTransaction.bind(bankSimulatorService),
       GetTransactionStatus: bankSimulatorService.getTransactionStatus.bind(bankSimulatorService),
-      CreateAccount: bankSimulatorService.createAccount.bind(bankSimulatorService),
       GetAccountBalance: bankSimulatorService.getAccountBalance.bind(bankSimulatorService),
-      GetAccountDetails: bankSimulatorService.getAccountDetails.bind(bankSimulatorService),
+      CreateAccount: bankSimulatorService.createAccount.bind(bankSimulatorService),
       LinkVPA: bankSimulatorService.linkVPA.bind(bankSimulatorService),
-      UnlinkVPA: bankSimulatorService.unlinkVPA.bind(bankSimulatorService),
-      ResolveVPA: bankSimulatorService.resolveVPA.bind(bankSimulatorService),
-      GetBankInfo: bankSimulatorService.getBankInfo.bind(bankSimulatorService),
-      CheckBankHealth: bankSimulatorService.checkBankHealth.bind(bankSimulatorService),
-      GetBankStats: bankSimulatorService.getBankStats.bind(bankSimulatorService),
+      GetBankConfig: bankSimulatorService.getBankConfig.bind(bankSimulatorService),
+      UpdateBankStatus: bankSimulatorService.updateBankStatus.bind(bankSimulatorService),
+      GetMetrics: bankSimulatorService.getMetrics.bind(bankSimulatorService),
     });
 
-    // Enable reflection in development
-    if (config.grpc.reflection && config.env === 'development') {
-      const reflection = require('@grpc/reflection');
-      reflection.addReflection(server, PROTO_PATH);
-      logger.info('gRPC reflection enabled');
-    }
-
-    logger.info('gRPC server configured successfully');
+    // Return configured server (binding/starting will be handled by server.ts)
     return server;
-
   } catch (error) {
-    logger.error('Failed to setup gRPC server', { error });
+    logger.error(`Error setting up gRPC server: ${(error as Error).message}`); // Cast error to Error
     throw error;
   }
 }

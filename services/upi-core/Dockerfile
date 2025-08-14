@@ -35,8 +35,8 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/upi-core .
 
-# Copy configuration files if they exist
-COPY --from=builder /app/configs ./configs/
+# Copy configuration files if they exist (optional)
+# COPY --from=builder /app/configs ./configs/
 
 # Change ownership to non-root user
 RUN chown -R upicore:upicore /app

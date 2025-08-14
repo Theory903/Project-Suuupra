@@ -1,4 +1,4 @@
-import Fastify, { FastifyInstance } from 'fastify';
+import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { config } from '../config';
 import logger from '../utils/logger';
 
@@ -26,34 +26,35 @@ export async function setupHttpServer(): Promise<FastifyInstance> {
   });
 
   // Request logging middleware
-  server.addHook('onRequest', async (request) => {
-    request.log = logger.child({ requestId: request.id });
-    request.log.info('Incoming request', {
+  server.addHook('onRequest', async (request: FastifyRequest) => {
+    (request as any).log = logger.child({ 
+      requestId: request.id,
       method: request.method,
       url: request.url,
       userAgent: request.headers['user-agent'],
       ip: request.ip,
     });
+    (request as any).log.info('Incoming request');
   });
 
   // Response logging middleware
-  server.addHook('onResponse', async (request, reply) => {
-    request.log.info('Request completed', {
+  server.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
+    (request as any).log.info({ 
       method: request.method,
       url: request.url,
       statusCode: reply.statusCode,
       responseTime: reply.elapsedTime,
-    });
+    }, 'Request completed');
   });
 
   // Error handler
-  server.setErrorHandler(async (error, request, reply) => {
-    request.log.error('Request error', { error: error.message, stack: error.stack });
+  server.setErrorHandler(async (error: Error, request: FastifyRequest, reply: FastifyReply) => {
+    (request as any).log.error({ error: error.message, stack: error.stack }, 'Request error');
     
-    if (error.statusCode && error.statusCode < 500) {
-      await reply.status(error.statusCode).send({
+    if ((error as any).statusCode && (error as any).statusCode < 500) {
+      await reply.status((error as any).statusCode).send({
         error: error.message,
-        statusCode: error.statusCode,
+        statusCode: (error as any).statusCode,
       });
     } else {
       await reply.status(500).send({
@@ -64,13 +65,13 @@ export async function setupHttpServer(): Promise<FastifyInstance> {
   });
 
   // Health check endpoint
-  server.get('/health', async (request, reply) => {
+  server.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     const { checkDatabaseHealth } = await import('../config/database');
     
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
+      version: process.env['npm_package_version'] || '1.0.0',
       uptime: process.uptime(),
       checks: {
         database: await checkDatabaseHealth(),
@@ -88,7 +89,7 @@ export async function setupHttpServer(): Promise<FastifyInstance> {
   });
 
   // Readiness check endpoint
-  server.get('/ready', async (request, reply) => {
+  server.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
     await reply.send({
       status: 'ready',
       timestamp: new Date().toISOString(),
@@ -96,7 +97,7 @@ export async function setupHttpServer(): Promise<FastifyInstance> {
   });
 
   // Liveness check endpoint
-  server.get('/live', async (request, reply) => {
+  server.get('/live', async (_request: FastifyRequest, reply: FastifyReply) => {
     await reply.send({
       status: 'alive',
       timestamp: new Date().toISOString(),

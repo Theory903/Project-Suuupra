@@ -4,14 +4,16 @@ import { config } from '../config';
 // Create logger instance
 const logger = pino({
   level: config.observability.logLevel,
-  transport: config.env === 'development' ? {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss Z',
-      ignore: 'pid,hostname',
+  ... (config.env === 'development' ? {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+      },
     },
-  } : undefined,
+  } : {}),
   formatters: {
     level: (label) => {
       return { level: label.toUpperCase() };
@@ -20,7 +22,7 @@ const logger = pino({
   timestamp: pino.stdTimeFunctions.isoTime,
   base: {
     service: config.observability.serviceName,
-    version: process.env.npm_package_version || '1.0.0',
+    version: process.env['npm_package_version'] || '1.0.0',
   },
 });
 
