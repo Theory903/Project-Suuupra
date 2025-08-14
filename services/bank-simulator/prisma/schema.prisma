@@ -1,0 +1,149 @@
+// Bank Simulator Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Banks table - Configuration for different banks
+model Bank {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bankCode          String    @unique @map("bank_code") @db.VarChar(10)
+  bankName          String    @map("bank_name") @db.VarChar(100)
+  ifscPrefix        String    @map("ifsc_prefix") @db.VarChar(4)
+  isActive          Boolean   @default(true) @map("is_active")
+  dailyLimitPaisa   BigInt    @default(10000000) @map("daily_limit_paisa") // 1 lakh default
+  minBalancePaisa   BigInt    @default(1000000) @map("min_balance_paisa") // 10k default
+  features          String[]  @default(["UPI", "IMPS", "NEFT", "RTGS"])
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  accounts          Account[]
+  
+  @@map("banks")
+}
+
+// Accounts table - Individual bank accounts
+model Account {
+  id                      String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountNumber           String      @unique @map("account_number") @db.VarChar(20)
+  bankId                  String      @map("bank_id") @db.Uuid
+  ifscCode                String      @map("ifsc_code") @db.VarChar(11)
+  customerId              String      @map("customer_id") @db.VarChar(50)
+  accountType             String      @map("account_type") @db.VarChar(20) // SAVINGS, CURRENT
+  accountHolderName       String      @map("account_holder_name") @db.VarChar(100)
+  mobileNumber            String?     @map("mobile_number") @db.VarChar(15)
+  email                   String?     @db.VarChar(100)
+  balancePaisa            BigInt      @default(0) @map("balance_paisa")
+  availableBalancePaisa   BigInt      @default(0) @map("available_balance_paisa")
+  status                  String      @default("ACTIVE") @db.VarChar(20) // ACTIVE, INACTIVE, FROZEN, CLOSED
+  kycStatus               String      @default("PENDING") @map("kyc_status") @db.VarChar(20) // PENDING, VERIFIED, REJECTED
+  dailyLimitPaisa         BigInt      @default(2500000) @map("daily_limit_paisa") // 25k default
+  panNumber               String?     @map("pan_number") @db.VarChar(10)
+  aadhaarMasked           String?     @map("aadhaar_masked") @db.VarChar(12)
+  dateOfBirth             DateTime?   @map("date_of_birth")
+  address                 String?     @db.Text
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  bank                    Bank        @relation(fields: [bankId], references: [id])
+  vpaMappings             VpaMapping[]
+  transactions            Transaction[]
+  dailyLimits             DailyLimit[]
+  auditLogs               AuditLog[]
+
+  @@map("accounts")
+  @@index([bankId])
+  @@index([customerId])
+  @@index([mobileNumber])
+}
+
+// VPA mappings - UPI Virtual Payment Address to account mapping
+model VpaMapping {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vpa         String    @unique @db.VarChar(100)
+  accountId   String    @map("account_id") @db.Uuid
+  isPrimary   Boolean   @default(false) @map("is_primary")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  account     Account   @relation(fields: [accountId], references: [id])
+
+  @@map("vpa_mappings")
+  @@index([accountId])
+}
+
+// Transactions table - All debit/credit operations
+model Transaction {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transactionId         String    @unique @map("transaction_id") @db.VarChar(50)
+  bankReferenceId       String    @unique @map("bank_reference_id") @db.VarChar(50)
+  accountId             String    @map("account_id") @db.Uuid
+  type                  String    @db.VarChar(20) // DEBIT, CREDIT
+  amountPaisa           BigInt    @map("amount_paisa")
+  balanceBeforePaisa    BigInt    @map("balance_before_paisa")
+  balanceAfterPaisa     BigInt    @map("balance_after_paisa")
+  status                String    @db.VarChar(20) // PENDING, SUCCESS, FAILED, TIMEOUT
+  reference             String?   @db.VarChar(100)
+  description           String?   @db.Text
+  metadata              Json?     @db.JsonB
+  errorCode             String?   @map("error_code") @db.VarChar(20)
+  errorMessage          String?   @map("error_message") @db.Text
+  processedAt           DateTime? @map("processed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  account               Account   @relation(fields: [accountId], references: [id])
+
+  @@map("transactions")
+  @@index([accountId])
+  @@index([createdAt])
+  @@index([status])
+  @@index([type])
+}
+
+// Daily transaction limits tracking
+model DailyLimit {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId           String    @map("account_id") @db.Uuid
+  limitDate           DateTime  @map("limit_date") @db.Date
+  totalDebitedPaisa   BigInt    @default(0) @map("total_debited_paisa")
+  transactionCount    Int       @default(0) @map("transaction_count")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  account             Account   @relation(fields: [accountId], references: [id])
+
+  @@unique([accountId, limitDate])
+  @@map("daily_limits")
+  @@index([accountId, limitDate])
+}
+
+// Audit logs for all operations
+model AuditLog {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityType  String    @map("entity_type") @db.VarChar(50)
+  entityId    String    @map("entity_id") @db.Uuid
+  action      String    @db.VarChar(50)
+  oldValues   Json?     @map("old_values") @db.JsonB
+  newValues   Json?     @map("new_values") @db.JsonB
+  userId      String?   @map("user_id") @db.VarChar(100)
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations (optional - for referential integrity)
+  account     Account?  @relation(fields: [entityId], references: [id])
+
+  @@map("audit_logs")
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

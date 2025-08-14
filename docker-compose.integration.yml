@@ -1,0 +1,217 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (shared)
+  postgres:
+    image: postgres:15-alpine
+    container_name: upi-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_MULTIPLE_DATABASES: bank_simulator,upi_core
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - upi-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: upi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - upi-network
+
+  # Apache Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: upi-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - upi-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: upi-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - upi-network
+
+  # Bank Simulator Service
+  bank-simulator:
+    build:
+      context: ./services/bank-simulator
+      dockerfile: Dockerfile
+    container_name: bank-simulator
+    ports:
+      - "3000:3000"   # HTTP API
+      - "50051:50051" # gRPC
+      - "9090:9090"   # Metrics
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/bank_simulator
+      GRPC_PORT: 50051
+      PORT: 3000
+      HOST: 0.0.0.0
+      JWT_SECRET: your-super-secret-jwt-key-development
+      LOG_LEVEL: info
+      ENABLE_METRICS: true
+      ENABLE_TRACING: true
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    volumes:
+      - ./services/bank-simulator/logs:/app/logs
+    networks:
+      - upi-network
+    restart: unless-stopped
+
+  # UPI Core Service
+  upi-core:
+    build:
+      context: ./services/upi-core
+      dockerfile: Dockerfile
+    container_name: upi-core
+    ports:
+      - "50052:50051" # gRPC (different port to avoid conflict)
+      - "8081:8081"   # HTTP API
+      - "9091:9090"   # Metrics
+    environment:
+      UPI_CORE_APP_ENVIRONMENT: development
+      UPI_CORE_SERVER_HOST: 0.0.0.0
+      UPI_CORE_SERVER_PORT: 50051
+      UPI_CORE_DATABASE_HOST: postgres
+      UPI_CORE_DATABASE_PORT: 5432
+      UPI_CORE_DATABASE_USERNAME: postgres
+      UPI_CORE_DATABASE_PASSWORD: password
+      UPI_CORE_DATABASE_DATABASE: upi_core
+      UPI_CORE_DATABASE_SSL_MODE: disable
+      UPI_CORE_REDIS_HOST: redis
+      UPI_CORE_REDIS_PORT: 6379
+      UPI_CORE_KAFKA_BROKERS: kafka:9092
+      UPI_CORE_KAFKA_TOPICS_TRANSACTIONS: upi.transactions
+      UPI_CORE_KAFKA_TOPICS_SETTLEMENTS: upi.settlements
+      UPI_CORE_KAFKA_TOPICS_EVENTS: upi.events
+      UPI_CORE_LOGGING_LEVEL: info
+      UPI_CORE_TELEMETRY_ENABLED: true
+      UPI_CORE_TELEMETRY_JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      UPI_CORE_TELEMETRY_METRICS_PORT: 9090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    networks:
+      - upi-network
+    restart: unless-stopped
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: upi-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    networks:
+      - upi-network
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: upi-prometheus
+    ports:
+      - "9093:9090"
+    volumes:
+      - ./monitoring/prometheus-integration.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - upi-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: upi-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - upi-network
+
+  # API Gateway (nginx for load balancing and routing)
+  api-gateway:
+    image: nginx:alpine
+    container_name: upi-api-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./monitoring/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - bank-simulator
+      - upi-core
+    networks:
+      - upi-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  upi-network:
+    driver: bridge

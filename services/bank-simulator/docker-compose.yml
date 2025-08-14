@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bank-simulator-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: bank_simulator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bank-simulator-network
+
+  # Redis Cache (for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: bank-simulator-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bank-simulator-network
+
+  # Bank Simulator Service
+  bank-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank-simulator-service
+    ports:
+      - "3000:3000"  # HTTP API
+      - "50051:50051"  # gRPC
+      - "9090:9090"  # Metrics
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/bank_simulator
+      GRPC_PORT: 50051
+      PORT: 3000
+      HOST: 0.0.0.0
+      JWT_SECRET: your-super-secret-jwt-key-development
+      LOG_LEVEL: info
+      ENABLE_METRICS: true
+      ENABLE_TRACING: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - bank-simulator-network
+    restart: unless-stopped
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: bank-simulator-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    networks:
+      - bank-simulator-network
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: bank-simulator-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - bank-simulator-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+
+networks:
+  bank-simulator-network:
+    driver: bridge
