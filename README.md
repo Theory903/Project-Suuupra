@@ -34,9 +34,9 @@
 | Commerce | Order Service | Python + FastAPI | PostgreSQL + Redis | Order management, distributed transactions, inventory | Saga pattern, event sourcing, state machines |
 | Payments | Payment Gateway | Go + Gin | MySQL | UPI, card processing, fraud detection, tokenization, reconciliation | Double-entry ledger, idempotency, state machines |
 | Payments | Ledger Service | Java + Spring Batch | MySQL | Double-entry accounting, reconciliation, settlement, audit trails | Merkle trees, windowed aggregation, cryptographic hash chains |
-| Payments | UPI Core | Go (gRPC) | Redis | Transaction routing, security, service discovery, reconciliation | Consistent Hashing, CRDTs, distributed locking |
+| Payments | UPI Core ✅ | Go (gRPC) | PostgreSQL, Redis | Transaction routing, security, service discovery, reconciliation | Consistent Hashing, CRDTs, distributed locking |
 | Payments | UPI PSP | Flutter | Secure Storage | P2P/P2M payments, QR codes, bank account linking, UPI PIN | - |
-| Payments | Bank Simulator | Node.js + Express | PostgreSQL | Mock bank account management, transaction processing | - |
+| Payments | Bank Simulator ✅ | TypeScript + Fastify | PostgreSQL | Mock bank account management, transaction processing | - |
 | Media | Live Classes | WebRTC SFU (mediasoup) + Node.js | Redis + S3 | Interactive classes, recording, chat, whiteboard, screen sharing | Jitter buffers, priority queues, consistent hashing |
 | Media | VOD Service | Node.js + FFmpeg | S3 + CDN | Transcoding, adaptive bitrate (HLS/DASH), DRM, watermarking | Dynamic programming (encoding), priority queues (transcoding) |
 | Media | Mass Live Stream | Go + FFmpeg | S3 + Multi-CDN | Hotstar-scale streaming, LL-HLS, real-time transcoding | Consistent hashing, segment scheduling, ring buffers |
@@ -241,8 +241,9 @@ GitHub Actions handle CI/CD, scans, tests, and deploy on commit.
 - 🛠 Content Management (Content metadata, search integration)
 - ➕ Commerce Foundation (Order service, event sourcing)
 
-**Phase 2: Payment Gateway & Live Streaming** 📋 *Next Phase*
-- ⌛ Payment Gateway Development (UPI flows, fraud detection)
+**Phase 2: Payment Gateway & Live Streaming** 🚧 *In Progress*
+- 🚧 **Payment Gateway Development** (UPI flows, fraud detection) - **ACTIVE**
+- ✅ **UPI Infrastructure** (UPI Core + Bank Simulator production-ready)
 - ⌛ Live Video Infrastructure (WebRTC, recording, real-time chat)
 - ⌛ VOD & Content Delivery (transcoding, CDN, DRM)
 
