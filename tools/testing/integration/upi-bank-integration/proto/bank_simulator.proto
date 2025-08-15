@@ -1,0 +1,270 @@
+syntax = "proto3";
+
+package bank_simulator;
+
+import "google/protobuf/timestamp.proto";
+
+// Bank Simulator gRPC Service
+service BankSimulator {
+  // Core transaction processing
+  rpc ProcessTransaction(TransactionRequest) returns (TransactionResponse);
+  rpc GetTransactionStatus(TransactionStatusRequest) returns (TransactionStatusResponse);
+  
+  // Account management
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc GetAccountBalance(AccountBalanceRequest) returns (AccountBalanceResponse);
+  rpc GetAccountDetails(AccountDetailsRequest) returns (AccountDetailsResponse);
+  
+  // VPA management
+  rpc LinkVPA(LinkVPARequest) returns (LinkVPAResponse);
+  rpc UnlinkVPA(UnlinkVPARequest) returns (UnlinkVPAResponse);
+  rpc ResolveVPA(ResolveVPARequest) returns (ResolveVPAResponse);
+  
+  // Bank operations
+  rpc GetBankInfo(BankInfoRequest) returns (BankInfoResponse);
+  rpc CheckBankHealth(BankHealthRequest) returns (BankHealthResponse);
+  
+  // Admin operations
+  rpc GetBankStats(BankStatsRequest) returns (BankStatsResponse);
+}
+
+// Transaction messages
+message TransactionRequest {
+  string transaction_id = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  int64 amount_paisa = 4; // Amount in paisa to avoid floating point issues
+  TransactionType type = 5;
+  string reference = 6;
+  string description = 7;
+  map<string, string> metadata = 8;
+  google.protobuf.Timestamp initiated_at = 9;
+}
+
+message TransactionResponse {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  string bank_reference_id = 3;
+  string error_code = 4;
+  string error_message = 5;
+  int64 account_balance_paisa = 6;
+  google.protobuf.Timestamp processed_at = 7;
+  TransactionFees fees = 8;
+}
+
+message TransactionStatusRequest {
+  string transaction_id = 1;
+  string bank_code = 2;
+}
+
+message TransactionStatusResponse {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  string bank_reference_id = 3;
+  int64 amount_paisa = 4;
+  google.protobuf.Timestamp initiated_at = 5;
+  google.protobuf.Timestamp processed_at = 6;
+  string error_code = 7;
+  string error_message = 8;
+}
+
+// Account messages
+message CreateAccountRequest {
+  string bank_code = 1;
+  string customer_id = 2;
+  AccountType account_type = 3;
+  string mobile_number = 4;
+  string email = 5;
+  CustomerKYC kyc_details = 6;
+  int64 initial_deposit_paisa = 7;
+}
+
+message CreateAccountResponse {
+  string account_number = 1;
+  string ifsc_code = 2;
+  AccountStatus status = 3;
+  string error_code = 4;
+  string error_message = 5;
+}
+
+message AccountBalanceRequest {
+  string bank_code = 1;
+  string account_number = 2;
+}
+
+message AccountBalanceResponse {
+  string account_number = 1;
+  int64 available_balance_paisa = 2;
+  int64 ledger_balance_paisa = 3;
+  int64 daily_limit_remaining_paisa = 4;
+  google.protobuf.Timestamp last_updated = 5;
+}
+
+message AccountDetailsRequest {
+  string bank_code = 1;
+  string account_number = 2;
+}
+
+message AccountDetailsResponse {
+  string account_number = 1;
+  string ifsc_code = 2;
+  string account_holder_name = 3;
+  AccountType account_type = 4;
+  AccountStatus status = 5;
+  string mobile_number = 6;
+  string email = 7;
+  int64 available_balance_paisa = 8;
+  int64 daily_limit_paisa = 9;
+  google.protobuf.Timestamp created_at = 10;
+}
+
+// VPA messages
+message LinkVPARequest {
+  string vpa = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  bool is_primary = 4;
+}
+
+message LinkVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+}
+
+message UnlinkVPARequest {
+  string vpa = 1;
+  string bank_code = 2;
+}
+
+message UnlinkVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+}
+
+message ResolveVPARequest {
+  string vpa = 1;
+}
+
+message ResolveVPAResponse {
+  bool exists = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  string account_holder_name = 4;
+  bool is_active = 5;
+  string error_code = 6;
+  string error_message = 7;
+}
+
+// Bank messages
+message BankInfoRequest {
+  string bank_code = 1;
+}
+
+message BankInfoResponse {
+  string bank_code = 1;
+  string bank_name = 2;
+  string ifsc_prefix = 3;
+  bool is_active = 4;
+  repeated string features = 5;
+  int64 daily_limit_paisa = 6;
+  int64 min_balance_paisa = 7;
+}
+
+message BankHealthRequest {
+  string bank_code = 1;
+}
+
+message BankHealthResponse {
+  string bank_code = 1;
+  HealthStatus health_status = 2;
+  int32 success_rate_percent = 3;
+  int32 avg_response_time_ms = 4;
+  int64 total_accounts = 5;
+  int64 active_accounts = 6;
+  google.protobuf.Timestamp last_checked = 7;
+}
+
+message BankStatsRequest {
+  string bank_code = 1;
+  google.protobuf.Timestamp from_date = 2;
+  google.protobuf.Timestamp to_date = 3;
+}
+
+message BankStatsResponse {
+  string bank_code = 1;
+  int64 total_transactions = 2;
+  int64 successful_transactions = 3;
+  int64 failed_transactions = 4;
+  int64 total_volume_paisa = 5;
+  int32 success_rate_percent = 6;
+  int32 avg_response_time_ms = 7;
+  repeated DailyStats daily_stats = 8;
+}
+
+// Supporting types
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_DEBIT = 1;
+  TRANSACTION_TYPE_CREDIT = 2;
+}
+
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PENDING = 1;
+  TRANSACTION_STATUS_SUCCESS = 2;
+  TRANSACTION_STATUS_FAILED = 3;
+  TRANSACTION_STATUS_TIMEOUT = 4;
+  TRANSACTION_STATUS_INSUFFICIENT_FUNDS = 5;
+  TRANSACTION_STATUS_LIMIT_EXCEEDED = 6;
+  TRANSACTION_STATUS_ACCOUNT_FROZEN = 7;
+  TRANSACTION_STATUS_INVALID_ACCOUNT = 8;
+}
+
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  ACCOUNT_TYPE_SAVINGS = 1;
+  ACCOUNT_TYPE_CURRENT = 2;
+  ACCOUNT_TYPE_OVERDRAFT = 3;
+}
+
+enum AccountStatus {
+  ACCOUNT_STATUS_UNSPECIFIED = 0;
+  ACCOUNT_STATUS_ACTIVE = 1;
+  ACCOUNT_STATUS_INACTIVE = 2;
+  ACCOUNT_STATUS_FROZEN = 3;
+  ACCOUNT_STATUS_CLOSED = 4;
+  ACCOUNT_STATUS_KYC_PENDING = 5;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_HEALTHY = 1;
+  HEALTH_STATUS_DEGRADED = 2;
+  HEALTH_STATUS_UNHEALTHY = 3;
+  HEALTH_STATUS_MAINTENANCE = 4;
+}
+
+message CustomerKYC {
+  string pan = 1;
+  string aadhaar_masked = 2; // Only last 4 digits
+  string full_name = 3;
+  string date_of_birth = 4; // YYYY-MM-DD format
+  string address = 5;
+}
+
+message TransactionFees {
+  int64 processing_fee_paisa = 1;
+  int64 service_tax_paisa = 2;
+  int64 total_fee_paisa = 3;
+}
+
+message DailyStats {
+  string date = 1; // YYYY-MM-DD format
+  int64 transaction_count = 2;
+  int64 success_count = 3;
+  int64 failure_count = 4;
+  int64 total_volume_paisa = 5;
+  int32 success_rate_percent = 6;
+}

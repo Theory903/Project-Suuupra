@@ -1,0 +1,383 @@
+syntax = "proto3";
+
+package upi_core;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/suuupra/upi-core/pkg/pb";
+
+// UPI Core Service - The central UPI switch
+service UpiCore {
+  // Transaction Processing
+  rpc ProcessTransaction(TransactionRequest) returns (TransactionResponse);
+  rpc GetTransactionStatus(TransactionStatusRequest) returns (TransactionStatusResponse);
+  rpc CancelTransaction(CancelTransactionRequest) returns (CancelTransactionResponse);
+  rpc ReverseTransaction(ReverseTransactionRequest) returns (ReverseTransactionResponse);
+  
+  // VPA Management
+  rpc ResolveVPA(ResolveVPARequest) returns (ResolveVPAResponse);
+  rpc RegisterVPA(RegisterVPARequest) returns (RegisterVPAResponse);
+  rpc UpdateVPA(UpdateVPARequest) returns (UpdateVPAResponse);
+  rpc DeactivateVPA(DeactivateVPARequest) returns (DeactivateVPAResponse);
+  
+  // Bank Operations
+  rpc RegisterBank(RegisterBankRequest) returns (RegisterBankResponse);
+  rpc UpdateBankStatus(UpdateBankStatusRequest) returns (UpdateBankStatusResponse);
+  rpc GetBankStatus(BankStatusRequest) returns (BankStatusResponse);
+  rpc ListBanks(ListBanksRequest) returns (ListBanksResponse);
+  
+  // Settlement Operations
+  rpc InitiateSettlement(InitiateSettlementRequest) returns (InitiateSettlementResponse);
+  rpc GetSettlementStatus(SettlementStatusRequest) returns (SettlementStatusResponse);
+  rpc GetSettlementReport(SettlementReportRequest) returns (SettlementReportResponse);
+  
+  // Health and Monitoring
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+  rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// Transaction Messages
+message TransactionRequest {
+  string transaction_id = 1;
+  string rrn = 2; // Retrieval Reference Number
+  string payer_vpa = 3;
+  string payee_vpa = 4;
+  int64 amount_paisa = 5;
+  string currency = 6; // Default: INR
+  TransactionType type = 7;
+  string description = 8;
+  string reference = 9;
+  string signature = 10; // Digital signature
+  google.protobuf.Timestamp initiated_at = 11;
+  map<string, string> metadata = 12;
+}
+
+message TransactionResponse {
+  string transaction_id = 1;
+  string rrn = 2;
+  TransactionStatus status = 3;
+  string error_code = 4;
+  string error_message = 5;
+  string payer_bank_code = 6;
+  string payee_bank_code = 7;
+  google.protobuf.Timestamp processed_at = 8;
+  TransactionFees fees = 9;
+  string settlement_id = 10;
+}
+
+message TransactionStatusRequest {
+  string transaction_id = 1;
+  string rrn = 2;
+}
+
+message TransactionStatusResponse {
+  string transaction_id = 1;
+  string rrn = 2;
+  TransactionStatus status = 3;
+  int64 amount_paisa = 4;
+  string payer_vpa = 5;
+  string payee_vpa = 6;
+  string payer_bank_code = 7;
+  string payee_bank_code = 8;
+  google.protobuf.Timestamp initiated_at = 9;
+  google.protobuf.Timestamp processed_at = 10;
+  string error_code = 11;
+  string error_message = 12;
+  repeated TransactionEvent events = 13;
+}
+
+message CancelTransactionRequest {
+  string transaction_id = 1;
+  string reason = 2;
+  string signature = 3;
+}
+
+message CancelTransactionResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp cancelled_at = 4;
+}
+
+message ReverseTransactionRequest {
+  string original_transaction_id = 1;
+  string reversal_transaction_id = 2;
+  string reason = 3;
+  string signature = 4;
+}
+
+message ReverseTransactionResponse {
+  bool success = 1;
+  string reversal_transaction_id = 2;
+  string error_code = 3;
+  string error_message = 4;
+  google.protobuf.Timestamp reversed_at = 5;
+}
+
+// VPA Messages
+message ResolveVPARequest {
+  string vpa = 1;
+}
+
+message ResolveVPAResponse {
+  bool exists = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  string account_holder_name = 4;
+  bool is_active = 5;
+  string error_code = 6;
+  string error_message = 7;
+}
+
+message RegisterVPARequest {
+  string vpa = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  string account_holder_name = 4;
+  string mobile_number = 5;
+  string signature = 6;
+}
+
+message RegisterVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp registered_at = 4;
+}
+
+message UpdateVPARequest {
+  string vpa = 1;
+  string new_account_number = 2;
+  string signature = 3;
+}
+
+message UpdateVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message DeactivateVPARequest {
+  string vpa = 1;
+  string reason = 2;
+  string signature = 3;
+}
+
+message DeactivateVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp deactivated_at = 4;
+}
+
+// Bank Messages
+message RegisterBankRequest {
+  string bank_code = 1;
+  string bank_name = 2;
+  string ifsc_prefix = 3;
+  string endpoint_url = 4;
+  string public_key = 5;
+  repeated string supported_features = 6;
+}
+
+message RegisterBankResponse {
+  bool success = 1;
+  string bank_id = 2;
+  string error_code = 3;
+  string error_message = 4;
+  google.protobuf.Timestamp registered_at = 5;
+}
+
+message UpdateBankStatusRequest {
+  string bank_code = 1;
+  BankStatus status = 2;
+  string reason = 3;
+}
+
+message UpdateBankStatusResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message BankStatusRequest {
+  string bank_code = 1;
+}
+
+message BankStatusResponse {
+  string bank_code = 1;
+  string bank_name = 2;
+  BankStatus status = 3;
+  int32 success_rate_percent = 4;
+  int32 avg_response_time_ms = 5;
+  google.protobuf.Timestamp last_heartbeat = 6;
+  repeated string supported_features = 7;
+}
+
+message ListBanksRequest {
+  BankStatus status_filter = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListBanksResponse {
+  repeated BankInfo banks = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// Settlement Messages
+message InitiateSettlementRequest {
+  string batch_id = 1;
+  repeated string bank_codes = 2;
+  google.protobuf.Timestamp settlement_date = 3;
+}
+
+message InitiateSettlementResponse {
+  bool success = 1;
+  string settlement_id = 2;
+  string error_code = 3;
+  string error_message = 4;
+  google.protobuf.Timestamp initiated_at = 5;
+}
+
+message SettlementStatusRequest {
+  string settlement_id = 1;
+}
+
+message SettlementStatusResponse {
+  string settlement_id = 1;
+  SettlementStatus status = 2;
+  repeated BankSettlement bank_settlements = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp completed_at = 5;
+}
+
+message SettlementReportRequest {
+  string bank_code = 1;
+  google.protobuf.Timestamp from_date = 2;
+  google.protobuf.Timestamp to_date = 3;
+}
+
+message SettlementReportResponse {
+  string bank_code = 1;
+  int64 total_credit_paisa = 2;
+  int64 total_debit_paisa = 3;
+  int64 net_settlement_paisa = 4;
+  int32 transaction_count = 5;
+  repeated DailySettlement daily_settlements = 6;
+}
+
+// Health and Monitoring Messages
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  HealthStatus status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message MetricsRequest {
+  repeated string metric_names = 1;
+  google.protobuf.Timestamp from_time = 2;
+  google.protobuf.Timestamp to_time = 3;
+}
+
+message MetricsResponse {
+  repeated Metric metrics = 1;
+  google.protobuf.Timestamp generated_at = 2;
+}
+
+// Supporting Types
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_P2P = 1;  // Person to Person
+  TRANSACTION_TYPE_P2M = 2;  // Person to Merchant
+  TRANSACTION_TYPE_M2P = 3;  // Merchant to Person
+  TRANSACTION_TYPE_REFUND = 4;
+}
+
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PENDING = 1;
+  TRANSACTION_STATUS_SUCCESS = 2;
+  TRANSACTION_STATUS_FAILED = 3;
+  TRANSACTION_STATUS_TIMEOUT = 4;
+  TRANSACTION_STATUS_CANCELLED = 5;
+  TRANSACTION_STATUS_REVERSED = 6;
+}
+
+enum BankStatus {
+  BANK_STATUS_UNSPECIFIED = 0;
+  BANK_STATUS_ACTIVE = 1;
+  BANK_STATUS_INACTIVE = 2;
+  BANK_STATUS_MAINTENANCE = 3;
+  BANK_STATUS_SUSPENDED = 4;
+}
+
+enum SettlementStatus {
+  SETTLEMENT_STATUS_UNSPECIFIED = 0;
+  SETTLEMENT_STATUS_PENDING = 1;
+  SETTLEMENT_STATUS_PROCESSING = 2;
+  SETTLEMENT_STATUS_COMPLETED = 3;
+  SETTLEMENT_STATUS_FAILED = 4;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_UNSPECIFIED = 0;
+  HEALTH_STATUS_SERVING = 1;
+  HEALTH_STATUS_NOT_SERVING = 2;
+  HEALTH_STATUS_UNKNOWN = 3;
+}
+
+message TransactionFees {
+  int64 switch_fee_paisa = 1;
+  int64 bank_fee_paisa = 2;
+  int64 total_fee_paisa = 3;
+}
+
+message TransactionEvent {
+  string event_type = 1;
+  string description = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  map<string, string> details = 4;
+}
+
+message BankInfo {
+  string bank_code = 1;
+  string bank_name = 2;
+  string ifsc_prefix = 3;
+  BankStatus status = 4;
+  string endpoint_url = 5;
+  repeated string supported_features = 6;
+  google.protobuf.Timestamp registered_at = 7;
+}
+
+message BankSettlement {
+  string bank_code = 1;
+  int64 credit_amount_paisa = 2;
+  int64 debit_amount_paisa = 3;
+  int64 net_amount_paisa = 4;
+  int32 transaction_count = 5;
+  SettlementStatus status = 6;
+}
+
+message DailySettlement {
+  string date = 1; // YYYY-MM-DD format
+  int64 credit_amount_paisa = 2;
+  int64 debit_amount_paisa = 3;
+  int64 net_amount_paisa = 4;
+  int32 transaction_count = 5;
+}
+
+message Metric {
+  string name = 1;
+  string value = 2;
+  string unit = 3;
+  map<string, string> labels = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}

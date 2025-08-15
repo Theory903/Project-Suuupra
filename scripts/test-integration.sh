@@ -16,7 +16,8 @@ NC='\033[0m' # No Color
 COMPOSE_FILE="docker-compose.integration.yml"
 BANK_SIMULATOR_HTTP="http://localhost:8080"
 UPI_CORE_GRPC="localhost:50052"
-BANK_SIMULATOR_GRPC="localhost:50051"
+BANK_SIMULATOR_GRPC="localhost:50050"
+UPI_INTEGRATION_TEST_DIR="tools/testing/integration/upi-bank-integration"
 
 # Function to print colored output
 print_status() {
@@ -184,6 +185,77 @@ run_load_tests() {
     fi
 }
 
+# Function to run comprehensive UPI integration tests
+run_upi_integration_tests() {
+    print_status "Running comprehensive UPI Core ↔ Bank Simulator integration tests..."
+    
+    # Check if integration test directory exists
+    if [ ! -d "$UPI_INTEGRATION_TEST_DIR" ]; then
+        print_warning "UPI integration test directory not found: $UPI_INTEGRATION_TEST_DIR"
+        return 0
+    fi
+    
+    # Save current directory
+    local original_dir=$(pwd)
+    
+    # Change to integration test directory
+    cd "$UPI_INTEGRATION_TEST_DIR"
+    
+    # Check if Go is available
+    if ! command -v go &> /dev/null; then
+        print_warning "Go not found, skipping UPI integration tests"
+        cd "$original_dir"
+        return 0
+    fi
+    
+    # Initialize Go module if needed
+    if [ ! -f "go.mod" ]; then
+        print_status "Initializing Go module for integration tests..."
+        go mod init github.com/suuupra/upi-bank-integration-tests > /dev/null 2>&1 || true
+    fi
+    
+    # Download dependencies
+    print_status "Downloading Go dependencies..."
+    go mod tidy > /dev/null 2>&1 || true
+    
+    # Run the integration test suite
+    print_status "Executing UPI integration test suite..."
+    
+    if ./run-tests.sh --report; then
+        print_success "✓ UPI integration tests passed"
+        
+        # Show test report if available
+        local latest_report=$(ls -t test_report_*.txt 2>/dev/null | head -n1)
+        if [ -n "$latest_report" ]; then
+            print_status "Test report generated: $UPI_INTEGRATION_TEST_DIR/$latest_report"
+        fi
+        
+        # Show benchmark results if available
+        if [ -f "benchmark_results.txt" ]; then
+            print_status "Benchmark results:"
+            echo "$(head -n 10 benchmark_results.txt)"
+            echo "... (see $UPI_INTEGRATION_TEST_DIR/benchmark_results.txt for full results)"
+        fi
+        
+    else
+        print_error "✗ UPI integration tests failed"
+        
+        # Show some debug information
+        print_status "Debug information:"
+        echo "- Go version: $(go version 2>/dev/null || echo 'Go not available')"
+        echo "- Working directory: $(pwd)"
+        echo "- Available files: $(ls -la)"
+        
+        cd "$original_dir"
+        return 1
+    fi
+    
+    # Return to original directory
+    cd "$original_dir"
+    
+    return 0
+}
+
 # Function to cleanup
 cleanup() {
     print_status "Cleaning up..."
@@ -247,6 +319,9 @@ main() {
     
     # Load Tests
     run_load_tests
+    
+    # UPI Core ↔ Bank Simulator Integration Tests
+    run_upi_integration_tests
     
     print_success "🎉 All integration tests completed successfully!"
     
