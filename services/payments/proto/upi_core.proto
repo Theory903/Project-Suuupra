@@ -1,0 +1,213 @@
+syntax = "proto3";
+
+package upi.core;
+
+option go_package = "github.com/suuupra/payments/proto/upi_core";
+
+import "google/protobuf/timestamp.proto";
+
+// UPI Core Service Definition
+service UpiCore {
+  // Transaction Processing
+  rpc ProcessTransaction(TransactionRequest) returns (TransactionResponse);
+  rpc GetTransactionStatus(TransactionStatusRequest) returns (TransactionStatusResponse);
+  rpc CancelTransaction(CancelTransactionRequest) returns (CancelTransactionResponse);
+  rpc ReverseTransaction(ReverseTransactionRequest) returns (ReverseTransactionResponse);
+  
+  // VPA Management
+  rpc ResolveVPA(ResolveVPARequest) returns (ResolveVPAResponse);
+  rpc RegisterVPA(RegisterVPARequest) returns (RegisterVPAResponse);
+  rpc UpdateVPA(UpdateVPARequest) returns (UpdateVPAResponse);
+  rpc DeactivateVPA(DeactivateVPARequest) returns (DeactivateVPAResponse);
+  
+  // Health and Monitoring
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+  rpc GetMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// Enums
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_P2P = 1;
+  TRANSACTION_TYPE_P2M = 2;
+  TRANSACTION_TYPE_M2P = 3;
+  TRANSACTION_TYPE_REFUND = 4;
+}
+
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PENDING = 1;
+  TRANSACTION_STATUS_SUCCESS = 2;
+  TRANSACTION_STATUS_FAILED = 3;
+  TRANSACTION_STATUS_TIMEOUT = 4;
+  TRANSACTION_STATUS_CANCELLED = 5;
+  TRANSACTION_STATUS_REVERSED = 6;
+}
+
+// Transaction Processing Messages
+message TransactionRequest {
+  string transaction_id = 1;
+  string payer_vpa = 2;
+  string payee_vpa = 3;
+  int64 amount_paisa = 4;
+  TransactionType type = 5;
+  string reference = 6;
+  string payer_bank_code = 7;
+  string payee_bank_code = 8;
+  string digital_signature = 9;
+  google.protobuf.Timestamp initiated_at = 10;
+}
+
+message TransactionResponse {
+  string transaction_id = 1;
+  string rrn = 2;
+  TransactionStatus status = 3;
+  string payer_bank_code = 4;
+  string payee_bank_code = 5;
+  TransactionFees fees = 6;
+  string settlement_id = 7;
+  string error_code = 8;
+  string error_message = 9;
+  google.protobuf.Timestamp processed_at = 10;
+}
+
+message TransactionFees {
+  int64 processing_fee_paisa = 1;
+  int64 gst_paisa = 2;
+  int64 total_fee_paisa = 3;
+}
+
+message TransactionStatusRequest {
+  string transaction_id = 1;
+  string bank_code = 2;
+}
+
+message TransactionStatusResponse {
+  string transaction_id = 1;
+  string rrn = 2;
+  TransactionStatus status = 3;
+  repeated TransactionEvent events = 4;
+  int64 amount_paisa = 5;
+  string payer_vpa = 6;
+  string payee_vpa = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message TransactionEvent {
+  google.protobuf.Timestamp timestamp = 1;
+  TransactionStatus status = 2;
+  string description = 3;
+}
+
+message CancelTransactionRequest {
+  string transaction_id = 1;
+  string bank_code = 2;
+  string reason = 3;
+  string digital_signature = 4;
+}
+
+message CancelTransactionResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp cancelled_at = 4;
+}
+
+message ReverseTransactionRequest {
+  string original_transaction_id = 1;
+  string reversal_transaction_id = 2;
+  string bank_code = 3;
+  string reason = 4;
+  string digital_signature = 5;
+}
+
+message ReverseTransactionResponse {
+  bool success = 1;
+  string reversal_rrn = 2;
+  string error_code = 3;
+  string error_message = 4;
+  google.protobuf.Timestamp reversed_at = 5;
+}
+
+// VPA Management Messages
+message ResolveVPARequest {
+  string vpa = 1;
+  string requesting_bank_code = 2;
+}
+
+message ResolveVPAResponse {
+  bool exists = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  string account_holder_name = 4;
+  bool is_active = 5;
+  string error_code = 6;
+  string error_message = 7;
+}
+
+message RegisterVPARequest {
+  string vpa = 1;
+  string bank_code = 2;
+  string account_number = 3;
+  string account_holder_name = 4;
+  string mobile_number = 5;
+  string digital_signature = 6;
+}
+
+message RegisterVPAResponse {
+  bool success = 1;
+  string vpa_id = 2;
+  string error_code = 3;
+  string error_message = 4;
+  google.protobuf.Timestamp registered_at = 5;
+}
+
+message UpdateVPARequest {
+  string vpa = 1;
+  string bank_code = 2;
+  string new_account_number = 3;
+  string digital_signature = 4;
+}
+
+message UpdateVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message DeactivateVPARequest {
+  string vpa = 1;
+  string bank_code = 2;
+  string digital_signature = 3;
+}
+
+message DeactivateVPAResponse {
+  bool success = 1;
+  string error_code = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp deactivated_at = 4;
+}
+
+// Health and Monitoring Messages
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  string version = 3;
+  string uptime = 4;
+  map<string, string> dependencies = 5;
+}
+
+message MetricsRequest {}
+
+message MetricsResponse {
+  int64 total_transactions = 1;
+  int64 successful_transactions = 2;
+  int64 failed_transactions = 3;
+  double success_rate_percent = 4;
+  int64 avg_processing_time_ms = 5;
+  map<string, int64> bank_health_scores = 6;
+}

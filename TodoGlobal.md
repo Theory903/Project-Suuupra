@@ -71,23 +71,25 @@ We will follow a phased approach to building the Suuupra platform. Each phase is
     -   [Identity Service](./services/identity/TODO.md) - **Production Ready** 🚀
     -   [Content Service](./services/content/TODO.md)
 
-### **Phase 2: Payments & Commerce (Weeks 7–12)** ✅ **Infrastructure Complete** | 🚧 **Payment Gateway In Progress**
+### **Phase 2: Payments & Commerce (Weeks 7–12)** ✅ **Payment Gateway Complete** | 🎉 **Major Milestone Achieved**
 
 **Goal**: To build the e-commerce and payment processing capabilities of the platform.
 
--  **Key Services**: `Commerce`, `Payments` 🚧, `Ledger`, `UPI Core` ✅, `Bank Simulator` ✅
+-  **Key Services**: `Commerce`, `Payments` ✅, `Ledger`, `UPI Core` ✅, `Bank Simulator` ✅
 -  **Major Infrastructure Achievements**:
+    -   **Payment Gateway Service** ✅ **Production Ready**: Go-based service with event-sourced ledger, idempotency, webhooks, gRPC UPI integration
     -   **UPI Core Service** ✅ **Production Ready**: Go-based UPI switch with PostgreSQL, gRPC/HTTP servers, health monitoring
     -   **Bank Simulator** ✅ **Production Ready**: TypeScript banking backend with Prisma ORM, comprehensive transaction processing
     -   **Database Systems** ✅ **Operational**: PostgreSQL with proper connection handling, timeouts, and health checks
     -   **Container Orchestration** ✅ **Working**: Docker Compose integration with all supporting services (Redis, Kafka, Monitoring)
--  **Current Focus**: Payment Gateway Service implementation with UPI transaction flows and fraud detection
+    -   **Complete API Documentation** ✅ **Available**: Comprehensive OpenAPI specs for all payment services
+-  **Current Focus**: Commerce Service foundation and Ledger Service implementation
 -  **Detailed TODOs**:
-    -   [UPI Core Service](./services/upi-core/TODO.md) - **Infrastructure Complete** 🚀
-    -   [Bank Simulator](./services/bank-simulator/TODO.md) - **Infrastructure Complete** 🚀
-    -   [Payment Gateway](./services/payments/TODO.md) - **In Development** 🚧
-    -   [Commerce Service](./services/commerce/TODO.md) - **Pending**
-    -   [Ledger Service](./services/ledger/TODO.md) - **Pending**
+    -   [UPI Core Service](./services/upi-core/TODO.md) - **Production Ready** 🚀
+    -   [Bank Simulator](./services/bank-simulator/TODO.md) - **Production Ready** 🚀
+    -   [Payment Gateway](./services/payments/TODO.md) - **Production Ready** 🚀
+    -   [Commerce Service](./services/commerce/TODO.md) - **Next Priority**
+    -   [Ledger Service](./services/ledger/TODO.md) - **Next Priority**
 
 ### **Phase 3: Streaming & Media Systems (Weeks 13–18)**
 
