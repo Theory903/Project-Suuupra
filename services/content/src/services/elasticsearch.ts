@@ -492,6 +492,33 @@ export class ElasticsearchService {
     };
   }
 
+  // Similarity search using embedding vector
+  public async similarByEmbedding(tenantId: string, vector: number[], limit: number = 10): Promise<SearchResponse> {
+    const indexName = this.getIndexName(tenantId);
+    const start = Date.now();
+    try {
+      const body = {
+        size: limit,
+        query: {
+          script_score: {
+            query: { term: { status: 'published' } },
+            script: {
+              source: "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+              params: { query_vector: vector }
+            }
+          }
+        }
+      };
+      const resp = await this.client.search({ index: indexName, body });
+      const queryTime = Date.now() - start;
+      // Reuse formatter; build minimal query for pagination
+      return this.formatSearchResponse(resp, { q: '', page: 1, limit }, queryTime);
+    } catch (e) {
+      this.contextLogger.error('similarByEmbedding failed', e as Error, { index: indexName });
+      throw e;
+    }
+  }
+
   // Get suggestions
   public async getSuggestions(query: string, tenantId: string, limit: number = 10): Promise<string[]> {
     const indexName = this.getIndexName(tenantId);

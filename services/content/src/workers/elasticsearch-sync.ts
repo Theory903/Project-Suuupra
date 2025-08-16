@@ -193,6 +193,7 @@ export class ElasticsearchSyncWorker {
         tags: content.tags || [],
         metadata: content.metadata || {},
         file_info: content.fileInfo,
+        embedding: content.embedding,
         created_by: content.createdBy,
         created_at: content.createdAt,
         updated_at: content.updatedAt,

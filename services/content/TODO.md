@@ -203,8 +203,8 @@ const CategorySchema = new mongoose.Schema({
   - [x] Migration scripts for versioning
   - [x] Roles/permissions for approval workflow
 - Phase 4: Recommendations & Optimization
-  - [ ] Content similarity (embeddings/nearest neighbors)
-  - [ ] Performance optimization and load tests
+  - [x] Content similarity (embeddings/nearest neighbors)
+  - [x] Performance optimization and load tests (scripts present)
 - Monitoring & Alerts
   - [x] Grafana dashboards; Prometheus alerts (UploadFailureRate, SearchLatency, IndexingLag)
 - Testing

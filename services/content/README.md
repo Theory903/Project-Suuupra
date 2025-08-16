@@ -189,6 +189,9 @@ GET /api/v1/search/aggregations?q=*
 
 # Simple diagnostic search
 GET /api/v1/search/simple?q=javascript&contentType=article,video&limit=10
+
+# Similar content by ID (embeddings)
+GET /api/v1/search/similar/:id?limit=10
 ```
 
 #### Admin Operations
@@ -205,6 +208,9 @@ POST /api/v1/admin/content/:id/reject
 
 # Trigger tenant-wide reindex
 POST /api/v1/admin/search/reindex
+
+# Compute embeddings for tenant
+POST /api/v1/admin/embeddings/rebuild
 
 #### Courses and Lessons
 

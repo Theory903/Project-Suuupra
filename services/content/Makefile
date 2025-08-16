@@ -38,6 +38,10 @@ test: ## Run tests
 	@echo "$(YELLOW)Running tests...$(NC)"
 	npm test
 
+test-coverage: ## Run tests with coverage
+	@echo "$(YELLOW)Running tests with coverage...$(NC)"
+	npm run test:coverage
+
 test-watch: ## Run tests in watch mode
 	@echo "$(YELLOW)Running tests in watch mode...$(NC)"
 	npm run test:watch

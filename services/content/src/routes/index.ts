@@ -11,6 +11,7 @@ import { authenticate, requireCreator, requireModerator } from '@/middleware/aut
 import { validationMiddleware } from '@/utils/validation';
 import rateLimit from 'express-rate-limit';
 import { MediaAssetController } from '@/controllers/mediaAsset';
+import { SimilarityController } from '@/controllers/similarity';
 
 // Rate limiting configurations
 const generalRateLimit = rateLimit({
@@ -52,6 +53,7 @@ export function createRoutes(
   const lessonController = new LessonController();
   const mediaAssetController = new MediaAssetController();
   const simpleSearchController = invertedIndex ? new (require('@/controllers/simpleSearch').SimpleSearchController)(invertedIndex) : null;
+  const similarityController = new SimilarityController(esService);
 
   // Apply general rate limiting to all routes
   router.use(generalRateLimit);
@@ -180,6 +182,12 @@ export function createRoutes(
   router.get('/search/aggregations',
     authenticate,
     searchController.getAggregations
+  );
+
+  // Similar content
+  router.get('/search/similar/:id',
+    authenticate,
+    similarityController.similarById
   );
 
   // Simple inverted-index search (learning/diagnostic)
@@ -350,6 +358,22 @@ export function createRoutes(
         const user = req.user!;
         const worker = await import('@/workers/reindex-elasticsearch');
         const stats = await worker.reindexTenant(esService, user.tenantId);
+        res.json({ success: true, data: stats, meta: { requestId: user.requestId, timestamp: new Date().toISOString() } });
+      } catch (e) {
+        next(e);
+      }
+    }
+  );
+
+  // Admin: compute embeddings for tenant
+  router.post('/admin/embeddings/rebuild',
+    authenticate,
+    requireModerator,
+    async (req, res, next) => {
+      try {
+        const user = req.user!;
+        const { computeEmbeddingsForTenant } = await import('@/workers/compute-embeddings');
+        const stats = await computeEmbeddingsForTenant(user.tenantId);
         res.json({ success: true, data: stats, meta: { requestId: user.requestId, timestamp: new Date().toISOString() } });
       } catch (e) {
         next(e);

@@ -31,6 +31,7 @@ export async function reindexTenant(es: ElasticsearchService, tenantId: string):
           content_type: doc.fileInfo.contentType,
           file_size: doc.fileInfo.fileSize
         } : undefined,
+        embedding: (doc as any).embedding,
         created_by: doc.createdBy,
         created_at: doc.createdAt,
         updated_at: doc.updatedAt,
@@ -47,4 +48,3 @@ export async function reindexTenant(es: ElasticsearchService, tenantId: string):
   context.info('Tenant reindex completed', { tenantId, indexed, skipped });
   return { indexed, skipped };
 }
-

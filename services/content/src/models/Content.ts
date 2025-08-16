@@ -13,6 +13,7 @@ export interface IContent extends Document {
   tags: string[];
   metadata: ContentMetadata;
   fileInfo?: FileInfo;
+  embedding?: number[];
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -98,6 +99,11 @@ const ContentSchema = new Schema<IContent>({
   fileInfo: {
     type: FileInfoSchema,
     required: false // Make fileInfo optional in schema
+  },
+  embedding: {
+    type: [Number],
+    required: false,
+    default: undefined
   },
   createdBy: {
     type: String,
