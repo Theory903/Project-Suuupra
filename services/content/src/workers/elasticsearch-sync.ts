@@ -342,6 +342,14 @@ export class ElasticsearchSyncWorker {
       // Limit DLQ size
       await this.redis.ltrim('es-sync:dlq', 0, 999);
 
+      try {
+        const { recordIndexingDLQ } = await import('@/utils/metrics');
+        const tenantId = (change.fullDocument?.tenantId) || (change.fullDocumentBeforeChange?.tenantId) || 'unknown';
+        recordIndexingDLQ(String(tenantId));
+      } catch (metricError) {
+        this.contextLogger.error('Failed to record DLQ metric', metricError as Error);
+      }
+
     } catch (dlqError) {
       this.contextLogger.error('Failed to add to dead letter queue', dlqError as Error);
     }

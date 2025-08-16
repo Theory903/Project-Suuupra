@@ -9,6 +9,7 @@ The Content Service is a comprehensive content management system that provides:
 - **Content CRUD Operations** - Create, read, update, delete content with rich metadata
 - **Large File Uploads** - S3 multipart uploads with resumability and progress tracking
 - **Search & Discovery** - Elasticsearch-powered search with faceted filtering and suggestions
+  - Simple in-memory inverted-index search endpoint for diagnostics: `GET /api/v1/search/simple`
 - **Content Approval Workflow** - Configurable approval process with versioning
 - **Real-time Updates** - WebSocket-based progress tracking and notifications
 - **Multi-tenant Architecture** - Tenant-isolated content with RBAC
@@ -185,6 +186,9 @@ GET /api/v1/search/suggestions?q=java
 
 # Get search aggregations
 GET /api/v1/search/aggregations?q=*
+
+# Simple diagnostic search
+GET /api/v1/search/simple?q=javascript&contentType=article,video&limit=10
 ```
 
 #### Admin Operations
@@ -198,6 +202,9 @@ POST /api/v1/admin/content/:id/reject
 {
   "reason": "Content needs revision"
 }
+
+# Trigger tenant-wide reindex
+POST /api/v1/admin/search/reindex
 
 #### Courses and Lessons
 
@@ -254,6 +261,11 @@ Model: `MediaAsset` with fields: `tenantId`, `contentId`, `type`, `fileInfo`, `m
 ### Metrics
 - Endpoint: `GET /metrics` (Prometheus format).
 - Default counters and histograms are registered plus service-specific metrics (uploads, searches, content ops).
+- Grafana dashboard: `monitoring/grafana/content-dashboard.json`
+- Prometheus alerts: `monitoring/prometheus/alerts.yml`
+
+### Moderation
+Basic moderation checks run on content creation and after file upload to flag potentially unsafe content (e.g., suspicious extensions, adult terms, oversized files). Flags are stored under `metadata.moderation`. Blocked items remain in `draft` until reviewed/approved.
 
 ### Tracing
 - OpenTelemetry Node SDK initialized with HTTP, Express, MongoDB, Redis instrumentations.

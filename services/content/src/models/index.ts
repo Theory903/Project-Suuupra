@@ -85,6 +85,7 @@ export class DatabaseManager {
       const { UploadSession } = await import('./UploadSession');
       const { MediaAsset } = await import('./MediaAsset');
       const { IdempotencyKey } = await import('./IdempotencyKey');
+      const { AuditLog } = await import('./AuditLog');
 
       // Create indexes
       await Promise.all([
@@ -92,7 +93,8 @@ export class DatabaseManager {
         Category.createIndexes(),
         UploadSession.createIndexes(),
         MediaAsset.createIndexes(),
-        IdempotencyKey.createIndexes()
+        IdempotencyKey.createIndexes(),
+        AuditLog.createIndexes()
       ]);
 
       logger.info('Database indexes created successfully');

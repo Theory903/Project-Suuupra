@@ -1,0 +1,53 @@
+{
+  "title": "Content Service Overview",
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "HTTP RPS",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(content_http_requests_total[1m]))",
+          "legendFormat": "RPS"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Search Latency (p95/p99)",
+      "gridPos": { "x": 6, "y": 0, "w": 18, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(content_http_request_duration_seconds_bucket{route=\"/api/v1/search\"}[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(content_http_request_duration_seconds_bucket{route=\"/api/v1/search\"}[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Upload Success/Failure",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(content_upload_operations_total{operation=\"complete\",status=\"success\"}[5m]))", "legendFormat": "success" },
+        { "expr": "sum(rate(content_upload_operations_total{operation=\"complete\",status=\"failure\"}[5m]))", "legendFormat": "failure" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Indexing DLQ",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(content_indexing_dlq_total[5m]))", "legendFormat": "DLQ rate" }
+      ]
+    }
+  ]
+}
+

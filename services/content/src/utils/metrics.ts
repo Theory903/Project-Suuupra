@@ -90,6 +90,13 @@ export const elasticsearchSyncLag = new client.Gauge({
   registers: [register]
 });
 
+export const indexingDLQTotal = new client.Counter({
+  name: 'content_indexing_dlq_total',
+  help: 'Total number of items added to the indexing DLQ',
+  labelNames: ['tenant_id'],
+  registers: [register]
+});
+
 export const websocketConnections = new client.Gauge({
   name: 'content_websocket_connections',
   help: 'Number of active WebSocket connections',
@@ -304,6 +311,10 @@ export const recordCacheOperation = (operation: string, result: 'hit' | 'miss') 
     operation,
     result
   });
+};
+
+export const recordIndexingDLQ = (tenantId: string) => {
+  indexingDLQTotal.inc({ tenant_id: tenantId });
 };
 
 export const recordJobProcessing = (

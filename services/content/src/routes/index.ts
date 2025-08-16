@@ -5,6 +5,7 @@ import { LessonController } from '@/controllers/lesson';
 import { SearchController } from '@/controllers/search';
 import { S3UploadService } from '@/services/s3-upload';
 import { ElasticsearchService } from '@/services/elasticsearch';
+import { InvertedIndexService } from '@/services/inverted-index';
 import { WebSocketService } from '@/services/websocket';
 import { authenticate, requireCreator, requireModerator } from '@/middleware/auth';
 import { validationMiddleware } from '@/utils/validation';
@@ -39,7 +40,8 @@ const searchRateLimit = rateLimit({
 export function createRoutes(
   s3Service: S3UploadService,
   esService: ElasticsearchService,
-  wsService: WebSocketService
+  wsService: WebSocketService,
+  invertedIndex?: InvertedIndexService
 ): Router {
   const router = Router();
   
@@ -49,6 +51,7 @@ export function createRoutes(
   const courseController = new CourseController();
   const lessonController = new LessonController();
   const mediaAssetController = new MediaAssetController();
+  const simpleSearchController = invertedIndex ? new (require('@/controllers/simpleSearch').SimpleSearchController)(invertedIndex) : null;
 
   // Apply general rate limiting to all routes
   router.use(generalRateLimit);
@@ -178,6 +181,15 @@ export function createRoutes(
     authenticate,
     searchController.getAggregations
   );
+
+  // Simple inverted-index search (learning/diagnostic)
+  if (simpleSearchController) {
+    router.get('/search/simple',
+      searchRateLimit,
+      authenticate,
+      simpleSearchController.search
+    );
+  }
 
   // Category routes (basic implementation)
   router.get('/categories', authenticate, async (req, res, next) => {
@@ -327,6 +339,22 @@ export function createRoutes(
     requireModerator,
     validationMiddleware('query.idParam', 'params'),
     contentController.publishContent
+  );
+
+  // Admin: trigger ES reindex for tenant
+  router.post('/admin/search/reindex',
+    authenticate,
+    requireModerator,
+    async (req, res, next) => {
+      try {
+        const user = req.user!;
+        const worker = await import('@/workers/reindex-elasticsearch');
+        const stats = await worker.reindexTenant(esService, user.tenantId);
+        res.json({ success: true, data: stats, meta: { requestId: user.requestId, timestamp: new Date().toISOString() } });
+      } catch (e) {
+        next(e);
+      }
+    }
   );
 
   // Error handling middleware

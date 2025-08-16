@@ -8,6 +8,7 @@ import { ApiResponse, PaginationQuery, ContentFilters, NotFoundError, ConflictEr
 import { IdempotencyKey } from '@/models/IdempotencyKey';
 import { recordContentOperation, recordUploadOperation } from '@/utils/metrics';
 import { logger, ContextLogger } from '@/utils/logger';
+import { auditService } from '@/services/audit';
 import semver from 'semver';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -118,6 +119,18 @@ export class ContentController {
       const content = new Content(contentData);
       await content.save();
 
+      // Basic moderation checks on newly created content
+      try {
+        const { moderationService } = await import('@/services/moderation');
+        const moderation = moderationService.checkContent(content as any);
+        if (moderation.blocked) {
+          (content as any).metadata = { ...(content as any).metadata, moderation };
+          await content.save();
+        }
+      } catch (e) {
+        this.contextLogger.warn('Moderation check failed on create', { error: (e as Error).message });
+      }
+
       // Store idempotency record
       if (idempotencyKey) {
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -147,6 +160,16 @@ export class ContentController {
       this.wsService.sendUserNotification(user.userId, 'content:created', {
         contentId: content._id,
         title: content.title
+      });
+
+      // Audit
+      await auditService.record({
+        tenantId: user.tenantId,
+        userId: user.userId,
+        action: 'content.create',
+        resourceType: 'content',
+        resourceId: content._id,
+        details: { title: content.title, contentType: content.contentType }
       });
 
       const response: ApiResponse = {
@@ -362,6 +385,16 @@ export class ContentController {
         version: newVersion
       });
 
+      // Audit
+      await auditService.record({
+        tenantId: user.tenantId,
+        userId: user.userId,
+        action: 'content.update',
+        resourceType: 'content',
+        resourceId: content._id,
+        details: { updates: Object.keys(updates), version: newVersion }
+      });
+
       const response: ApiResponse = {
         success: true,
         data: content.toJSON(),
@@ -431,6 +464,15 @@ export class ContentController {
       this.wsService.sendUserNotification(user.userId, 'content:deleted', {
         contentId: content._id,
         title: content.title
+      });
+
+      // Audit
+      await auditService.record({
+        tenantId: user.tenantId,
+        userId: user.userId,
+        action: 'content.delete',
+        resourceType: 'content',
+        resourceId: content._id
       });
 
       const response: ApiResponse = {
@@ -686,6 +728,19 @@ export class ContentController {
       if (uploadResult.cdnUrl) newFileInfo.cdnUrl = uploadResult.cdnUrl;
       content.fileInfo = newFileInfo;
       content.etag = uuidv4();
+      // Moderation after file upload
+      try {
+        const { moderationService } = await import('@/services/moderation');
+        const moderation = moderationService.checkContent(content as any);
+        if (moderation.blocked) {
+          (content as any).metadata = { ...(content as any).metadata, moderation };
+          if (content.status === 'approved') {
+            content.status = 'draft';
+          }
+        }
+      } catch (e) {
+        this.contextLogger.warn('Moderation check failed on upload complete', { error: (e as Error).message });
+      }
       await content.save();
 
       // Broadcast upload completion
@@ -852,6 +907,15 @@ export class ContentController {
         approvedBy: user.userId
       });
 
+      // Audit
+      await auditService.record({
+        tenantId: user.tenantId,
+        userId: user.userId,
+        action: 'workflow.approve',
+        resourceType: 'content',
+        resourceId: content._id
+      });
+
       res.json({
         success: true,
         data: content.toJSON(),
@@ -907,6 +971,16 @@ export class ContentController {
         rejectedBy: user.userId
       });
 
+      // Audit
+      await auditService.record({
+        tenantId: user.tenantId,
+        userId: user.userId,
+        action: 'workflow.reject',
+        resourceType: 'content',
+        resourceId: content._id,
+        details: { reason }
+      });
+
       res.json({
         success: true,
         data: content.toJSON(),
@@ -960,6 +1034,15 @@ export class ContentController {
         contentId: content._id,
         title: content.title,
         contentType: content.contentType
+      });
+
+      // Audit
+      await auditService.record({
+        tenantId: user.tenantId,
+        userId: user.userId,
+        action: 'workflow.publish',
+        resourceType: 'content',
+        resourceId: content._id
       });
 
       res.json({

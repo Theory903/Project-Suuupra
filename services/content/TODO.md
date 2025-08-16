@@ -176,3 +176,46 @@ const CategorySchema = new mongoose.Schema({
     *   [AWS S3 Multipart Upload](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)
 
 ---
+## Execution Board
+
+### In Progress
+- FR-3: Search & Discovery
+  - [x] Finalize Elasticsearch index mapping
+  - [x] MongoDB→Elasticsearch sync (create/update/delete)
+  - [x] Search API: query, filters, sort, pagination
+  - [x] Re-index/reconciliation job for drift (admin trigger + worker)
+  - [x] Simple inverted-index search (learning/diagnostic)
+- FR-4: Content Approval & Versioning
+  - [x] Versioned writes and reads
+  - [x] Approval workflow (states, transitions, API)
+  - [x] Audit trail for approvals and changes
+- NFR-2: Performance (<200ms search p99)
+  - [x] Optimize ES queries/analyzers (path analyzer)
+  - [x] Cache hot queries (TTL cache)
+  - [x] p95/p99 dashboards and budgets
+
+### To Do
+- Phase 2: Content Management & Search
+  - [x] CRUD endpoints for content management
+  - [x] Wire Elasticsearch indexing pipeline
+  - [x] Custom inverted index (learning exercise)
+- Phase 3: Approval & Versioning
+  - [x] Migration scripts for versioning
+  - [x] Roles/permissions for approval workflow
+- Phase 4: Recommendations & Optimization
+  - [ ] Content similarity (embeddings/nearest neighbors)
+  - [ ] Performance optimization and load tests
+- Monitoring & Alerts
+  - [x] Grafana dashboards; Prometheus alerts (UploadFailureRate, SearchLatency, IndexingLag)
+- Testing
+  - [ ] Unit tests >90% coverage
+  - [ ] Integration: upload → index → search
+  - [ ] k6 load tests for uploads/search
+- Edge Cases & Moderation
+  - [x] Resume/cleanup for partial uploads
+  - [x] Index backfill + drift detection
+  - [x] Content validation/moderation pipeline (basic checks)
+- Documentation
+  - [x] API docs for search, approvals, versioning (update with /search/simple + reindex)
+
+# **Service PRD: Content Service**

@@ -9,6 +9,9 @@ export class ElasticsearchService {
   private contextLogger: ContextLogger;
   private indexPrefix: string;
   private circuitBreaker: CircuitBreaker;
+  private cache: Map<string, { value: any; expiresAt: number }> = new Map();
+  private maxCacheEntries = 500;
+  private defaultTtlMs = 30000; // 30s
 
   constructor() {
     this.indexPrefix = config.database.elasticsearch.indexPrefix;
@@ -87,6 +90,11 @@ export class ElasticsearchService {
                 type: 'custom' as const,
                 tokenizer: 'keyword',
                 filter: ['lowercase']
+              },
+              path_analyzer: {
+                type: 'custom' as const,
+                tokenizer: 'path_hierarchy',
+                filter: ['lowercase']
               }
             },
             filter: {
@@ -140,7 +148,7 @@ export class ElasticsearchService {
                 },
                 path: {
                   type: 'text' as const,
-                  analyzer: 'path_hierarchy'
+                  analyzer: 'path_analyzer'
                 }
               }
             },
@@ -278,6 +286,10 @@ export class ElasticsearchService {
     const indexName = this.getIndexName(tenantId);
     const startTime = Date.now();
 
+    const cacheKey = this.buildCacheKey('search', tenantId, query);
+    const cached = this.getFromCache<SearchResponse>(cacheKey);
+    if (cached) return cached;
+
     try {
       const searchBody = this.buildSearchQuery(query);
       
@@ -290,8 +302,9 @@ export class ElasticsearchService {
       });
 
       const queryTime = Date.now() - startTime;
-      
-      return this.formatSearchResponse(response, query, queryTime);
+      const formatted = this.formatSearchResponse(response, query, queryTime);
+      this.setInCache(cacheKey, formatted);
+      return formatted;
     } catch (error) {
       this.contextLogger.error('Search failed', error as Error, {
         index: indexName,
@@ -482,6 +495,9 @@ export class ElasticsearchService {
   // Get suggestions
   public async getSuggestions(query: string, tenantId: string, limit: number = 10): Promise<string[]> {
     const indexName = this.getIndexName(tenantId);
+    const cacheKey = this.buildCacheKey('suggest', tenantId, { q: query, limit });
+    const cached = this.getFromCache<string[]>(cacheKey);
+    if (cached) return cached;
 
     try {
       const response = await this.circuitBreaker.execute(async () => {
@@ -502,7 +518,9 @@ export class ElasticsearchService {
       });
 
       const suggestions = (response.suggest?.title_suggest?.[0]?.options || []) as any[];
-      return suggestions.map((option: any) => option.text);
+      const out = suggestions.map((option: any) => option.text);
+      this.setInCache(cacheKey, out);
+      return out;
     } catch (error) {
       this.contextLogger.error('Failed to get suggestions', error as Error, {
         index: indexName,
@@ -510,6 +528,31 @@ export class ElasticsearchService {
       });
       return [];
     }
+  }
+
+  // Caching helpers
+  private buildCacheKey(kind: string, tenantId: string, obj: any): string {
+    return `${kind}:${tenantId}:${JSON.stringify(obj)}`;
+  }
+
+  private getFromCache<T>(key: string): T | undefined {
+    const now = Date.now();
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    if (entry.expiresAt < now) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    return entry.value as T;
+  }
+
+  private setInCache(key: string, value: any, ttlMs: number = this.defaultTtlMs): void {
+    if (this.cache.size >= this.maxCacheEntries) {
+      // naive eviction: delete first key
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) this.cache.delete(firstKey);
+    }
+    this.cache.set(key, { value, expiresAt: Date.now() + ttlMs });
   }
 
   // Bulk index documents

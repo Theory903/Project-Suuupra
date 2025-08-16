@@ -9,6 +9,7 @@ import { ElasticsearchService } from '@/services/elasticsearch';
 import { S3UploadService } from '@/services/s3-upload';
 import { WebSocketService } from '@/services/websocket';
 import { createRoutes } from '@/routes';
+import { InvertedIndexService } from '@/services/inverted-index';
 import { logger, requestLogger, errorLogger } from '@/utils/logger';
 import { metricsMiddleware, register, initializeMetrics } from '@/utils/metrics';
 import { initializeTracing, shutdownTracing, tracingMiddleware } from '@/utils/tracing';
@@ -24,6 +25,7 @@ class ContentService {
   private s3Service: S3UploadService;
   private wsService!: WebSocketService;
   private syncWorker: any;
+  private invertedIndex?: InvertedIndexService;
 
   constructor() {
     this.app = express();
@@ -40,6 +42,7 @@ class ContentService {
     
     this.esService = new ElasticsearchService();
     this.s3Service = new S3UploadService();
+    this.invertedIndex = new InvertedIndexService();
     // Lazy-load sync worker to avoid compile-time dependency issues
     this.syncWorker = null;
   }
@@ -57,6 +60,17 @@ class ContentService {
 
       // Initialize services
       await this.initializeServices();
+
+      // Build simple inverted index on startup for a default tenant (learning/diagnostic)
+      try {
+        if (this.invertedIndex) {
+          const tenantId = process.env.DEFAULT_TENANT_ID || 'default';
+          await this.invertedIndex.build(tenantId);
+          logger.info('Inverted index built on initialization', { tenantId });
+        }
+      } catch (e) {
+        logger.warn('Skipping inverted index build on initialization', { error: (e as Error).message });
+      }
 
       // Setup Express middleware
       this.setupMiddleware();
@@ -166,7 +180,7 @@ class ContentService {
   // Setup routes
   private setupRoutes(): void {
     // API routes
-    this.app.use('/api/v1', createRoutes(this.s3Service, this.esService, this.wsService));
+    this.app.use('/api/v1', createRoutes(this.s3Service, this.esService, this.wsService, this.invertedIndex));
 
     // Health check
     this.app.get('/health', async (req, res) => {
@@ -253,6 +267,19 @@ class ContentService {
         logger.info('Retention sweep completed', { deletedCount: res.deletedCount, retentionDays });
       } catch (error) {
         logger.error('Retention sweep failed:', error);
+      }
+    });
+
+    // Rebuild simple inverted index daily at 2:30 AM
+    cron.schedule('30 2 * * *', async () => {
+      try {
+        if (!this.invertedIndex) return;
+        // For single-tenant per process; use a default or env
+        const tenantId = process.env.DEFAULT_TENANT_ID || 'default';
+        await this.invertedIndex.build(tenantId);
+        logger.info('Inverted index rebuild completed', { tenantId });
+      } catch (error) {
+        logger.error('Inverted index rebuild failed:', error);
       }
     });
 

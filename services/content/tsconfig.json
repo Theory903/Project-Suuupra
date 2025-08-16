@@ -40,7 +40,6 @@
     "dist",
     "tests",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    "src/workers/**"
+    "**/*.spec.ts"
   ]
 }
