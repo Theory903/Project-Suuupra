@@ -9,8 +9,10 @@ type TransactionType int32
 
 const (
 	TransactionType_TRANSACTION_TYPE_UNSPECIFIED TransactionType = 0
-	TransactionType_TRANSACTION_TYPE_DEBIT       TransactionType = 1
-	TransactionType_TRANSACTION_TYPE_CREDIT      TransactionType = 2
+	TransactionType_TRANSACTION_TYPE_P2P         TransactionType = 1
+	TransactionType_TRANSACTION_TYPE_P2M         TransactionType = 2
+	TransactionType_TRANSACTION_TYPE_M2P         TransactionType = 3
+	TransactionType_TRANSACTION_TYPE_REFUND      TransactionType = 4
 )
 
 type TransactionStatus int32
