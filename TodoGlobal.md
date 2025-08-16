@@ -5,7 +5,7 @@
 **Suuupra EdTech Super-Platform**
 > An advanced, production-scale educational and media platform designed to simulate real-world systems engineering challenges including payments, streaming, AI tutoring, and analytics — at a billion-user scale.
 
-This document serves as the master roadmap for the development of the Suuupra platform. It provides a high-level overview of the project, the implementation plan, and links to the detailed TODOs for each service.
+This document serves as the master roadmap for the development of the Suuupra platform. It provides a high-level overview of the project, the implementation plan, and the status of each microservice.
 
 ---
 
@@ -56,157 +56,176 @@ graph TD
 
 ---
 
-## 4. 📅 Product Timeline & Implementation Phases
+## 4. 🛠️ Services Matrix
 
-We will follow a phased approach to building the Suuupra platform. Each phase is designed to be a self-contained unit of work that delivers a meaningful set of features.
+This matrix provides a centralized, single source of truth for the status, priority, and details of every microservice in the Suuupra platform.
 
-### **Phase 1: Foundation & Core Services (Weeks 1–6)** ✅ **Identity Complete**
-
-**Goal**: To lay the foundation for the entire platform by building the core infrastructure and services.
-
--  **Key Services**: `API Gateway`, `Identity` ✅, `Content`
--  **Status**: Identity service is production-ready with full OAuth2/OIDC, RBAC, MFA, and Vault integration
--  **Detailed TODOs**:
-    -   [API Gateway](./services/api-gateway/TODO.md) - Enhanced with JWT validation
-    -   [Identity Service](./services/identity/TODO.md) - **Production Ready** 🚀
-    -   [Content Service](./services/content/TODO.md)
-
-### **Phase 2: Payments & Commerce (Weeks 7–12)** ✅ **Payment Gateway Complete** | 🎉 **Major Milestone Achieved**
-
-**Goal**: To build the e-commerce and payment processing capabilities of the platform.
-
--  **Key Services**: `Commerce`, `Payments` ✅, `Ledger`, `UPI Core` ✅, `Bank Simulator` ✅
--  **Major Infrastructure Achievements**:
-    -   **Payment Gateway Service** ✅ **Production Ready**: Go-based service with event-sourced ledger, idempotency, webhooks, gRPC UPI integration
-    -   **UPI Core Service** ✅ **Production Ready**: Go-based UPI switch with PostgreSQL, gRPC/HTTP servers, health monitoring
-    -   **Bank Simulator** ✅ **Production Ready**: TypeScript banking backend with Prisma ORM, comprehensive transaction processing
-    -   **Database Systems** ✅ **Operational**: PostgreSQL with proper connection handling, timeouts, and health checks
-    -   **Container Orchestration** ✅ **Working**: Docker Compose integration with all supporting services (Redis, Kafka, Monitoring)
-    -   **Complete API Documentation** ✅ **Available**: Comprehensive OpenAPI specs for all payment services
--  **Current Focus**: Commerce Service foundation and Ledger Service implementation
--  **Detailed TODOs**:
-    -   [UPI Core Service](./services/upi-core/TODO.md) - **Production Ready** 🚀
-    -   [Bank Simulator](./services/bank-simulator/TODO.md) - **Production Ready** 🚀
-    -   [Payment Gateway](./services/payments/TODO.md) - **Production Ready** 🚀
-    -   [Commerce Service](./services/commerce/TODO.md) - **Next Priority**
-    -   [Ledger Service](./services/ledger/TODO.md) - **Next Priority**
-
-### **Phase 3: Streaming & Media Systems (Weeks 13–18)**
-
-**Goal**: To build the live streaming and video-on-demand capabilities of the platform.
-
--  **Key Services**: `Live Classes`, `VOD`, `Mass Live`, `Creator Studio`
--  **Detailed TODOs**:
-    -   [Live Classes Service](./services/live-classes/TODO.md)
-    -   [VOD Service](./services/vod/TODO.md)
-    -   [Mass Live Service](./services/mass-live/TODO.md)
-    -   [Creator Studio](./services/creator-studio/TODO.md)
-
-### **Phase 4: AI, Search & Intelligence (Weeks 19–24)**
-
-**Goal**: To build the AI-powered features of the platform.
-
--  **Key Services**: `Search & Crawler`, `Recommendations`, `LLM Tutor`, `Analytics`
--  **Detailed TODOs**:
-    -   [Search & Crawler Service](./services/search-crawler/TODO.md)
-    -   [Recommendation Service](./services/recommendations/TODO.md)
-    -   [LLM Tutor Service](./services/llm-tutor/TODO.md)
-    -   [Analytics Service](./services/analytics/TODO.md)
-
-### **Phase 5: Supporting Services (Ongoing)**
-
-**Goal**: To build the supporting services that are used by all other services.
-
--  **Key Services**: `Counters`, `Live Tracking`, `Notifications`, `Admin`
--  **Detailed TODOs**:
-    -   [Counter Service](./services/counters/TODO.md)
-    -   [Live Tracking Service](./services/live-tracking/TODO.md)
-    -   [Notifications Service](./services/notifications/TODO.md)
-    -   [Admin Service](./services/admin/TODO.md)
-
----
-
-## 4.1. 🎉 Major Milestone: Payment Infrastructure Complete
-
-Both **UPI Core** and **Bank Simulator** services have achieved production-ready status with complete database connectivity and operational infrastructure:
-
-### ✅ **UPI Core Service - Production Ready**
-- **Go-based UPI Switch** with concurrent gRPC (port 50052) and HTTP (port 8081) servers
-- **PostgreSQL Integration** with proper connection pooling, timeouts, and health checks  
-- **Configuration Management** with comprehensive defaults and environment variable handling
-- **Container Orchestration** with Docker integration and graceful shutdown
-- **Health Monitoring** with operational endpoints and service discovery
-
-### ✅ **Bank Simulator Service - Production Ready**  
-- **TypeScript Banking Backend** with Fastify web framework and gRPC services
-- **Prisma ORM Integration** with PostgreSQL for type-safe database operations
-- **Multi-Server Architecture** (HTTP: 3000, gRPC: 50050, Metrics: 9094)
-- **Alpine Linux Compatibility** with OpenSSL integration for secure operations
-- **Comprehensive API** with REST endpoints and banking transaction processing
-
-### 🔧 **Infrastructure Achievements**
-- **Database Connectivity** resolved for both services with proper error handling
-- **Port Management** with conflict resolution and service isolation
-- **Docker Compose Integration** with PostgreSQL, Redis, Kafka, and monitoring stack
-- **JSON Schema Validation** for API endpoints with proper error responses
-- **Service Health Monitoring** with `/health` and `/ready` endpoints operational
-
-**Next Focus**: Payment Gateway Service development with complete UPI transaction flows, fraud detection, and ledger integration
-
-## 4.2. 🎉 Major Milestone: Identity Service Production Ready
-
-The **Identity Service** has achieved production-ready status with comprehensive security hardening and enterprise-grade features:
-
-### ✅ **Completed Features**
-- **OAuth2/OIDC Authorization Server** with Spring Authorization Server
-- **Multi-Factor Authentication** (TOTP with encrypted secrets, backup codes)
-- **Role-Based Access Control** with tenant scoping and fine-grained permissions
-- **WebAuthn/Passkeys** support with step-up authentication
-- **JWT Authentication** with ES256 signatures and refresh token rotation
-- **Session Management** with revocation and device tracking
-- **Rate Limiting & Lockout** with exponential backoff
-- **Password Security** (Argon2id, HIBP integration, enhanced policies)
-- **Audit Logging** with hash-chained immutable records
-- **Production Hardening** (CORS restrictions, HTTPS enforcement, demo client removal)
-
-### 🔒 **Security Achievements**
-- **Vault Integration** for secrets management with automated KEK generation
-- **Database Migrations** with MFA secret encryption and plaintext cleanup
-- **Signing Key Rotation** with operational runbooks
-- **Production Configurations** with environment-specific profiles
-- **One-Command Deployment** with `./deploy-prod.sh`
-
-### 📋 **Deployment Options**
-- **Kubernetes** with Vault Agent Injector integration
-- **Docker Compose** with production environment variables
-- **Automated Scripts** for secret generation and deployment
-
-### 📊 **Observability & Monitoring**
-- Prometheus metrics and Grafana dashboards
-- OpenTelemetry tracing integration
-- Comprehensive health checks and SLO monitoring
-
-**Next Focus**: Content Service and Commerce Foundation
+```yaml
+services:
+  - service: api-gateway
+    repository: ./services/api-gateway
+    status: In Progress
+    phase: Foundation
+    priority: High
+    description: "The single entry point for all client requests, handling routing, authentication, and rate limiting."
+  - service: identity
+    repository: ./services/identity
+    status: Production
+    phase: Foundation
+    priority: High
+    description: "Manages user authentication and authorization using OAuth2/OIDC, RBAC, and MFA."
+  - service: content
+    repository: ./services/content
+    status: Planned
+    phase: Foundation
+    priority: Medium
+    description: "Manages all educational content, including courses, videos, and articles."
+  - service: commerce
+    repository: ./services/commerce
+    status: In Progress
+    phase: Payments
+    priority: High
+    description: "Handles product catalog, shopping cart, and order management."
+  - service: payments
+    repository: ./services/payments
+    status: Production
+    phase: Payments
+    priority: High
+    description: "Orchestrates payment processing, integrating with UPI and other payment methods."
+  - service: ledger
+    repository: ./services/ledger
+    status: In Progress
+    phase: Payments
+    priority: High
+    description: "A double-entry accounting system for all financial transactions."
+  - service: upi-core
+    repository: ./services/upi-core
+    status: Production
+    phase: Payments
+    priority: High
+    description: "A simulator for the UPI switch, handling UPI payment requests."
+  - service: bank-simulator
+    repository: ./services/bank-simulator
+    status: Production
+    phase: Payments
+    priority: High
+    description: "A simulator for a core banking system, responding to payment requests."
+  - service: live-classes
+    repository: ./services/live-classes
+    status: Planned
+    phase: Media
+    priority: Medium
+    description: "Manages real-time, interactive online classes."
+  - service: vod
+    repository: ./services/vod
+    status: Planned
+    phase: Media
+    priority: Medium
+    description: "Handles video-on-demand streaming, encoding, and storage."
+  - service: mass-live
+    repository: ./services/mass-live
+    status: Planned
+    phase: Media
+    priority: Low
+    description: "A service for streaming to massive audiences, like a webinar."
+  - service: creator-studio
+    repository: ./services/creator-studio
+    status: Planned
+    phase: Media
+    priority: Medium
+    description: "Tools for creators to upload and manage their content."
+  - service: search-crawler
+    repository: ./services/search-crawler
+    status: Planned
+    phase: Intelligence
+    priority: Medium
+    description: "Provides full-text search capabilities across the platform."
+  - service: recommendations
+    repository: ./services/recommendations
+    status: Planned
+    phase: Intelligence
+    priority: Medium
+    description: "A service for providing personalized content recommendations."
+  - service: llm-tutor
+    repository: ./services/llm-tutor
+    status: Planned
+    phase: Intelligence
+    priority: High
+    description: "An AI-powered tutor that provides personalized learning assistance."
+  - service: analytics
+    repository: ./services/analytics
+    status: Planned
+    phase: Intelligence
+    priority: Low
+    description: "A service for collecting and analyzing user behavior and platform data."
+  - service: counters
+    repository: ./services/counters
+    status: Planned
+    phase: Supporting
+    priority: Low
+    description: "A distributed counter service for tracking metrics like views and likes."
+  - service: live-tracking
+    repository: ./services/live-tracking
+    status: Planned
+    phase: Supporting
+    priority: Low
+    description: "A service for tracking real-time user activity."
+  - service: notifications
+    repository: ./services/notifications
+    status: Planned
+    phase: Supporting
+    priority: Medium
+    description: "Manages and sends notifications to users via email, push, and SMS."
+  - service: admin
+    repository: ./services/admin
+    status: Planned
+    phase: Supporting
+    priority: High
+    description: "An administration dashboard for managing the platform."
+```
 
 ---
 
-## 5. 🧭 Getting Started
+## 5. 📅 Product Timeline & Implementation Phases
+
+We will follow a phased approach to building the Suuupra platform. Each phase delivers a meaningful set of features. Refer to the **Services Matrix** for the current status of each service.
+
+### **Phase 1: Foundation & Core Services**
+**Goal**: To lay the foundation for the entire platform by building the core infrastructure and services. See the `Foundation` phase in the Services Matrix for current status.
+
+### **Phase 2: Payments & Commerce**
+**Goal**: To build the e-commerce and payment processing capabilities of the platform. See the `Payments` phase in the Services Matrix for current status.
+
+### **Phase 3: Streaming & Media Systems**
+**Goal**: To build the live streaming and video-on-demand capabilities of the platform. See the `Media` phase in the Services Matrix for current status.
+
+### **Phase 4: AI, Search & Intelligence**
+**Goal**: To build the AI-powered features of the platform. See the `Intelligence` phase in the Services Matrix for current status.
+
+### **Phase 5: Supporting Services**
+**Goal**: To build the supporting services that are used by all other services. See the `Supporting` phase in the Services Matrix for current status.
+
+---
+
+## 6. 🎉 Major Milestones
+
+### **Identity Service Production Ready**
+The **Identity Service** is production-ready with comprehensive security hardening and enterprise-grade features, including OAuth2/OIDC, MFA, RBAC, and Vault integration.
+
+### **Payment Infrastructure Complete**
+The core payment infrastructure, including the **Payments**, **UPI Core**, and **Bank Simulator** services, is production-ready, with a complete, event-sourced architecture.
+
+---
+
+## 7. 🧭 Getting Started
 
 1.  **Clone the repository**: `git clone <repository-url>`
 2.  **Run the setup script**: `./tools/scripts/initialize-project.sh`
-3.  **Deploy Services (Multiple Production-Ready Options)**:
-    - **Payment Infrastructure**: `docker-compose -f docker-compose.integration.yml up -d` 
-      - UPI Core: `http://localhost:8081/health` (gRPC: 50052)
-      - Bank Simulator: `http://localhost:3000/health` (gRPC: 50050) 
-      - Includes PostgreSQL, Redis, Kafka, monitoring stack
-    - **Identity Service**: 
-      - Kubernetes: `./deploy-prod.sh` (with Vault integration)
-      - Docker Compose: `docker-compose -f docker-compose.prod.yml up -d`
-      - Local Dev: `docker-compose up -d api-gateway identity-service`
+3.  **Deploy Production-Ready Services**:
+    - **Payment Infrastructure**: `docker-compose -f docker-compose.integration.yml up -d`
+    - **Identity Service**: `docker-compose -f docker-compose.prod.yml up -d`
 4.  **Explore the operational services**:
-    - **UPI Core Health**: `http://localhost:8081/health` - Go-based payment switch
-    - **Bank Simulator Health**: `http://localhost:3000/health` - TypeScript banking backend  
+    - **UPI Core Health**: `http://localhost:8081/health`
+    - **Bank Simulator Health**: `http://localhost:3000/health`
     - **Identity OIDC Discovery**: `http://localhost:8081/.well-known/openid-configuration`
-    - **Monitoring Stack**: Grafana (3001), Prometheus (9093), Jaeger (16686)
-5.  **Development workflow**: All infrastructure services are operational - focus on business logic implementation
-6.  **Pick a service**: Choose from the implementation roadmap and start working on the tasks in its `TODO.md` file.
+5.  **Pick a service to develop**: Choose from the **Services Matrix** and start working on the tasks in its `TODO.md` file.

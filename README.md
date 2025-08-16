@@ -26,29 +26,28 @@
 
 ## 🧱 Service Architecture Matrix
 
-| Domain | Service | Tech Stack | Database | Core Features | DSA Focus |
-|--------|---------|------------|----------|---------------|----------|
-| Gateway | API Gateway | Node.js (Fastify), TypeScript | Redis | JWT auth, rate limiting, routing, service discovery, WebSocket proxy | Token bucket, consistent hashing, circuit breaker |
-| Identity | User Service ✅ | Java (Spring Boot, Spring Security) | PostgreSQL, Redis, Elasticsearch | OAuth2/OIDC, RBAC, MFA, session management, user lifecycle, Vault integration | Trie (permissions), graph (roles), secure hashing (Argon2) |
-| Content | Course/Content | Node.js + Express | MongoDB + Elasticsearch | Content management, versioning, approval workflows, search | Inverted index, BM25, SimHash |
-| Commerce | Order Service | Python + FastAPI | PostgreSQL + Redis | Order management, distributed transactions, inventory | Saga pattern, event sourcing, state machines |
-| Payments | Payment Gateway | Go + Gin | MySQL | UPI, card processing, fraud detection, tokenization, reconciliation | Double-entry ledger, idempotency, state machines |
-| Payments | Ledger Service | Java + Spring Batch | MySQL | Double-entry accounting, reconciliation, settlement, audit trails | Merkle trees, windowed aggregation, cryptographic hash chains |
-| Payments | UPI Core ✅ | Go (gRPC) | PostgreSQL, Redis | Transaction routing, security, service discovery, reconciliation | Consistent Hashing, CRDTs, distributed locking |
-| Payments | UPI PSP | Flutter | Secure Storage | P2P/P2M payments, QR codes, bank account linking, UPI PIN | - |
-| Payments | Bank Simulator ✅ | TypeScript + Fastify | PostgreSQL | Mock bank account management, transaction processing | - |
-| Media | Live Classes | WebRTC SFU (mediasoup) + Node.js | Redis + S3 | Interactive classes, recording, chat, whiteboard, screen sharing | Jitter buffers, priority queues, consistent hashing |
-| Media | VOD Service | Node.js + FFmpeg | S3 + CDN | Transcoding, adaptive bitrate (HLS/DASH), DRM, watermarking | Dynamic programming (encoding), priority queues (transcoding) |
-| Media | Mass Live Stream | Go + FFmpeg | S3 + Multi-CDN | Hotstar-scale streaming, LL-HLS, real-time transcoding | Consistent hashing, segment scheduling, ring buffers |
-| Media | Creator Studio | Node.js + React | S3 + MongoDB | Content upload, management, analytics, monetization, user feedback | Sharded counters, min-heap (top-K), resumable uploads |
-| Intelligence | Recommendation | Python + FastAPI | Neo4j, Vector DB (Faiss) | Collaborative filtering, content-based, graph-based, real-time personalization | PageRank, ANN search, matrix factorization, multi-armed bandits |
-| Intelligence | Search & Crawler | Go + Python | Elasticsearch + MinIO | Web crawling, content indexing, PageRank, duplicate detection | Priority queues, PageRank, SimHash, inverted index |
-| Intelligence | LLM Tutor | Python + vLLM | Vector DB + S3 | RAG, conversational AI, personalized learning, safety filters, adaptive assessment | Vector similarity, query expansion, memory networks |
-| Analytics | Analytics Service | Python + Flink | ClickHouse + Kafka | Real-time data pipelines, stateful stream processing, dashboards | Stream processing, HyperLogLog, windowing |
-| Analytics | Counter Service | Go | Redis + ClickHouse | Real-time distributed counters, probabilistic counting, data persistence | CRDT counters, reservoir sampling, HyperLogLog |
-| Logistics | Live Tracking | Go + Rust | PostGIS + Redis | Real-time GPS tracking, ETA calculation, route optimization, geofencing | Geohash, A* pathfinding, k-NN, R-trees |
-| Communication | Notification | Python + Django | Redis + SES/FCM | Multi-channel delivery (push, email, SMS, WebSocket), priority queues, templates | Priority queues, bloom filters, exponential backoff |
-| Operations | Admin Service | Node.js + React | PostgreSQL | User management, content moderation, platform dashboard, audit trails | DAG evaluation, Merkle logs, RBAC |
+| Domain | Service | Status | Priority |
+|---|---|---|---|
+| Gateway & Core | api-gateway | In Progress | High |
+| Gateway & Core | identity | Production | High |
+| Gateway & Core | content | Planned | Medium |
+| Payments | commerce | In Progress | High |
+| Payments | payments | Production | High |
+| Payments | ledger | In Progress | High |
+| Payments | upi-core | Production | High |
+| Payments | bank-simulator | Production | High |
+| Media | live-classes | Planned | Medium |
+| Media | vod | Planned | Medium |
+| Media | mass-live | Planned | Low |
+| Media | creator-studio | Planned | Medium |
+| Intelligence | search-crawler | Planned | Medium |
+| Intelligence | recommendations | Planned | Medium |
+| Intelligence | llm-tutor | Planned | High |
+| Intelligence | analytics | Planned | Low |
+| Operations | counters | Planned | Low |
+| Operations | live-tracking | Planned | Low |
+| Operations | notifications | Planned | Medium |
+| Operations | admin | Planned | High |
 
 > Full service code lives in `/services/<service-name>`
 
@@ -235,27 +234,22 @@ GitHub Actions handle CI/CD, scans, tests, and deploy on commit.
 
 ## 🚦 Implementation Phases & Status
 
-**Phase 1: Foundation & Core Services** ✅ *Identity Complete*
-- ✅ Infrastructure & Gateway (Kubernetes, API Gateway, monitoring)
-- ✅ **Identity Service** (OAuth2/OIDC, RBAC, MFA, Vault integration) 🚀
-- 🛠 Content Management (Content metadata, search integration)
-- ➕ Commerce Foundation (Order service, event sourcing)
+We will follow a phased approach to building the Suuupra platform. Each phase delivers a meaningful set of features. Refer to the **Services Matrix** for the current status of each service.
 
-**Phase 2: Payment Gateway & Live Streaming** 🚧 *In Progress*
-- 🚧 **Payment Gateway Development** (UPI flows, fraud detection) - **ACTIVE**
-- ✅ **UPI Infrastructure** (UPI Core + Bank Simulator production-ready)
-- ⌛ Live Video Infrastructure (WebRTC, recording, real-time chat)
-- ⌛ VOD & Content Delivery (transcoding, CDN, DRM)
+### **Phase 1: Foundation & Core Services**
+**Goal**: To lay the foundation for the entire platform by building the core infrastructure and services. See the `Foundation` phase in the Services Matrix for current status.
 
-**Phase 3: AI & Intelligence Services** 📋 *Planned*
-- ⌛ Search & Discovery (web crawler, content indexing)
-- ⌛ Recommendation Engine (collaborative filtering, graph ML)
-- ⌛ LLM Integration (RAG, tutoring, safety filters)
+### **Phase 2: Payments & Commerce**
+**Goal**: To build the e-commerce and payment processing capabilities of the platform. See the `Payments` phase in the Services Matrix for current status.
 
-**Phase 4: Scale & Advanced Features** 📋 *Future*
-- ⌛ Mass Scale Streaming (1M+ concurrent, multi-CDN)
-- ⌛ Creator Economy (YouTube-like studio, monetization)
-- ⌛ Advanced Analytics & Tracking (real-time insights)
+### **Phase 3: Streaming & Media Systems**
+**Goal**: To build the live streaming and video-on-demand capabilities of the platform. See the `Media` phase in the Services Matrix for current status.
+
+### **Phase 4: AI, Search & Intelligence**
+**Goal**: To build the AI-powered features of the platform. See the `Intelligence` phase in the Services Matrix for current status.
+
+### **Phase 5: Supporting Services**
+**Goal**: To build the supporting services that are used by all other services. See the `Supporting` phase in the Services Matrix for current status.
 
 ---
 
