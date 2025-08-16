@@ -8,7 +8,7 @@
 
 ## 🧭 System Architecture Overview
 
-**🎯 Mission**: Build a next-generation EdTech + Media super-platform that integrates ALL major digital services in-house with learning-focused approach to advanced distributed systems, AI integration, and billion-user scale engineering.
+**🎯 Mission**: Build a next-generation EdTech + Media super-platform that integrates ALL major digital services in-house with a learning-focused approach to advanced distributed systems, AI integration, and billion-user scale engineering.
 
 ### 🔧 Integrated Super-Platform Capabilities
 
@@ -26,28 +26,28 @@
 
 ## 🧱 Service Architecture Matrix
 
-| Domain | Service | Status | Priority |
-|---|---|---|---|
-| Gateway & Core | api-gateway | In Progress | High |
-| Gateway & Core | identity | Production | High |
-| Gateway & Core | content | Planned | Medium |
-| Payments | commerce | In Progress | High |
-| Payments | payments | Production | High |
-| Payments | ledger | In Progress | High |
-| Payments | upi-core | Production | High |
-| Payments | bank-simulator | Production | High |
-| Media | live-classes | Planned | Medium |
-| Media | vod | Planned | Medium |
-| Media | mass-live | Planned | Low |
-| Media | creator-studio | Planned | Medium |
-| Intelligence | search-crawler | Planned | Medium |
-| Intelligence | recommendations | Planned | Medium |
-| Intelligence | llm-tutor | Planned | High |
-| Intelligence | analytics | Planned | Low |
-| Operations | counters | Planned | Low |
-| Operations | live-tracking | Planned | Low |
-| Operations | notifications | Planned | Medium |
-| Operations | admin | Planned | High |
+| Domain          | Service         | Status      | Priority |
+|-----------------|-----------------|-------------|----------|
+| Gateway & Core  | api-gateway     | In Progress | High     |
+| Gateway & Core  | identity        | Production  | High     |
+| Gateway & Core  | content         | Planned     | Medium   |
+| Payments        | commerce        | In Progress | High     |
+| Payments        | payments        | Production  | High     |
+| Payments        | ledger          | In Progress | High     |
+| Payments        | upi-core        | Production  | High     |
+| Payments        | bank-simulator  | Production  | High     |
+| Media           | live-classes    | Planned     | Medium   |
+| Media           | vod             | Planned     | Medium   |
+| Media           | mass-live       | Planned     | Low      |
+| Media           | creator-studio  | Planned     | Medium   |
+| Intelligence    | search-crawler  | Planned     | Medium   |
+| Intelligence    | recommendations | Planned     | Medium   |
+| Intelligence    | llm-tutor       | Planned     | High     |
+| Intelligence    | analytics       | Planned     | Low      |
+| Operations      | counters        | Planned     | Low      |
+| Operations      | live-tracking   | Planned     | Low      |
+| Operations      | notifications   | Planned     | Medium   |
+| Operations      | admin           | Planned     | High     |
 
 > Full service code lives in `/services/<service-name>`
 

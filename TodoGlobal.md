@@ -56,158 +56,100 @@ graph TD
 
 ---
 
-## 4. 🛠️ Services Matrix
+## 4. 🛠️ Services Status Matrix
 
 This matrix provides a centralized, single source of truth for the status, priority, and details of every microservice in the Suuupra platform.
 
-```yaml
-services:
-  - service: api-gateway
-    repository: ./services/api-gateway
-    status: In Progress
-    phase: Foundation
-    priority: High
-    description: "The single entry point for all client requests, handling routing, authentication, and rate limiting."
-  - service: identity
-    repository: ./services/identity
-    status: Production
-    phase: Foundation
-    priority: High
-    description: "Manages user authentication and authorization using OAuth2/OIDC, RBAC, and MFA."
-  - service: content
-    repository: ./services/content
-    status: Planned
-    phase: Foundation
-    priority: Medium
-    description: "Manages all educational content, including courses, videos, and articles."
-  - service: commerce
-    repository: ./services/commerce
-    status: In Progress
-    phase: Payments
-    priority: High
-    description: "Handles product catalog, shopping cart, and order management."
-  - service: payments
-    repository: ./services/payments
-    status: Production
-    phase: Payments
-    priority: High
-    description: "Orchestrates payment processing, integrating with UPI and other payment methods."
-  - service: ledger
-    repository: ./services/ledger
-    status: In Progress
-    phase: Payments
-    priority: High
-    description: "A double-entry accounting system for all financial transactions."
-  - service: upi-core
-    repository: ./services/upi-core
-    status: Production
-    phase: Payments
-    priority: High
-    description: "A simulator for the UPI switch, handling UPI payment requests."
-  - service: bank-simulator
-    repository: ./services/bank-simulator
-    status: Production
-    phase: Payments
-    priority: High
-    description: "A simulator for a core banking system, responding to payment requests."
-  - service: live-classes
-    repository: ./services/live-classes
-    status: Planned
-    phase: Media
-    priority: Medium
-    description: "Manages real-time, interactive online classes."
-  - service: vod
-    repository: ./services/vod
-    status: Planned
-    phase: Media
-    priority: Medium
-    description: "Handles video-on-demand streaming, encoding, and storage."
-  - service: mass-live
-    repository: ./services/mass-live
-    status: Planned
-    phase: Media
-    priority: Low
-    description: "A service for streaming to massive audiences, like a webinar."
-  - service: creator-studio
-    repository: ./services/creator-studio
-    status: Planned
-    phase: Media
-    priority: Medium
-    description: "Tools for creators to upload and manage their content."
-  - service: search-crawler
-    repository: ./services/search-crawler
-    status: Planned
-    phase: Intelligence
-    priority: Medium
-    description: "Provides full-text search capabilities across the platform."
-  - service: recommendations
-    repository: ./services/recommendations
-    status: Planned
-    phase: Intelligence
-    priority: Medium
-    description: "A service for providing personalized content recommendations."
-  - service: llm-tutor
-    repository: ./services/llm-tutor
-    status: Planned
-    phase: Intelligence
-    priority: High
-    description: "An AI-powered tutor that provides personalized learning assistance."
-  - service: analytics
-    repository: ./services/analytics
-    status: Planned
-    phase: Intelligence
-    priority: Low
-    description: "A service for collecting and analyzing user behavior and platform data."
-  - service: counters
-    repository: ./services/counters
-    status: Planned
-    phase: Supporting
-    priority: Low
-    description: "A distributed counter service for tracking metrics like views and likes."
-  - service: live-tracking
-    repository: ./services/live-tracking
-    status: Planned
-    phase: Supporting
-    priority: Low
-    description: "A service for tracking real-time user activity."
-  - service: notifications
-    repository: ./services/notifications
-    status: Planned
-    phase: Supporting
-    priority: Medium
-    description: "Manages and sends notifications to users via email, push, and SMS."
-  - service: admin
-    repository: ./services/admin
-    status: Planned
-    phase: Supporting
-    priority: High
-    description: "An administration dashboard for managing the platform."
-```
+| Service | Status | Phase | Priority | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `api-gateway` | In Progress | Foundation | High | The single entry point for all client requests, handling routing, authentication, and rate limiting. |
+| `identity` | Production | Foundation | High | Manages user authentication and authorization using OAuth2/OIDC, RBAC, and MFA. |
+| `content` | Planned | Foundation | Medium | Manages all educational content, including courses, videos, and articles. |
+| `commerce` | In Progress | Payments | High | Handles product catalog, shopping cart, and order management. |
+| `payments` | Production | Payments | High | Orchestrates payment processing, integrating with UPI and other payment methods. |
+| `ledger` | In Progress | Payments | High | A double-entry accounting system for all financial transactions. |
+| `upi-core` | Production | Payments | High | A simulator for the UPI switch, handling UPI payment requests. |
+| `bank-simulator`| Production | Payments | High | A simulator for a core banking system, responding to payment requests. |
+| `live-classes` | Planned | Media | Medium | Manages real-time, interactive online classes. |
+| `vod` | Planned | Media | Medium | Handles video-on-demand streaming, encoding, and storage. |
+| `mass-live` | Planned | Media | Low | A service for streaming to massive audiences, like a webinar. |
+| `creator-studio`| Planned | Media | Medium | Tools for creators to upload and manage their content. |
+| `search-crawler`| Planned | Intelligence | Medium | Provides full-text search capabilities across the platform. |
+| `recommendations`| Planned | Intelligence | Medium | A service for providing personalized content recommendations. |
+| `llm-tutor` | Planned | Intelligence | High | An AI-powered tutor that provides personalized learning assistance. |
+| `analytics` | Planned | Intelligence | Low | A service for collecting and analyzing user behavior and platform data. |
+| `counters` | Planned | Supporting | Low | A distributed counter service for tracking metrics like views and likes. |
+| `live-tracking` | Planned | Supporting | Low | A service for tracking real-time user activity. |
+| `notifications` | Planned | Supporting | Medium | Manages and sends notifications to users via email, push, and SMS. |
+| `admin` | Planned | Supporting | High | An administration dashboard for managing the platform. |
 
 ---
 
-## 5. 📅 Product Timeline & Implementation Phases
+## 5. 📝 Master TODO List
 
-We will follow a phased approach to building the Suuupra platform. Each phase delivers a meaningful set of features. Refer to the **Services Matrix** for the current status of each service.
+This section provides a detailed, actionable checklist of tasks for each service, organized by implementation phase.
 
-### **Phase 1: Foundation & Core Services**
-**Goal**: To lay the foundation for the entire platform by building the core infrastructure and services. See the `Foundation` phase in the Services Matrix for current status.
+### **Phase 1: Foundation**
+- [ ] `api-gateway`: Implement dynamic routing based on service discovery.
+- [ ] `api-gateway`: Integrate authentication and authorization middleware with the `identity` service.
+- [ ] `api-gateway`: Add comprehensive rate limiting and abuse prevention.
+- [x] `identity`: Implement OAuth2/OIDC provider with MFA and RBAC.
+- [x] `identity`: Harden security and integrate with HashiCorp Vault for secrets management.
+- [ ] `content`: Design and implement the data model for courses, lessons, and media assets.
+- [ ] `content`: Develop APIs for content creation, retrieval, and management.
 
 ### **Phase 2: Payments & Commerce**
-**Goal**: To build the e-commerce and payment processing capabilities of the platform. See the `Payments` phase in the Services Matrix for current status.
+- [-] `commerce`: Develop the product catalog service, including product variants and pricing.
+- [-] `commerce`: Implement shopping cart and checkout orchestration logic.
+- [ ] `commerce`: Integrate with the `payments` service to process orders.
+- [x] `payments`: Implement event-sourced architecture for payment orchestration.
+- [x] `payments`: Integrate with `upi-core` and `bank-simulator` for end-to-end payment processing.
+- [-] `ledger`: Implement core double-entry accounting logic and transaction processing.
+- [ ] `ledger`: Add support for currency conversion and multi-currency transactions.
+- [ ] `ledger`: Develop robust audit trail and reporting features, including hash-chaining for data integrity.
+- [x] `upi-core`: Simulate the UPI switch for handling payment requests.
+- [x] `bank-simulator`: Simulate a core banking system to respond to payment authorization requests.
 
-### **Phase 3: Streaming & Media Systems**
-**Goal**: To build the live streaming and video-on-demand capabilities of the platform. See the `Media` phase in the Services Matrix for current status.
+### **Phase 3: Media**
+- [ ] `live-classes`: Implement real-time signaling and WebRTC integration for interactive classes.
+- [ ] `live-classes`: Develop features for class scheduling, recording, and chat.
+- [ ] `vod`: Build a video processing pipeline for encoding, transcoding, and adaptive bitrate streaming.
+- [ ] `vod`: Integrate with a CDN for efficient global delivery of video content.
+- [ ] `mass-live`: Design architecture for large-scale, low-latency streaming (e.g., using HLS/DASH).
+- [ ] `creator-studio`: Develop a user interface for content creators to upload, manage, and track their media.
 
-### **Phase 4: AI, Search & Intelligence**
-**Goal**: To build the AI-powered features of the platform. See the `Intelligence` phase in the Services Matrix for current status.
+### **Phase 4: Intelligence**
+- [ ] `search-crawler`: Implement a crawler to index platform content (courses, articles, etc.).
+- [ ] `search-crawler`: Integrate with a search engine like Elasticsearch to provide full-text search APIs.
+- [ ] `recommendations`: Develop collaborative filtering and content-based recommendation models.
+- [ ] `recommendations`: Build APIs to serve personalized content recommendations to users.
+- [ ] `llm-tutor`: Integrate with a large language model (LLM) to provide interactive tutoring.
+- [ ] `llm-tutor`: Develop a system for managing conversational state and user progress.
+- [ ] `analytics`: Implement a data pipeline to collect and process user interaction events.
+- [ ] `analytics`: Build dashboards to visualize key platform metrics.
 
 ### **Phase 5: Supporting Services**
-**Goal**: To build the supporting services that are used by all other services. See the `Supporting` phase in the Services Matrix for current status.
+- [ ] `counters`: Design and implement a scalable, distributed counter service.
+- [ ] `live-tracking`: Implement real-time user activity tracking using WebSockets or similar technology.
+- [ ] `notifications`: Integrate with providers for email, SMS, and push notifications.
+- [ ] `notifications`: Develop a templating and preference management system for notifications.
+- [ ] `admin`: Design and build a comprehensive dashboard for platform administration and user support.
 
 ---
 
-## 6. 🎉 Major Milestones
+## 6. 📅 Product Timeline & Implementation Phases
+
+We will follow a phased approach to building the Suuupra platform. Each phase delivers a meaningful set of features. Refer to the **Services Status Matrix** and **Master TODO List** for the current status and detailed tasks for each service.
+
+- **Phase 1: Foundation & Core Services**: Lay the foundation for the entire platform.
+- **Phase 2: Payments & Commerce**: Build the e-commerce and payment processing capabilities.
+- **Phase 3: Streaming & Media Systems**: Build live streaming and video-on-demand capabilities.
+- **Phase 4: AI, Search & Intelligence**: Build the AI-powered features of the platform.
+- **Phase 5: Supporting Services**: Build the services that support the entire platform.
+
+---
+
+## 7. 🎉 Major Milestones
 
 ### **Identity Service Production Ready**
 The **Identity Service** is production-ready with comprehensive security hardening and enterprise-grade features, including OAuth2/OIDC, MFA, RBAC, and Vault integration.
@@ -217,7 +159,7 @@ The core payment infrastructure, including the **Payments**, **UPI Core**, and *
 
 ---
 
-## 7. 🧭 Getting Started
+## 8. 🧭 Getting Started
 
 1.  **Clone the repository**: `git clone <repository-url>`
 2.  **Run the setup script**: `./tools/scripts/initialize-project.sh`
@@ -228,4 +170,4 @@ The core payment infrastructure, including the **Payments**, **UPI Core**, and *
     - **UPI Core Health**: `http://localhost:8081/health`
     - **Bank Simulator Health**: `http://localhost:3000/health`
     - **Identity OIDC Discovery**: `http://localhost:8081/.well-known/openid-configuration`
-5.  **Pick a service to develop**: Choose from the **Services Matrix** and start working on the tasks in its `TODO.md` file.
+5.  **Pick a service to develop**: Choose from the **Services Status Matrix** and start working on the tasks in the **Master TODO List**.
