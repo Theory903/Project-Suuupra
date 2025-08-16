@@ -42,7 +42,7 @@
 ## 3. 🗺️ Architecture & Design
 
 ### 3.1 System Architecture Diagram
-```mermaid
+```
 flowchart LR
   C[Client (Web/Mobile/Voice)] --> |Text/Audio| GW[API Gateway]
   GW --> Auth[Auth & Policy]
