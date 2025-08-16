@@ -1,5 +1,6 @@
 import winston from 'winston';
 import { config } from '@/config';
+import { getTraceId } from './tracing';
 
 // Define log levels
 const logLevels = {
@@ -16,7 +17,8 @@ const logFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.json(),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    const logEntry = {
+    const traceId = getTraceId();
+    const logEntry: Record<string, any> = {
       timestamp,
       level,
       message,
@@ -24,6 +26,10 @@ const logFormat = winston.format.combine(
       environment: config.service.environment,
       ...meta
     };
+    
+    if (traceId) {
+      logEntry.traceId = traceId;
+    }
     
     return JSON.stringify(logEntry);
   })
@@ -171,6 +177,15 @@ export class ContextLogger {
   
   debug(message: string, meta?: Record<string, any>): void {
     logger.debug(message, { ...this.context, ...meta });
+  }
+  
+  // Add trace and span ID to log context for all log levels
+  withTrace(): ContextLogger {
+    const traceId = getTraceId();
+    if (traceId) {
+      return this.addContext('traceId', traceId);
+    }
+    return this;
   }
 }
 

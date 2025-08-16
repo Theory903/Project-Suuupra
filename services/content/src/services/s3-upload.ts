@@ -1,7 +1,7 @@
-import { S3Client, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, GetObjectCommand, HeadObjectCommand, CompleteMultipartUploadCommandOutput } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from '@/config';
-import { UploadSession } from '@/models/UploadSession';
+import { UploadSession, IUploadSession } from '@/models/UploadSession';
 import { logger, ContextLogger } from '@/utils/logger';
 import { ValidationError, NotFoundError } from '@/types';
 import crypto from 'crypto';
@@ -367,17 +367,17 @@ export class S3UploadService {
     }
   }
 
-  // Get upload progress
-  public async getUploadProgress(uploadSessionId: string): Promise<any> {
+  // Get upload session
+  public async getUploadSession(uploadSessionId: string): Promise<IUploadSession | null> {
     try {
       const uploadSession = await UploadSession.findById(uploadSessionId);
       if (!uploadSession) {
-        throw new NotFoundError('Upload session', uploadSessionId);
+        return null;
       }
 
-      return uploadSession.toJSON();
+      return uploadSession;
     } catch (error) {
-      this.contextLogger.error('Failed to get upload progress', error as Error, {
+      this.contextLogger.error('Failed to get upload session', error as Error, {
         uploadSessionId
       });
       throw error;

@@ -34,24 +34,6 @@ export class ContentController {
         contentType
       });
 
-      // Check for idempotency
-      const existingContent = await Content.findOne({
-        tenantId: user.tenantId,
-        'metadata.idempotencyKey': idempotencyKey
-      });
-
-      if (existingContent) {
-        const response: ApiResponse = {
-          success: true,
-          data: existingContent.toJSON(),
-          meta: {
-            requestId: user.requestId,
-            timestamp: new Date().toISOString()
-          }
-        };
-        res.status(200).json(response);
-        return;
-      }
 
       // Validate category if provided
       if (categoryId) {
@@ -66,7 +48,7 @@ export class ContentController {
       }
 
       // Create content
-      const contentData = {
+      const contentData: any = {
         _id: uuidv4(),
         tenantId: user.tenantId,
         title: title.trim(),
@@ -76,13 +58,34 @@ export class ContentController {
         version: '1.0.0',
         categoryId,
         tags: tags || [],
-        metadata: {
-          ...metadata,
-          idempotencyKey
-        },
         createdBy: user.userId,
         etag: uuidv4()
       };
+
+      // Handle metadata based on content type
+      if (contentType === 'course') {
+        contentData.metadata = {
+          instructorId: user.userId, // Default to creator as instructor
+          courseOutline: [],
+          durationMinutes: 0,
+          difficulty: 'beginner',
+          language: 'en',
+          prerequisites: [],
+          learningOutcomes: [],
+          price: 0,
+          currency: 'USD',
+          ...metadata
+        };
+      } else if (contentType === 'lesson') {
+        contentData.metadata = {
+          courseId: metadata?.courseId,
+          lessonNumber: metadata?.lessonNumber || 1,
+          durationMinutes: metadata?.durationMinutes || 0,
+          ...metadata
+        };
+      } else {
+        contentData.metadata = metadata || {};
+      }
 
       const content = new Content(contentData);
       await content.save();
@@ -119,6 +122,10 @@ export class ContentController {
     try {
       const { id } = req.params;
       const user = req.user!;
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
 
       const content = await Content.findOne({
         _id: id,
@@ -163,6 +170,10 @@ export class ContentController {
       const { title, description, categoryId, tags, metadata, versionBump = 'patch' } = req.body;
       const user = req.user!;
       const ifMatch = req.headers['if-match'];
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
 
       this.contextLogger.info('Updating content', {
         requestId: user.requestId,
@@ -280,6 +291,10 @@ export class ContentController {
     try {
       const { id } = req.params;
       const user = req.user!;
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
 
       this.contextLogger.info('Deleting content', {
         requestId: user.requestId,
@@ -435,6 +450,10 @@ export class ContentController {
       const { filename, contentType, fileSize, checksumSha256 } = req.body;
       const user = req.user!;
 
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
+
       this.contextLogger.info('Initiating file upload', {
         requestId: user.requestId,
         contentId: id,
@@ -515,6 +534,10 @@ export class ContentController {
       const { parts } = req.body;
       const user = req.user!;
 
+      if (!id || !uploadId) {
+        throw new ValidationError('Content ID and Upload ID are required');
+      }
+
       this.contextLogger.info('Completing file upload', {
         requestId: user.requestId,
         contentId: id,
@@ -543,18 +566,24 @@ export class ContentController {
         });
         return;
       }
+      
+      // Retrieve upload session to get original file info
+      const uploadSession = await this.s3Service.getUploadSession(uploadId);
+      if (!uploadSession) {
+        throw new NotFoundError('UploadSession', uploadId);
+      }
 
       // Complete upload
       const uploadResult = await this.s3Service.completeUpload(uploadId, parts);
 
       // Update content with file information
       content.fileInfo = {
-        filename: uploadResult.fileSize > 0 ? 'uploaded-file' : 'unknown', // Would get from upload session
-        contentType: 'application/octet-stream', // Would get from upload session
-        fileSize: uploadResult.fileSize,
+        filename: uploadSession.filename,
+        contentType: uploadSession.contentType,
+        fileSize: uploadSession.fileSize,
         s3Key: uploadResult.s3Key,
-        cdnUrl: uploadResult.cdnUrl,
-        checksumSha256: 'checksum', // Would get from upload session
+        cdnUrl: uploadResult.cdnUrl, // Explicitly assign as string | undefined
+        checksumSha256: uploadSession.checksumSha256,
         uploadedAt: new Date()
       };
       content.etag = uuidv4();
@@ -589,7 +618,7 @@ export class ContentController {
       res.json(response);
     } catch (error) {
       // Broadcast upload error
-      this.wsService.broadcastUploadError(req.params.uploadId, error as Error);
+      this.wsService.broadcastUploadError(uploadId || '', error as Error); // Ensure uploadId is string
       next(error);
     }
   };
@@ -599,6 +628,10 @@ export class ContentController {
     try {
       const { uploadId } = req.params;
       const user = req.user!;
+
+      if (!uploadId) {
+        throw new ValidationError('Upload ID is required');
+      }
 
       const progress = await this.s3Service.getUploadProgress(uploadId);
 
@@ -622,6 +655,10 @@ export class ContentController {
     try {
       const { uploadId } = req.params;
       const user = req.user!;
+
+      if (!uploadId) {
+        throw new ValidationError('Upload ID is required');
+      }
 
       this.contextLogger.info('Resuming file upload', {
         requestId: user.requestId,
@@ -650,6 +687,10 @@ export class ContentController {
     try {
       const { uploadId } = req.params;
       const user = req.user!;
+
+      if (!uploadId) {
+        throw new ValidationError('Upload ID is required');
+      }
 
       this.contextLogger.info('Aborting file upload', {
         requestId: user.requestId,

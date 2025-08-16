@@ -140,9 +140,37 @@ export interface UploadConfig {
 }
 
 // Content-related types
-export type ContentType = 'video' | 'article' | 'quiz' | 'document';
+export type ContentType = 'video' | 'article' | 'quiz' | 'document' | 'course' | 'lesson';
 export type ContentStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'archived';
 export type UploadStatus = 'initiated' | 'uploading' | 'completed' | 'failed' | 'aborted';
+
+export interface CourseMetadata {
+  instructorId: string;
+  courseOutline: Array<{
+    lessonId: string;
+    title: string;
+    order: number;
+  }>;
+  durationMinutes: number;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  language: string;
+  prerequisites: string[];
+  learningOutcomes: string[];
+  price: number;
+  currency: string;
+}
+
+export interface LessonMetadata {
+  courseId: string;
+  lessonNumber: number;
+  durationMinutes: number;
+  videoUrl?: string;
+  articleUrl?: string;
+  quizId?: string;
+  documentUrl?: string;
+}
+
+export type ContentMetadata = CourseMetadata | LessonMetadata | Record<string, any>;
 
 export interface FileInfo {
   filename: string;

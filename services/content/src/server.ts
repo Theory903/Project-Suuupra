@@ -11,6 +11,7 @@ import { WebSocketService } from '@/services/websocket';
 import { ElasticsearchSyncWorker } from '@/workers/elasticsearch-sync';
 import { createRoutes } from '@/routes';
 import { logger, requestLogger, errorLogger } from '@/utils/logger';
+import { initializeTracing, shutdownTracing, tracingMiddleware } from '@/utils/tracing';
 import { Redis } from 'ioredis';
 import cron from 'node-cron';
 
@@ -21,16 +22,15 @@ class ContentService {
   private redis: Redis;
   private esService: ElasticsearchService;
   private s3Service: S3UploadService;
-  private wsService: WebSocketService;
+  private wsService!: WebSocketService;
   private syncWorker: ElasticsearchSyncWorker;
 
   constructor() {
     this.app = express();
     this.dbManager = DatabaseManager.getInstance();
     this.redis = new Redis(config.database.redis.url, {
-      password: config.database.redis.password,
+      password: config.database.redis.password || undefined, // Allow undefined
       db: config.database.redis.db,
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true
     });
@@ -44,6 +44,9 @@ class ContentService {
   public async initialize(): Promise<void> {
     try {
       logger.info('Initializing Content Service...');
+
+      // Initialize tracing
+      initializeTracing();
 
       // Connect to databases
       await this.connectDatabases();
@@ -143,6 +146,9 @@ class ContentService {
     if (config.observability.enableRequestLogging) {
       this.app.use(requestLogger);
     }
+
+    // Tracing middleware
+    this.app.use(tracingMiddleware);
 
     // Trust proxy (for rate limiting and IP detection)
     this.app.set('trust proxy', 1);
@@ -270,6 +276,9 @@ content_service_version_info{version="${process.env.npm_package_version || '1.0.
         await this.dbManager.disconnect();
         await this.redis.disconnect();
         logger.info('Database connections closed');
+
+        // Shutdown tracing
+        await shutdownTracing();
 
         // Cleanup WebSocket service
         if (this.wsService) {

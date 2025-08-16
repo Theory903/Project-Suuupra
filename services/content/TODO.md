@@ -15,20 +15,20 @@
 
 ### **Core Functional Requirements (FRs)**
 
-| FR-ID | Feature | Description |
-|---|---|---|
-| FR-1  | **Content Management** | The system can create, read, update, and delete content and its metadata. |
-| FR-2  | **Large File Uploads** | The system can handle large file uploads with resumability and progress tracking. |
-| FR-3  | **Search & Discovery** | The system provides powerful search and discovery features, including full-text search and filtering. |
-| FR-4  | **Content Approval & Versioning** | The system supports a content approval workflow and versioning of content. |
+| FR-ID | Feature | Description | Status |
+|---|---|---|---|
+| FR-1  | **Content Management** | The system can create, read, update, and delete content and its metadata. | ✅ **COMPLETE** |
+| FR-2  | **Large File Uploads** | The system can handle large file uploads with resumability and progress tracking. | ✅ **COMPLETE** |
+| FR-3  | **Search & Discovery** | The system provides powerful search and discovery features, including full-text search and filtering. | 🚧 **IN PROGRESS** |
+| FR-4  | **Content Approval & Versioning** | The system supports a content approval workflow and versioning of content. | 🚧 **IN PROGRESS** |
 
 ### **Non-Functional Requirements (NFRs)**
 
-| NFR-ID | Requirement | Target | Justification & Key Challenges |
-|---|---|---|---|
-| NFR-1 | **Scalability** | 1M+ content items | The system must be able to handle a large and growing library of content. Challenge: Designing a scalable architecture with MongoDB and Elasticsearch. |
-| NFR-2 | **Performance** | <200ms search latency | Search and discovery must be fast and responsive. Challenge: Optimizing Elasticsearch queries and indexing. |
-| NFR-3 | **Reliability** | 99.99% content availability | Content must be highly available to users. Challenge: Implementing a resilient storage and delivery system with S3 and a CDN. |
+| NFR-ID | Requirement | Target | Justification & Key Challenges | Status |
+|---|---|---|---|---|
+| NFR-1 | **Scalability** | 1M+ content items | The system must be able to handle a large and growing library of content. Challenge: Designing a scalable architecture with MongoDB and Elasticsearch. | ✅ **PARTIALLY ACHIEVED** |
+| NFR-2 | **Performance** | <200ms search latency | Search and discovery must be fast and responsive. Challenge: Optimizing Elasticsearch queries and indexing. | 🚧 **IN PROGRESS** |
+| NFR-3 | **Reliability** | 99.99% content availability | Content must be highly available to users. Challenge: Implementing a resilient storage and delivery system with S3 and a CDN. | ✅ **PARTIALLY ACHIEVED** |
 
 ### **Edge Cases & Failure Scenarios**
 
@@ -66,7 +66,7 @@ graph TD
 const ContentSchema = new mongoose.Schema({
   title: { type: String, required: true, index: 'text' },
   description: { type: String, index: 'text' },
-  contentType: { type: String, enum: ['video', 'article', 'quiz'], required: true },
+  contentType: { type: String, enum: ['video', 'article', 'quiz', 'document', 'course', 'lesson'], required: true },
   // ... other fields
 });
 
@@ -101,13 +101,13 @@ const CategorySchema = new mongoose.Schema({
 
 *   **Objective:** Set up the service and implement the core file upload functionality.
 *   **Key Results:**
-    *   Users can upload large files to the system.
-    *   Upload progress is tracked and displayed in real-time.
+    *   [x] Users can upload large files to the system.
+    *   [x] Upload progress is tracked and displayed in real-time.
 *   **Tasks:**
-    *   [ ] **Project Setup**: Initialize the Node.js/Express project and set up the development environment.
-    *   [ ] **MongoDB Schema Design**: Design the MongoDB schemas for content, categories, and tags.
-    *   [ ] **S3 Multipart Upload**: Implement a resumable, chunked file upload system.
-    *   [ ] **Upload Progress Tracking**: Use WebSockets to provide real-time upload progress.
+    *   [x] **Project Setup**: Initialize the Node.js/Express project and set up the development environment.
+    *   [x] **MongoDB Schema Design**: Design the MongoDB schemas for content, categories, and tags.
+    *   [x] **S3 Multipart Upload**: Implement a resumable, chunked file upload system.
+    *   [x] **Upload Progress Tracking**: Use WebSockets to provide real-time upload progress.
 
 ### **Phase 2: Content Management & Search Indexing (Week 2)**
 

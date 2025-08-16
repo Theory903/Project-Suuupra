@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import { ContentType, ContentStatus, FileInfo } from '@/types';
+import { ContentType, ContentStatus, FileInfo, ContentMetadata } from '@/types';
 
 export interface IContent extends Document {
   _id: string;
@@ -11,7 +11,7 @@ export interface IContent extends Document {
   version: string;
   categoryId?: string;
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: ContentMetadata;
   fileInfo?: FileInfo;
   createdBy: string;
   createdAt: Date;

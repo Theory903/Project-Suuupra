@@ -96,17 +96,25 @@ export class DatabaseManager {
     }
   }
 
-  public isHealthy(): boolean {
-    return this.isConnected && mongoose.connection.readyState === 1;
-  }
-
-  public getConnectionInfo() {
-    return {
-      isConnected: this.isConnected,
-      readyState: mongoose.connection.readyState,
-      host: mongoose.connection.host,
-      port: mongoose.connection.port,
-      name: mongoose.connection.name
-    };
+  public async healthCheck(): Promise<{ status: string; details?: any }> {
+    try {
+      if (mongoose.connection.readyState === 1) {
+        // Connected
+        return { status: 'healthy', details: { message: 'MongoDB connected' } };
+      } else if (mongoose.connection.readyState === 2) {
+        // Connecting
+        return { status: 'degraded', details: { message: 'MongoDB connecting' } };
+      } else {
+        // Disconnected or other states
+        return { status: 'unhealthy', details: { message: 'MongoDB disconnected' } };
+      }
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        details: {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
   }
 }
