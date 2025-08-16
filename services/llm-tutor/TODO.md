@@ -1,142 +1,207 @@
-Service PRD: LLM Tutor Service
+# Service PRD: LLM Tutor Service (GPT‑OSS + Hugging Face + LangChain + Voice)
 
-1. 🎯 The Challenge: Problem Statement & Mission
+## 1. 🎯 The Challenge: Problem Statement & Mission
 
-Problem Statement
+### Problem Statement
+> Traditional online learning lacks the personalized guidance and immediate feedback of a human tutor. We must build an AI tutor that understands student needs, adapts learning paths, and offers real‑time help while staying safe, accurate, age‑appropriate, and grounded in citations.
 
-Traditional online learning often lacks the personalized guidance and immediate feedback that a human tutor can provide. The challenge is to build an AI-powered tutoring system that can understand a student’s needs, provide personalized learning paths, and offer real-time assistance, all while ensuring the content is safe, accurate, and age-appropriate.
+### Mission
+> Deliver a safe, multimodal tutor on Suuupra using open‑weight **GPT‑OSS** models (served via Hugging Face + vLLM), **LangChain** for RAG, and a robust **voice** stack (Whisper ASR + OpenVoice/Coqui XTTS‑v2 TTS) to produce accessible, grounded learning experiences.
 
-Mission
+---
 
-Build a safe, multimodal AI tutoring system on Suuupra that delivers grounded answers with citations, adaptive practice, and optional voice in/out. We will serve open-weight GPT-OSS models via Hugging Face, power retrieval with LangChain RAG, and use battle-tested voice models for accessibility.  ￼ ￼ ￼
+## 2. 🧠 Core Requirements & Edge Cases
 
-⸻
+### 2.1 Functional Requirements (FRs)
 
-2. 🧠 The Gauntlet: Core Requirements & Edge Cases
+| FR-ID | Feature | Description |
+|---|---|---|
+| FR-1 | **Conversational AI (GPT‑OSS)** | Multi‑turn tutor with citations, tool use, and streaming. Start with 20B for latency/cost; scale to 120B when needed. Use Harmony chat format. |
+| FR-2 | **RAG & Knowledge Base (LangChain)** | Hybrid retrieval (vector + BM25) with reranking; Parent‑Document and Self‑Query retrievers for long docs and filtered queries. |
+| FR-3 | **Personalized Learning** | Session memory, mastery tracking, spaced practice, difficulty adaptation. |
+| FR-4 | **Safety & Moderation** | Input/output classification, deterministic refusal flows, audit logging. |
+| FR-5 | **Adaptive Assessment** | Diagnostics, hints, and next‑best‑action recommendations; mastery map per topic. |
+| FR-6 | **Voice I/O** | **ASR:** Whisper large‑v3. **TTS:** OpenVoice or Coqui XTTS‑v2 for natural multilingual output; cloning only with explicit consent. |
 
-Core Functional Requirements (FRs)
+### 2.2 Non‑Functional Requirements (NFRs)
 
-FR-ID	Feature	Description
-FR-1	Conversational AI (GPT-OSS)	Multi-turn tutor powered by GPT-OSS-120B/20B with Harmony chat format; streaming, citations, tool use.  ￼ ￼
-FR-2	RAG & Knowledge Base (LangChain)	Hybrid retrieval (vector + BM25) with reranking; Parent/Multivector retrievers for long docs.  ￼ ￼
-FR-3	Personalized Learning	Session memory, spaced practice, mastery tracking; content selection by level and goal.
-FR-4	Safety & Moderation	Input/output classification and deterministic policy rails; log and block unsafe content.
-FR-5	Adaptive Assessment	Low-friction diagnostics, targeted hints, and next-best-action recommendations.
-FR-6	Voice I/O	ASR: Whisper large-v3. TTS: OpenVoice or Coqui XTTS-v2 for natural read-aloud and multilingual output.  ￼
+| NFR-ID | Requirement | Target | Notes |
+|---|---|---|---|
+| NFR-1 | **Latency** | p95 < 2 s | vLLM PagedAttention + continuous batching; token streaming for UX. |
+| NFR-2 | **Grounded Accuracy** | > 90% | Evaluate via RAG triad: context relevance, groundedness, answer relevance. |
+| NFR-3 | **Safety** | < 0.1% harmful pass‑through | Layered filters + red‑teaming prior to release. |
+| NFR-4 | **Embeddings Throughput** | Burst to 10k QPS | Serve embeddings via Hugging Face **Text Embeddings Inference (TEI)**. |
 
-Non-Functional Requirements (NFRs)
+### 2.3 Edge Cases & Failure Scenarios
+- **Hallucinations:** Retrieval‑first prompting; rerank and corrective flow when low retrieval confidence is detected.
+- **Harmful/unsafe content:** Classify inputs/outputs; deterministic refusals; capture traces for audit.
+- **Student disengagement:** Detect frustration markers (rapid turns, drop‑offs) and switch to step‑by‑step coaching or simpler problems.
 
-NFR-ID	Requirement	Target	Justification & Key Challenges
-NFR-1	Response Latency	p95 < 2 s	vLLM/TGI-class serving with PagedAttention and continuous batching to keep chat snappy.  ￼ ￼
-NFR-2	Accuracy	>90% grounded factual answers	Measured via RAG evals (context relevance, groundedness, answer relevance) before GA.
-NFR-3	Safety	<0.1% harmful content	Layered classifiers + policy rails; red-team before each release.
-NFR-4	Scale-ready Embeddings	10K QPS burstable	Serve embeddings with Hugging Face TEI to keep retrieval fast and cheap.  ￼
+---
 
-Edge Cases & Failure Scenarios
-	•	Hallucinations: Prefer retrieval-first prompting; fall back to corrective flows when context confidence is low.
-	•	Harmful Content: Classify inputs/outputs and block per policy; capture traces for audit.
-	•	Student Disengagement: Detect frustration signals (rapid turns, low success) and switch to step-by-step coaching or simpler problems.
+## 3. 🗺️ Architecture & Design
 
-⸻
+### 3.1 System Architecture Diagram
+```mermaid
+flowchart LR
+  C[Client (Web/Mobile/Voice)] --> |Text/Audio| GW[API Gateway]
+  GW --> Auth[Auth & Policy]
+  GW --> Orch[Conversation Orchestrator (LangChain graph)]
+  Orch --> Retr{RAG Router}
+  Retr --> V[(Vector Store)]
+  Retr --> B[BM25 Index]
+  V --> RR[Reranker]
+  B --> RR
+  RR --> Ctx[Context Pack]
+  Orch --> LLM[GPT‑OSS via vLLM]
+  Ctx --> LLM
+  LLM --> Safe[Safety & Policy Filters]
+  Safe --> VO{Voice Out?}
+  VO --> |Yes| TTS[OpenVoice / XTTS‑v2]
+  VO --> |No| Out[Text Response]
+  TTS --> Out
+  GW --> Obs[Observability (Tracing, Metrics, Grafana)]
+```
 
-3. 🗺️ The Blueprint: Architecture & Design
+### 3.2 Tech Stack
 
-3.1. System Architecture Diagram
+| Component | Technology | Notes |
+|---|---|---|
+| **LLM Serving** | GPT‑OSS‑20B/120B on Hugging Face; **vLLM** | 20B fits ~16 GB; 120B targets ~80 GB. Use Harmony prompt format; consider MXFP4/quant for fit and throughput. |
+| **Backend** | Python 3.11, FastAPI | Async/streaming APIs; policy hooks. |
+| **RAG** | **LangChain** | Parent‑Document, Self‑Query, contextual compression, cross‑encoder reranker. |
+| **Embeddings** | HF models via **TEI** | Production embedding server; integrates with Milvus/Chroma/Pinecone. |
+| **Vector DB** | Milvus / Pinecone / Chroma | Hybrid retrieval, metadata filters. |
+| **Reranking** | Cross‑encoder (open CE) | Improves precision on top‑k candidates. |
+| **ASR** | Whisper large‑v3 | Robust multilingual speech recognition. |
+| **TTS** | OpenVoice / Coqui XTTS‑v2 | Instant cloning, multilingual synthesis (consent required). |
+| **Observability** | Traces + Prometheus/Grafana | Latency, retrieval hit@k, WER, safety events. |
 
-graph TD
-    A[User Input (Text/Voice)] --> A1{Voice?}
-    A1 -- Yes --> V1(ASR: Whisper);
-    V1 --> B
-    A1 -- No --> B[RAG Pipeline (LangChain)]
-    B --> C(LLM Generation: GPT-OSS via vLLM)
-    C --> D(Safety & Policy Filters)
-    D --> E{Voice Out?}
-    E -- Yes --> T1(TTS: OpenVoice / XTTS-v2)
-    E -- No --> R[Response]
-    T1 --> R[Response]
+### 3.3 Key Components
+- **RAG Pipeline:** Hybrid search (vector + BM25), rerank with cross‑encoder; Parent‑Document fetch to broaden context; Self‑Query for structured filters.
+- **Serving:** vLLM PagedAttention and continuous batching for SLA compliance.
+- **Voice:** Whisper ASR; TTS via OpenVoice or XTTS‑v2 with clear consent UI and logging.
 
-3.2. Tech Stack Deep Dive
+---
 
-Component	Technology	Version	Justification & Key Considerations
-LLM Serving	GPT-OSS-120B / 20B via Hugging Face; vLLM	MXFP4 weights; vLLM latest	Open-weight models with Harmony format; vLLM gives high throughput with PagedAttention & batching.  ￼ ￼ ￼
-Backend	Python, FastAPI	3.11+	Async APIs, streaming tokens, policy hooks.
-RAG	LangChain retrievers	latest	Parent/Multivector/Self-Query + rerank.  ￼
-Embeddings	HF models via TEI	—	Production-grade embedding server; integrates with Milvus/FAISS/Chroma/Pinecone.  ￼ ￼
-Vector Store	Chroma / Milvus / Pinecone	—	Hybrid search and metadata filters.
-Memory Store	Redis	7+	Session state and short-term memory.
-ASR	Whisper large-v3	—	Robust multilingual speech recognition.  ￼
-TTS	OpenVoice or Coqui XTTS-v2	—	Instant cloning and multilingual TTS.  ￼
+## 4. 🚀 Implementation Phases
 
-3.3. Key Components
-	•	RAG Pipeline: Hybrid retrieval with reranking; Parent/Multivector retrievers to pull full sections when a chunk hits.  ￼
-	•	Voice Layer: Whisper for ASR; OpenVoice/XTTS-v2 for TTS with consented samples.  ￼
-	•	Serving: GPT-OSS via vLLM for throughput and cost efficiency.  ￼ ￼
+> Duration: **10 weeks** total. Parallelize where feasible.
 
-⸻
+### Phase 0 — Foundations (Week 1)
+**Objective:** Stand up core serving and storage.  
+**Tasks:**
+- Deploy GPT‑OSS‑20B via vLLM with streaming; validate Harmony prompts.
+- Spin up embeddings via HF **TEI**.
+- Provision vector database (Milvus/Pinecone/Chroma).  
+**Exit Criteria:**
+- Response token‑start p95 ≤ 600 ms warm.
+- Embeddings QPS ≥ 2k single instance.
 
-4. 🚀 The Quest: Implementation Plan & Milestones
+### Phase 1 — RAG v1 (Weeks 2–3)
+**Objective:** Working retrieval and citations.  
+**Tasks:**
+- Content ingestion + chunking.
+- Embedding pipeline + hybrid retrieval (vector + BM25).
+- Integrate reranker and contextual compression.  
+**Exit Criteria:**
+- Tutor answers include ≥ 2 citations.
+- Groundedness ≥ 0.85 on pilot eval set; p95 ≤ 2 s at 10 RPS.
 
-Phase 1: LLM Foundation & RAG (Weeks 19–20)
-	•	Objective: Stand up GPT-OSS and the first RAG path.
-	•	Key Results: Tutor answers are grounded with citations from the KB.
-	•	Tasks:
-	•	LLM Foundation (vLLM + GPT-OSS): Deploy gpt-oss-20b first; enable streaming and Harmony format.  ￼
-	•	RAG Implementation (LangChain): Build hybrid retriever + reranker; set up embeddings via TEI.  ￼ ￼
+### Phase 2 — Conversation & Safety (Weeks 4–5)
+**Objective:** Durable sessions + policy guardrails.  
+**Tasks:**
+- Redis‑backed session memory and learner profile store.
+- Input/output classification; refusal templates; audit logging.  
+**Exit Criteria:**
+- < 0.1% unsafe pass‑through on staged red‑team corpus.
+- Full traceability of blocked/allowed decisions.
 
-Phase 2: Conversational AI & Safety (Weeks 21–22)
-	•	Objective: Durable conversation + policy guardrails.
-	•	Key Results: Multi-turn chat; unsafe content blocked with logs.
-	•	Tasks:
-	•	Conversation & Memory: Redis-backed session memory and learner profile.
-	•	Safety Filters: Input/output classification, refusal templates, and audit traces.
+### Phase 3 — Voice I/O (Week 6)
+**Objective:** Voice input and read‑aloud output.  
+**Tasks:**
+- Whisper ASR API; language auto‑detect, punctuation.
+- TTS via OpenVoice or XTTS‑v2; consent flow for cloning; watermarks/logs.  
+**Exit Criteria:**
+- ASR WER meets domain target.
+- TTS latency < 700 ms for short utterances.
 
-Phase 3: Advanced Tutoring & Analytics (Weeks 23–24)
-	•	Objective: Adaptive quizzes, voice, and production telemetry.
-	•	Key Results: Adaptive assessments; voice read-aloud; dashboards live.
-	•	Tasks:
-	•	Adaptive Assessment: Short diagnostics + mastery map.
-	•	Voice I/O: Whisper ASR; TTS with OpenVoice or XTTS-v2.  ￼
-	•	Analytics & SLOs: Tracing + Prom/Grafana for latency, retrieval quality.
+### Phase 4 — Adaptive Assessment & Personalization (Weeks 7–8)
+**Objective:** Diagnostics, mastery map, and next‑best‑action.  
+**Tasks:**
+- Item bank; difficulty adaptation; spaced‑practice scheduler.  
+**Exit Criteria:**
+- Mastery deltas observable over 1‑week cohorts.
+- Hint efficiency improves week‑over‑week.
 
-⸻
+### Phase 5 — Evals, Observability, Launch Readiness (Weeks 9–10)
+**Objective:** Hardening and compliance.  
+**Tasks:**
+- Traces, metrics, dashboards, SLOs.
+- Load tests; privacy & consent UX (DSR export/delete).  
+**Exit Criteria:**
+- p95 latency ≤ 2 s at target RPS.
+- DSR/consent flows verified; launch checklist passed.
 
-5. 🧪 Testing & Quality Strategy
+---
 
-Test Type	Tools	Coverage & Scenarios
-Unit Tests	pytest	Prompt utils, chunking, rerank adapters, guards.
-Integration Tests	Testcontainers	Full RAG flow: embed → retrieve → rerank → answer.
-E2E Tests	Cypress	Tutor journeys, quiz flows, voice read-aloud paths.
-Safety Testing	Red-teaming + policy evals	Jailbreak/abuse inputs; verify blocklists and refusals.
+## 5. 🧪 Testing & Quality Strategy
 
+| Layer | Tools | Scope |
+|---|---|---|
+| Unit | `pytest` | Prompt utils, chunkers, safety adapters, reranker wrapper |
+| Integration | Testcontainers | End‑to‑end RAG: embed → retrieve → rerank → answer |
+| E2E | Cypress | Tutor journeys, quizzes, voice read‑aloud |
+| LLM Evals | Custom + LangChain evals | RAG triad, citation correctness, refusal correctness |
+| Red Team | Curated prompts | Jailbreaks, data leakage, unsafe topics |
 
-⸻
+---
 
-6. 🔭 The Observatory: Monitoring & Alerting
+## 6. 🔭 Monitoring & Alerting
 
-Key Performance Indicators (KPIs)
-	•	Technical: Response latency p95, LLM tokens/s, retrieval hit@k, reranker NDCG/MRR, ASR WER.
-	•	Business: Session retention, hint efficiency, mastery gains, CSAT.
+**KPIs**
+- **Technical:** p95 latency, tokens/s, retrieval hit@k, reranker NDCG/MRR, ASR WER, safety events.
+- **Learning:** Mastery gains, hint efficiency, session retention.
 
-Dashboards & Alerts
-	•	Grafana overview with drill-downs per subject.
-	•	Prometheus alerts:
-	•	HighResponseLatency if p99 > 2 s for 5 min.
-	•	LowGroundedness if groundedness score < threshold.
-	•	SafetyFilterFailure on any unblocked critical event.
+**Alerts**
+- `HighResponseLatency` if p99 > 2 s for 5 min.
+- `LowGroundedness` below threshold on rolling window.
+- `SafetyFilterFailure` on any unblocked critical event.
 
-⸻
+---
 
-7. 📚 Learning & Knowledge Base
-	•	GPT-OSS models and Harmony format — OpenAI blog + HF model cards.  ￼ ￼
-	•	vLLM serving & PagedAttention — project docs/blog and repo features.  ￼ ￼
-	•	LangChain retrievers (Parent, Self-Query, compression/rerank) — official docs.  ￼
-	•	Embeddings at scale — Hugging Face Text Embeddings Inference docs.  ￼
-	•	Whisper (ASR) — model card and demos.  ￼
-	•	OpenVoice / Coqui XTTS-v2 (TTS) — HF model cards and Spaces.  ￼
+## 7. 📚 Knowledge Base & References
 
-⸻
+- GPT‑OSS models and Harmony prompt schema.
+- vLLM serving features (PagedAttention, batching).
+- LangChain retrievers: Parent‑Document, Self‑Query, compression + reranker.
+- Hugging Face **TEI** for high‑throughput embeddings.
+- Whisper large‑v3 (ASR), OpenVoice / Coqui XTTS‑v2 (TTS).
 
-Notes:
-	•	Start with gpt-oss-20b on 16-GB GPUs; scale to gpt-oss-120b on 80-GB (H100/MI300X) as usage grows. Harmony prompting is required for correct behavior.  ￼ ￼
-	•	Deploy embeddings via TEI for predictable latency and easier scaling; it plugs into Milvus/Chroma/Pinecone.  ￼ ￼
-	•	Voice cloning requires user consent and clear policy disclosures; keep logs for audits.
+---
+
+## 8. ✅ Acceptance Criteria
+
+- Tutor responses return p95 < 2 s with ≥ 2 citations on RAG queries.
+- Groundedness ≥ 0.90 on curated eval set; citation correctness ≥ 0.95.
+- < 0.1% unsafe I/O over 10k staged turns.
+- Voice: ASR WER meets domain target; TTS latency < 700 ms for short utterances.
+- Privacy: DSR export/delete and consent flows verified.
+
+---
+
+## 9. 🔧 Implementation Notes
+
+- Start on **GPT‑OSS‑20B** (fits ~16 GB); scale to **120B** on 80 GB (H100/MI300X) as usage grows.
+- Lock prompts to **Harmony** format for consistent outputs.
+- Use **TEI** for embeddings throughput; compatible with Milvus/Chroma/Pinecone.
+- Rerank after hybrid retrieval to boost precision (open cross‑encoder works well).
+
+---
+
+## 10. 📎 Appendix: Model IDs (Hugging Face)
+
+- LLM: `openai/gpt-oss-20b`, `openai/gpt-oss-120b`
+- ASR: `openai/whisper-large-v3`
+- TTS: `myshell-ai/OpenVoice` (or `myshell-ai/OpenVoiceV2`), `coqui/XTTS-v2`
+- Embedding server: Hugging Face Text Embeddings Inference (TEI)
