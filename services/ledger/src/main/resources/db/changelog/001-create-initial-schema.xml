@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog 
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="001-create-chart-of-accounts-table" author="ledger-service">
+        <createTable tableName="chart_of_accounts">
+            <column name="id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_code" type="VARCHAR(20)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="account_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="account_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parent_account_id" type="VARCHAR(36)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <addForeignKeyConstraint
+            baseTableName="chart_of_accounts"
+            baseColumnNames="parent_account_id"
+            constraintName="fk_chart_of_accounts_parent"
+            referencedTableName="chart_of_accounts"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <changeSet id="002-create-transactions-table" author="ledger-service">
+        <createTable tableName="transactions">
+            <column name="id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="transaction_number" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="reference_id" type="VARCHAR(100)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="transaction_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_amount" type="DECIMAL(19,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)" defaultValue="INR">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transaction_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="posting_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_system" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hash_value" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="previous_hash" type="VARCHAR(64)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="posted_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="003-create-journal-entries-table" author="ledger-service">
+        <createTable tableName="journal_entries">
+            <column name="id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="transaction_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="account_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="debit_amount" type="DECIMAL(19,4)" defaultValueNumeric="0.0000">
+                <constraints nullable="false"/>
+            </column>
+            <column name="credit_amount" type="DECIMAL(19,4)" defaultValueNumeric="0.0000">
+                <constraints nullable="false"/>
+            </column>
+            <column name="balance_after" type="DECIMAL(19,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="entry_sequence" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hash_value" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <addForeignKeyConstraint
+            baseTableName="journal_entries"
+            baseColumnNames="transaction_id"
+            constraintName="fk_journal_entries_transaction"
+            referencedTableName="transactions"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+            
+        <addForeignKeyConstraint
+            baseTableName="journal_entries"
+            baseColumnNames="account_id"
+            constraintName="fk_journal_entries_account"
+            referencedTableName="chart_of_accounts"
+            referencedColumnNames="id"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+    <changeSet id="004-add-constraints-and-checks" author="ledger-service">
+        <!-- Add check constraints for account types -->
+        <sql>
+            ALTER TABLE chart_of_accounts 
+            ADD CONSTRAINT chk_account_type 
+            CHECK (account_type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'))
+        </sql>
+        
+        <!-- Add check constraints for transaction status -->
+        <sql>
+            ALTER TABLE transactions 
+            ADD CONSTRAINT chk_transaction_status 
+            CHECK (status IN ('PENDING', 'POSTED', 'REVERSED', 'CANCELLED'))
+        </sql>
+        
+        <!-- Add check constraint for currency codes -->
+        <sql>
+            ALTER TABLE transactions 
+            ADD CONSTRAINT chk_currency_code 
+            CHECK (LENGTH(currency) = 3)
+        </sql>
+        
+        <!-- Add check constraints for journal entry amounts -->
+        <sql>
+            ALTER TABLE journal_entries 
+            ADD CONSTRAINT chk_debit_amount_non_negative 
+            CHECK (debit_amount >= 0)
+        </sql>
+        
+        <sql>
+            ALTER TABLE journal_entries 
+            ADD CONSTRAINT chk_credit_amount_non_negative 
+            CHECK (credit_amount >= 0)
+        </sql>
+        
+        <!-- Ensure either debit or credit is non-zero, but not both -->
+        <sql>
+            ALTER TABLE journal_entries 
+            ADD CONSTRAINT chk_debit_or_credit_exclusive 
+            CHECK ((debit_amount > 0 AND credit_amount = 0) OR (debit_amount = 0 AND credit_amount > 0))
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog 
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <!-- Initial Schema Creation -->
+    <include file="db/changelog/001-create-initial-schema.xml"/>
+    
+    <!-- Chart of Accounts Setup -->
+    <include file="db/changelog/002-setup-chart-of-accounts.xml"/>
+    
+    <!-- Indexes and Performance Optimizations -->
+    <include file="db/changelog/003-create-indexes.xml"/>
+    
+    <!-- Hash Chain Integrity Constraints -->
+    <include file="db/changelog/004-hash-chain-constraints.xml"/>
+    
+    <!-- Default Account Data -->
+    <include file="db/changelog/005-insert-default-accounts.xml"/>
+
+</databaseChangeLog>

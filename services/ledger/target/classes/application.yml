@@ -1,0 +1,240 @@
+# Ledger Service Configuration
+server:
+  port: 8085
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: ledger-service
+  
+  profiles:
+    active: dev
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://localhost:3306/ledger_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:ledger_user}
+    password: ${DB_PASSWORD:ledger_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # Connection Pool Configuration
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      pool-name: LedgerHikariCP
+      
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        show_sql: false
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        connection:
+          provider_disables_autocommit: true
+    open-in-view: false
+    
+  # Liquibase Configuration
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+    
+  # Batch Configuration
+  batch:
+    initialize-schema: embedded
+    job:
+      enabled: false # Disable auto-start of batch jobs
+      
+  # Security Configuration
+  security:
+    user:
+      name: admin
+      password: ${ADMIN_PASSWORD:admin123}
+      roles: ADMIN
+
+# Management & Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,liquibase
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      service: ledger
+
+# Logging Configuration
+logging:
+  level:
+    com.suuupra.ledger: INFO
+    org.springframework.batch: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/ledger-service.log
+
+# Application Specific Configuration
+ledger:
+  # Transaction Configuration
+  transaction:
+    hash-algorithm: SHA-256
+    default-currency: INR
+    auto-post: false
+    
+  # Hash Chain Configuration
+  hash-chain:
+    enabled: true
+    verify-on-startup: true
+    
+  # Reconciliation Configuration  
+  reconciliation:
+    enabled: true
+    schedule: "0 0 2 * * *" # Daily at 2 AM
+    tolerance: 0.01
+    
+  # Settlement Configuration
+  settlement:
+    enabled: true
+    schedule: "0 30 23 * * *" # Daily at 11:30 PM
+    batch-size: 1000
+    
+  # Audit Configuration
+  audit:
+    enabled: true
+    retention-days: 2555 # 7 years
+    
+  # Performance Configuration
+  performance:
+    cache-enabled: true
+    cache-ttl: 3600 # 1 hour
+    
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/ledger_dev_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        
+logging:
+  level:
+    com.suuupra.ledger: DEBUG
+    org.springframework.batch: DEBUG
+    
+ledger:
+  hash-chain:
+    verify-on-startup: false
+  reconciliation:
+    enabled: false
+  settlement:
+    enabled: false
+
+---
+# Test Profile  
+spring:
+  config:
+    activate:
+      on-profile: test
+      
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        
+  liquibase:
+    enabled: false
+    
+  batch:
+    initialize-schema: always
+    
+ledger:
+  hash-chain:
+    verify-on-startup: false
+  reconciliation:
+    enabled: false
+  settlement:
+    enabled: false
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+      
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql-server}:${DB_PORT:3306}/${DB_NAME:ledger_prod_db}?useSSL=true&serverTimezone=UTC&requireSSL=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        show_sql: false
+        
+logging:
+  level:
+    com.suuupra.ledger: INFO
+    org.springframework.batch: WARN
+    org.hibernate.SQL: WARN
+  file:
+    name: /var/log/ledger-service/application.log
+
+ledger:
+  hash-chain:
+    verify-on-startup: true
+  reconciliation:
+    enabled: true
+  settlement:
+    enabled: true
