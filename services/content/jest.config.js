@@ -5,6 +5,13 @@ module.exports = {
   testMatch: [
     "**/tests/unit/**/*.test.ts"
   ],
+  globals: {
+    'ts-jest': {
+      diagnostics: false,
+      isolatedModules: true,
+      tsconfig: 'tsconfig.test.json'
+    }
+  },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     "^@models/(.*)$": "<rootDir>/src/models/$1",
@@ -19,7 +26,7 @@ module.exports = {
       tsconfig: 'tsconfig.test.json'
     }]
   },
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/tests/unit-setup.ts"],
   collectCoverage: true,
   collectCoverageFrom: [
     "src/**/*.ts",

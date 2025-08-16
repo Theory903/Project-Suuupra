@@ -19,8 +19,8 @@
 |---|---|---|---|
 | FR-1  | **Content Management** | The system can create, read, update, and delete content and its metadata. | ✅ **COMPLETE** |
 | FR-2  | **Large File Uploads** | The system can handle large file uploads with resumability and progress tracking. | ✅ **COMPLETE** |
-| FR-3  | **Search & Discovery** | The system provides powerful search and discovery features, including full-text search and filtering. | 🚧 **IN PROGRESS** |
-| FR-4  | **Content Approval & Versioning** | The system supports a content approval workflow and versioning of content. | 🚧 **IN PROGRESS** |
+| FR-3  | **Search & Discovery** | The system provides powerful search and discovery features, including full-text search and filtering. | ✅ **COMPLETE (Archived)** |
+| FR-4  | **Content Approval & Versioning** | The system supports a content approval workflow and versioning of content. | ✅ **COMPLETE (Archived)** |
 
 ### **Non-Functional Requirements (NFRs)**
 
@@ -179,16 +179,6 @@ const CategorySchema = new mongoose.Schema({
 ## Execution Board
 
 ### In Progress
-- FR-3: Search & Discovery
-  - [x] Finalize Elasticsearch index mapping
-  - [x] MongoDB→Elasticsearch sync (create/update/delete)
-  - [x] Search API: query, filters, sort, pagination
-  - [x] Re-index/reconciliation job for drift (admin trigger + worker)
-  - [x] Simple inverted-index search (learning/diagnostic)
-- FR-4: Content Approval & Versioning
-  - [x] Versioned writes and reads
-  - [x] Approval workflow (states, transitions, API)
-  - [x] Audit trail for approvals and changes
 - NFR-2: Performance (<200ms search p99)
   - [x] Optimize ES queries/analyzers (path analyzer)
   - [x] Cache hot queries (TTL cache)
@@ -218,4 +208,9 @@ const CategorySchema = new mongoose.Schema({
 - Documentation
   - [x] API docs for search, approvals, versioning (update with /search/simple + reindex)
 
-# **Service PRD: Content Service**
+### Archived
+- FR-3: Search & Discovery — Completed (2025-08-17)
+  - Full-text search + filters/suggestions/aggregations
+  - ES template/analyzers, sync worker, admin reindex, simple inverted index
+- FR-4: Content Approval & Versioning — Completed (2025-08-17)
+  - Versioning, approval workflow (submit/approve/reject/publish), audit trail
