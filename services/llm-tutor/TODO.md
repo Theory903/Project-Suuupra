@@ -1,137 +1,142 @@
+Service PRD: LLM Tutor Service
 
-# **Service PRD: LLM Tutor Service**
+1. 🎯 The Challenge: Problem Statement & Mission
 
-## 1. 🎯 The Challenge: Problem Statement & Mission
+Problem Statement
 
-### **Problem Statement**
-> Traditional online learning often lacks the personalized guidance and immediate feedback that a human tutor can provide. The challenge is to build an AI-powered tutoring system that can understand a student's needs, provide personalized learning paths, and offer real-time assistance, all while ensuring the content is safe, accurate, and age-appropriate.
+Traditional online learning often lacks the personalized guidance and immediate feedback that a human tutor can provide. The challenge is to build an AI-powered tutoring system that can understand a student’s needs, provide personalized learning paths, and offer real-time assistance, all while ensuring the content is safe, accurate, and age-appropriate.
 
-### **Mission**
-> To build a revolutionary AI tutoring system that provides a personalized, engaging, and effective learning experience for every student on the Suuupra platform.
+Mission
 
----
+Build a safe, multimodal AI tutoring system on Suuupra that delivers grounded answers with citations, adaptive practice, and optional voice in/out. We will serve open-weight GPT-OSS models via Hugging Face, power retrieval with LangChain RAG, and use battle-tested voice models for accessibility.  ￼ ￼ ￼
 
-## 2. 🧠 The Gauntlet: Core Requirements & Edge Cases
+⸻
 
-### **Core Functional Requirements (FRs)**
+2. 🧠 The Gauntlet: Core Requirements & Edge Cases
 
-| FR-ID | Feature | Description |
-|---|---|---|
-| FR-1  | **Conversational AI** | The system can engage in natural, multi-turn conversations with students. |
-| FR-2  | **RAG & Knowledge Base** | The system can retrieve and use information from a vast knowledge base to answer student questions. |
-| FR-3  | **Personalized Learning** | The system can adapt to each student's learning style and pace. |
-| FR-4  | **Safety & Moderation** | The system can filter out harmful or inappropriate content. |
-| FR-5  | **Adaptive Assessment** | The system can assess a student's knowledge and identify areas for improvement. |
+Core Functional Requirements (FRs)
 
-### **Non-Functional Requirements (NFRs)**
+FR-ID	Feature	Description
+FR-1	Conversational AI (GPT-OSS)	Multi-turn tutor powered by GPT-OSS-120B/20B with Harmony chat format; streaming, citations, tool use.  ￼ ￼
+FR-2	RAG & Knowledge Base (LangChain)	Hybrid retrieval (vector + BM25) with reranking; Parent/Multivector retrievers for long docs.  ￼ ￼
+FR-3	Personalized Learning	Session memory, spaced practice, mastery tracking; content selection by level and goal.
+FR-4	Safety & Moderation	Input/output classification and deterministic policy rails; log and block unsafe content.
+FR-5	Adaptive Assessment	Low-friction diagnostics, targeted hints, and next-best-action recommendations.
+FR-6	Voice I/O	ASR: Whisper large-v3. TTS: OpenVoice or Coqui XTTS-v2 for natural read-aloud and multilingual output.  ￼
 
-| NFR-ID | Requirement | Target | Justification & Key Challenges |
-|---|---|---|---|
-| NFR-1 | **Response Latency** | <2s for 95th percentile | The system must provide real-time responses to keep students engaged. Challenge: Optimizing LLM inference and RAG retrieval. |
-| NFR-2 | **Accuracy** | >90% for factual content | The system must provide accurate and reliable information. Challenge: Ensuring the quality of the knowledge base and the accuracy of the LLM's responses. |
-| NFR-3 | **Safety** | <0.1% harmful content | The system must be safe for students of all ages. Challenge: Implementing robust safety filters and content moderation. |
+Non-Functional Requirements (NFRs)
 
-### **Edge Cases & Failure Scenarios**
+NFR-ID	Requirement	Target	Justification & Key Challenges
+NFR-1	Response Latency	p95 < 2 s	vLLM/TGI-class serving with PagedAttention and continuous batching to keep chat snappy.  ￼ ￼
+NFR-2	Accuracy	>90% grounded factual answers	Measured via RAG evals (context relevance, groundedness, answer relevance) before GA.
+NFR-3	Safety	<0.1% harmful content	Layered classifiers + policy rails; red-team before each release.
+NFR-4	Scale-ready Embeddings	10K QPS burstable	Serve embeddings with Hugging Face TEI to keep retrieval fast and cheap.  ￼
 
-*   **Hallucinations:** How do we handle cases where the LLM generates factually incorrect or nonsensical information? (e.g., use RAG to ground the LLM in factual knowledge and implement a fact-checking mechanism).
-*   **Harmful Content:** How do we prevent the LLM from generating harmful or inappropriate content? (e.g., use a multi-layered safety filter and content moderation system).
-*   **Student Disengagement:** What happens if a student becomes disengaged or frustrated? (e.g., the system should detect signs of disengagement and adapt its teaching strategy accordingly).
+Edge Cases & Failure Scenarios
+	•	Hallucinations: Prefer retrieval-first prompting; fall back to corrective flows when context confidence is low.
+	•	Harmful Content: Classify inputs/outputs and block per policy; capture traces for audit.
+	•	Student Disengagement: Detect frustration signals (rapid turns, low success) and switch to step-by-step coaching or simpler problems.
 
----
+⸻
 
-## 3. 🗺️ The Blueprint: Architecture & Design
+3. 🗺️ The Blueprint: Architecture & Design
 
-### **3.1. System Architecture Diagram**
+3.1. System Architecture Diagram
 
-```mermaid
 graph TD
-    A[User Query] --> B(RAG Pipeline);
-    B --> C(LLM Generation);
-    C --> D(Safety Filter);
-    D --> E[Response];
-```
+    A[User Input (Text/Voice)] --> A1{Voice?}
+    A1 -- Yes --> V1(ASR: Whisper);
+    V1 --> B
+    A1 -- No --> B[RAG Pipeline (LangChain)]
+    B --> C(LLM Generation: GPT-OSS via vLLM)
+    C --> D(Safety & Policy Filters)
+    D --> E{Voice Out?}
+    E -- Yes --> T1(TTS: OpenVoice / XTTS-v2)
+    E -- No --> R[Response]
+    T1 --> R[Response]
 
-### **3.2. Tech Stack Deep Dive**
+3.2. Tech Stack Deep Dive
 
-| Component | Technology | Version | Justification & Key Considerations |
-|---|---|---|---|
-| **LLM Serving** | `vLLM` | - | A high-throughput and memory-efficient inference and serving engine for LLMs. |
-| **Backend** | `Python`, `FastAPI` | `3.11`, `0.104` | High-performance, async framework ideal for ML-powered services. |
-| **Vector Database** | `ChromaDB` or `Pinecone` | - | For efficient storage and retrieval of vector embeddings. |
-| **Memory Store** | `Redis` | `7+` | For caching and session management. |
+Component	Technology	Version	Justification & Key Considerations
+LLM Serving	GPT-OSS-120B / 20B via Hugging Face; vLLM	MXFP4 weights; vLLM latest	Open-weight models with Harmony format; vLLM gives high throughput with PagedAttention & batching.  ￼ ￼ ￼
+Backend	Python, FastAPI	3.11+	Async APIs, streaming tokens, policy hooks.
+RAG	LangChain retrievers	latest	Parent/Multivector/Self-Query + rerank.  ￼
+Embeddings	HF models via TEI	—	Production-grade embedding server; integrates with Milvus/FAISS/Chroma/Pinecone.  ￼ ￼
+Vector Store	Chroma / Milvus / Pinecone	—	Hybrid search and metadata filters.
+Memory Store	Redis	7+	Session state and short-term memory.
+ASR	Whisper large-v3	—	Robust multilingual speech recognition.  ￼
+TTS	OpenVoice or Coqui XTTS-v2	—	Instant cloning and multilingual TTS.  ￼
 
-### **3.3. Key Components**
+3.3. Key Components
+	•	RAG Pipeline: Hybrid retrieval with reranking; Parent/Multivector retrievers to pull full sections when a chunk hits.  ￼
+	•	Voice Layer: Whisper for ASR; OpenVoice/XTTS-v2 for TTS with consented samples.  ￼
+	•	Serving: GPT-OSS via vLLM for throughput and cost efficiency.  ￼ ￼
 
-*   **RAG Pipeline:** Responsible for retrieving relevant context from the knowledge base to ground the LLM.
-*   **Memory Systems:** Responsible for managing the conversation history and personalizing the learning experience.
-*   **Safety Filters:** Responsible for filtering out harmful or inappropriate content.
+⸻
 
----
+4. 🚀 The Quest: Implementation Plan & Milestones
 
-## 4. 🚀 The Quest: Implementation Plan & Milestones
+Phase 1: LLM Foundation & RAG (Weeks 19–20)
+	•	Objective: Stand up GPT-OSS and the first RAG path.
+	•	Key Results: Tutor answers are grounded with citations from the KB.
+	•	Tasks:
+	•	LLM Foundation (vLLM + GPT-OSS): Deploy gpt-oss-20b first; enable streaming and Harmony format.  ￼
+	•	RAG Implementation (LangChain): Build hybrid retriever + reranker; set up embeddings via TEI.  ￼ ￼
 
-### **Phase 1: LLM Foundation & RAG (Weeks 19-20)**
+Phase 2: Conversational AI & Safety (Weeks 21–22)
+	•	Objective: Durable conversation + policy guardrails.
+	•	Key Results: Multi-turn chat; unsafe content blocked with logs.
+	•	Tasks:
+	•	Conversation & Memory: Redis-backed session memory and learner profile.
+	•	Safety Filters: Input/output classification, refusal templates, and audit traces.
 
-*   **Objective:** Set up the core LLM infrastructure and implement the RAG pipeline.
-*   **Key Results:**
-    *   The system can answer student questions using information from the knowledge base.
-*   **Tasks:**
-    *   [ ] **LLM Foundation & vLLM Setup**: Set up the LLM serving infrastructure.
-    *   [ ] **RAG Implementation & Knowledge Base**: Build the RAG pipeline and knowledge base.
+Phase 3: Advanced Tutoring & Analytics (Weeks 23–24)
+	•	Objective: Adaptive quizzes, voice, and production telemetry.
+	•	Key Results: Adaptive assessments; voice read-aloud; dashboards live.
+	•	Tasks:
+	•	Adaptive Assessment: Short diagnostics + mastery map.
+	•	Voice I/O: Whisper ASR; TTS with OpenVoice or XTTS-v2.  ￼
+	•	Analytics & SLOs: Tracing + Prom/Grafana for latency, retrieval quality.
 
-### **Phase 2: Conversational AI & Safety (Weeks 21-22)**
+⸻
 
-*   **Objective:** Implement the conversational AI and safety features.
-*   **Key Results:**
-    *   The system can engage in natural, multi-turn conversations.
-    *   The system is safe for students of all ages.
-*   **Tasks:**
-    *   [ ] **Conversational AI & Memory Management**: Implement the conversation management system.
-    *   [ ] **Safety Filters & Content Moderation**: Implement the safety filters and content moderation system.
+5. 🧪 Testing & Quality Strategy
 
-### **Phase 3: Advanced Tutoring & Analytics (Weeks 23-24)**
+Test Type	Tools	Coverage & Scenarios
+Unit Tests	pytest	Prompt utils, chunking, rerank adapters, guards.
+Integration Tests	Testcontainers	Full RAG flow: embed → retrieve → rerank → answer.
+E2E Tests	Cypress	Tutor journeys, quiz flows, voice read-aloud paths.
+Safety Testing	Red-teaming + policy evals	Jailbreak/abuse inputs; verify blocklists and refusals.
 
-*   **Objective:** Implement advanced tutoring features and learning analytics.
-*   **Key Results:**
-    *   The system can provide adaptive assessment and personalized learning paths.
-    *   The system can track student progress and provide insights to teachers and parents.
-*   **Tasks:**
-    *   [ ] **Advanced Tutoring Features**: Implement adaptive assessment and multi-modal interaction.
-    *   [ ] **Analytics & Production Optimization**: Implement learning analytics and optimize the service for production.
 
----
+⸻
 
-## 5. 🧪 Testing & Quality Strategy
+6. 🔭 The Observatory: Monitoring & Alerting
 
-| Test Type | Tools | Coverage & Scenarios |
-|---|---|---|
-| **Unit Tests** | `pytest` | >90% coverage of all services and components. |
-| **Integration Tests** | `Testcontainers` | Test the entire RAG pipeline and conversational flow. |
-| **E2E Tests** | `Cypress` | Test the user-facing tutoring experience. |
-| **Safety Testing** | `Red Teaming` | Proactively test the system for safety vulnerabilities. |
+Key Performance Indicators (KPIs)
+	•	Technical: Response latency p95, LLM tokens/s, retrieval hit@k, reranker NDCG/MRR, ASR WER.
+	•	Business: Session retention, hint efficiency, mastery gains, CSAT.
 
----
+Dashboards & Alerts
+	•	Grafana overview with drill-downs per subject.
+	•	Prometheus alerts:
+	•	HighResponseLatency if p99 > 2 s for 5 min.
+	•	LowGroundedness if groundedness score < threshold.
+	•	SafetyFilterFailure on any unblocked critical event.
 
-## 6. 🔭 The Observatory: Monitoring & Alerting
+⸻
 
-### **Key Performance Indicators (KPIs)**
-*   **Technical Metrics:** `Response Latency`, `LLM Inference Time`, `RAG Retrieval Time`.
-*   **Business Metrics:** `Student Engagement`, `Learning Outcomes`, `Student Satisfaction`.
+7. 📚 Learning & Knowledge Base
+	•	GPT-OSS models and Harmony format — OpenAI blog + HF model cards.  ￼ ￼
+	•	vLLM serving & PagedAttention — project docs/blog and repo features.  ￼ ￼
+	•	LangChain retrievers (Parent, Self-Query, compression/rerank) — official docs.  ￼
+	•	Embeddings at scale — Hugging Face Text Embeddings Inference docs.  ￼
+	•	Whisper (ASR) — model card and demos.  ￼
+	•	OpenVoice / Coqui XTTS-v2 (TTS) — HF model cards and Spaces.  ￼
 
-### **Dashboards & Alerts**
-*   **Grafana Dashboard:** A real-time overview of all KPIs, with drill-downs per subject and topic.
-*   **Alerting Rules (Prometheus):**
-    *   `HighResponseLatency`: Trigger if the p99 response latency exceeds 2 seconds.
-    *   `HighHallucinationRate`: Trigger if the hallucination rate exceeds a certain threshold.
-    *   `SafetyFilterFailure`: Trigger if the safety filter fails to block harmful content.
+⸻
 
----
-
-## 7. 📚 Learning & Knowledge Base
-
-*   **Key Concepts:** `Large Language Models`, `RAG`, `Conversational AI`, `AI Safety`, `Educational Technology`.
-*   **Resources:**
-    *   [vLLM Documentation](https://docs.vllm.ai/en/latest/)
-    *   [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401)
-
----
+Notes:
+	•	Start with gpt-oss-20b on 16-GB GPUs; scale to gpt-oss-120b on 80-GB (H100/MI300X) as usage grows. Harmony prompting is required for correct behavior.  ￼ ￼
+	•	Deploy embeddings via TEI for predictable latency and easier scaling; it plugs into Milvus/Chroma/Pinecone.  ￼ ￼
+	•	Voice cloning requires user consent and clear policy disclosures; keep logs for audits.
