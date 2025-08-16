@@ -18,6 +18,7 @@ import { RouteConfig } from '../types/gateway';
 import { isStreamingRequest, streamingProxyAction } from '../proxy/streamingProxy';
 import { injectContext } from '../middleware/contextInjection';
 import { updateQueueDepth, updateConcurrentRequests } from '../observability/metrics';
+import { getDiscoveryProvider, healthCheckManager } from '../discovery/providers';
 
 // naive in-memory in-flight counters keyed by route id
 const inflightByRoute: Record<string, number> = {};
@@ -51,11 +52,49 @@ export async function handleGatewayProxy(req: FastifyRequest): Promise<ProxyOutc
 
   const route = findMatchingRoute(req, gatewayConfig.routes);
   const targetServiceName = route?.target.serviceName || (req.params as any)['service'] || '';
-  const serviceUrl = serviceRegistry[targetServiceName];
-  if (!serviceUrl) {
-    const err = new Error(`Unknown service '${targetServiceName}'`);
-    (err as any).statusCode = 502;
-    throw err;
+  
+  // Enhanced service discovery with dynamic routing
+  let serviceUrl: string;
+  if (route?.target.discovery) {
+    const provider = getDiscoveryProvider(route.target.discovery.type);
+    const instances = await provider.discover(targetServiceName, route.target.discovery);
+    
+    if (instances.length === 0) {
+      const err = new Error(`No healthy instances found for service '${targetServiceName}'`);
+      (err as any).statusCode = 503;
+      throw err;
+    }
+    
+    // Filter healthy instances
+    const healthyInstances = instances.filter(instance =>
+      instance.healthy && healthCheckManager.isHealthy(instance)
+    );
+    
+    if (healthyInstances.length === 0) {
+      const err = new Error(`No healthy instances available for service '${targetServiceName}'`);
+      (err as any).statusCode = 503;
+      throw err;
+    }
+    
+    // Load balancing: weighted round-robin or random selection
+    const selectedInstance = healthyInstances.length === 1
+      ? healthyInstances[0]
+      : healthyInstances[Math.floor(Math.random() * healthyInstances.length)];
+    
+    serviceUrl = `http://${selectedInstance.host}:${selectedInstance.port}`;
+    
+    // Start health checks for discovered instances
+    if (route.target.healthCheck) {
+      healthCheckManager.startHealthChecks(instances, route.target.healthCheck);
+    }
+  } else {
+    // Fallback to static service registry
+    serviceUrl = serviceRegistry[targetServiceName];
+    if (!serviceUrl) {
+      const err = new Error(`Unknown service '${targetServiceName}'`);
+      (err as any).statusCode = 502;
+      throw err;
+    }
   }
 
   const breaker = getBreaker(targetServiceName, proxyAction, {

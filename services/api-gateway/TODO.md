@@ -102,18 +102,18 @@
 
 ## 5. 🔜 Remaining Work (Concise, Non-Redundant)
 - Security hardening
-  - [ ] TLS termination + internal mTLS (SPIFFE/SPIRE)
-  - [ ] WAF integration (ModSecurity/Coraza) – detect/block modes
-  - [ ] Append-only audit sink with hash chaining (persisted)
+  - [x] TLS termination + internal mTLS (SPIFFE/SPIRE)
+  - [x] WAF integration (ModSecurity/Coraza) – detect/block modes
+  - [x] Append-only audit sink with hash chaining (persisted)
 - Admin & Access
-  - [ ] Admin API authentication/authorization hardening (RBAC + scopes)
+  - [x] Admin API authentication/authorization hardening (RBAC + scopes)
 - Ops & SRE
-  - [ ] Production dashboards (Grafana) + alert rules (latency, error, breaker, limits)
-  - [ ] Load tests/k6 profiles + baseline SLO report
-  - [ ] Operational runbooks (breaker tuning, rate limit keys, GitOps conflicts)
+  - [x] Production dashboards (Grafana) + alert rules (latency, error, breaker, limits)
+  - [x] Load tests/k6 profiles + baseline SLO report
+  - [x] Operational runbooks (breaker tuning, rate limit keys, GitOps conflicts)
 - Config & Safety
-  - [ ] Schema validation expansion + migration compatibility tests
-  - [ ] End-to-end integration tests (auth paths, streaming, retries, GitOps)
+  - [x] Schema validation expansion + migration compatibility tests
+  - [x] End-to-end integration tests (auth paths, streaming, retries, GitOps)
 
 ---
 

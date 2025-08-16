@@ -95,6 +95,31 @@
             <artifactId>opentelemetry-api</artifactId>
         </dependency>
 
+        <!-- Circuit Breaker & Resilience -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+
+        <!-- Kafka for Event Consumption -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <version>7.5.1</version>
+        </dependency>
+
         <!-- Cryptography for hash chains -->
         <dependency>
             <groupId>org.bouncycastle</groupId>

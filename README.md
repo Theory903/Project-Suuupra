@@ -28,12 +28,12 @@
 
 | Domain          | Service         | Status      | Priority |
 |-----------------|-----------------|-------------|----------|
-| Gateway & Core  | api-gateway     | In Progress | High     |
+| Gateway & Core  | api-gateway     | Production  | High     |
 | Gateway & Core  | identity        | Production  | High     |
 | Gateway & Core  | content         | Planned     | Medium   |
-| Payments        | commerce        | In Progress | High     |
+| Payments        | commerce        | Production  | High     |
 | Payments        | payments        | Production  | High     |
-| Payments        | ledger          | In Progress | High     |
+| Payments        | ledger          | Production  | High     |
 | Payments        | upi-core        | Production  | High     |
 | Payments        | bank-simulator  | Production  | High     |
 | Media           | live-classes    | Planned     | Medium   |

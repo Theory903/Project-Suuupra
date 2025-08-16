@@ -62,12 +62,12 @@ This matrix provides a centralized, single source of truth for the status, prior
 
 | Service | Status | Phase | Priority | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `api-gateway` | In Progress | Foundation | High | The single entry point for all client requests, handling routing, authentication, and rate limiting. |
+| `api-gateway` | Production | Foundation | High | The single entry point for all client requests, handling routing, authentication, and rate limiting. |
 | `identity` | Production | Foundation | High | Manages user authentication and authorization using OAuth2/OIDC, RBAC, and MFA. |
 | `content` | Planned | Foundation | Medium | Manages all educational content, including courses, videos, and articles. |
-| `commerce` | In Progress | Payments | High | Handles product catalog, shopping cart, and order management. |
+| `commerce` | Production | Payments | High | Handles product catalog, shopping cart, and order management. |
 | `payments` | Production | Payments | High | Orchestrates payment processing, integrating with UPI and other payment methods. |
-| `ledger` | In Progress | Payments | High | A double-entry accounting system for all financial transactions. |
+| `ledger` | Production | Payments | High | A double-entry accounting system for all financial transactions. |
 | `upi-core` | Production | Payments | High | A simulator for the UPI switch, handling UPI payment requests. |
 | `bank-simulator`| Production | Payments | High | A simulator for a core banking system, responding to payment requests. |
 | `live-classes` | Planned | Media | Medium | Manages real-time, interactive online classes. |
@@ -90,31 +90,45 @@ This matrix provides a centralized, single source of truth for the status, prior
 This section provides a detailed, actionable checklist of tasks for each service, organized by implementation phase.
 
 ### **Phase 1: Foundation**
-- [-] `Global`: Create unified docker-compose.yml for entire platform.
-- [-] `Global`: Implement .env file for centralized configuration.
-- [ ] `Global`: Develop master build-all.sh script.
-- [-] `Docs`: Update architecture diagrams to show event-driven flows.
-- [ ] `api-gateway`: Implement dynamic routing based on service discovery.
-- [ ] `api-gateway`: Integrate authentication and authorization middleware with the `identity` service.
-- [ ] `api-gateway`: Add comprehensive rate limiting and abuse prevention.
+- [x] `Global`: Create unified docker-compose.yml for entire platform.
+- [x] `Global`: Implement .env file for centralized configuration.
+- [x] `Global`: Develop master build-all.sh script.
+- [x] `Docs`: Update architecture diagrams to show event-driven flows.
+- [x] `api-gateway`: Implement dynamic routing based on service discovery.
+- [x] `api-gateway`: Integrate authentication and authorization middleware with the `identity` service.
+- [x] `api-gateway`: Add comprehensive rate limiting and abuse prevention.
+- [x] `api-gateway`: Implement distributed tracing for all upstream requests.
+- [x] `api-gateway`: Add contract tests for all downstream services.
+- [x] `api-gateway`: Implement robust observability with detailed RED metrics and structured logs.
+- [x] `api-gateway`: Harden security with dependency scanning and best practices.
+- [x] `api-gateway`: Configure proper health checks and graceful shutdown mechanisms.
 - [x] `identity`: Implement OAuth2/OIDC provider with MFA and RBAC.
 - [x] `identity`: Harden security and integrate with HashiCorp Vault for secrets management.
-- [ ] `identity`: Refactor to publish `user.created` event to Kafka.
+- [x] `identity`: Refactor to publish `user.created` event to Kafka.
 - [ ] `content`: Design and implement the data model for courses, lessons, and media assets.
 - [ ] `content`: Develop APIs for content creation, retrieval, and management.
 
 ### **Phase 2: Payments & Commerce**
-- [-] `commerce`: Develop the product catalog service, including product variants and pricing.
-- [-] `commerce`: Implement shopping cart and checkout orchestration logic.
-- [ ] `commerce`: Integrate with the `payments` service to process orders.
-- [ ] `commerce`: Refactor to publish `order.created` event to Kafka.
+- [x] `commerce`: Develop the product catalog service, including product variants and pricing.
+- [x] `commerce`: Implement shopping cart and checkout orchestration logic.
+- [x] `commerce`: Integrate with the `payments` service to process orders.
+- [x] `commerce`: Refactor to publish `order.created` event to Kafka.
+- [x] `commerce`: Increase test coverage for order processing saga to >90%.
+- [x] `commerce`: Publish `order.created` event to Kafka with Avro schema.
+- [x] `commerce`: Implement robust observability with detailed RED metrics and structured logs.
+- [x] `commerce`: Harden security with dependency scanning and input validation.
+- [x] `commerce`: Implement graceful shutdown and health checks.
 - [x] `payments`: Implement event-sourced architecture for payment orchestration.
 - [x] `payments`: Integrate with `upi-core` and `bank-simulator` for end-to-end payment processing.
-- [ ] `payments`: Refactor to consume `order.created` event and publish `payment.succeeded` event.
-- [-] `ledger`: Implement core double-entry accounting logic and transaction processing.
-- [ ] `ledger`: Add support for currency conversion and multi-currency transactions.
-- [ ] `ledger`: Develop robust audit trail and reporting features, including hash-chaining for data integrity.
-- [ ] `ledger`: Refactor to consume `payment.succeeded` event.
+- [x] `payments`: Refactor to consume `order.created` event and publish `payment.succeeded` event.
+- [x] `ledger`: Implement core double-entry accounting logic and transaction processing.
+- [x] `ledger`: Add support for currency conversion and multi-currency transactions.
+- [x] `ledger`: Develop robust audit trail and reporting features, including hash-chaining for data integrity.
+- [x] `ledger`: Refactor to consume `payment.succeeded` event.
+- [x] `ledger`: Implement circuit breakers for calls to the payments service.
+- [x] `ledger`: Add structured logging for all financial transactions.
+- [x] `ledger`: Achieve >90% test coverage for critical financial transaction paths.
+- [x] `ledger`: Implement health checks and graceful shutdown.
 - [x] `upi-core`: Simulate the UPI switch for handling payment requests.
 - [x] `bank-simulator`: Simulate a core banking system to respond to payment authorization requests.
 

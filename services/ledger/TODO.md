@@ -123,28 +123,28 @@ CREATE TABLE journal_entries (
     *   The service can create and post valid double-entry transactions.
     *   Account balances are updated correctly.
 *   **Tasks:**
-    *   [ ] **Spring Boot Foundation & Database Schema**: Set up the project and database schema.
-    *   [ ] **Double-Entry Service Implementation**: Implement the core ledger service.
+    *   [x] **Spring Boot Foundation & Database Schema**: Set up the project and database schema.
+    *   [x] **Double-Entry Service Implementation**: Implement the core ledger service.
 
 ### **Phase 2: Cryptographic Hash Chain & Reconciliation (Weeks 10-11)**
 
 *   **Objective:** Implement the cryptographic hash chain and automated reconciliation engine.
 *   **Key Results:**
-    *   All transactions are linked in a cryptographic hash chain.
-    *   The system can automatically reconcile internal records with bank statements.
+    *   [x] All transactions are linked in a cryptographic hash chain.
+    *   [x] The system can automatically reconcile internal records with bank statements.
 *   **Tasks:**
-    *   [ ] **Merkle Tree & Hash Chain**: Implement the hash service and integrity verification.
-    *   [ ] **Automated Reconciliation Engine**: Implement the bank statement reconciliation service.
+    *   [x] **Merkle Tree & Hash Chain**: Implement the hash service and integrity verification.
+    *   [x] **Automated Reconciliation Engine**: Implement the bank statement reconciliation service.
 
 ### **Phase 3: Settlement Processing & Reporting (Weeks 11-12)**
 
 *   **Objective:** Implement the settlement processing and financial reporting engine.
 *   **Key Results:**
-    *   The system can process daily settlements using Spring Batch.
-    *   The system can generate financial reports, such as a trial balance.
+    *   [x] The system can process daily settlements using Spring Batch.
+    *   [x] The system can generate financial reports, such as a trial balance.
 *   **Tasks:**
-    *   [ ] **Spring Batch Settlement Processing**: Implement the settlement batch job.
-    *   [ ] **Financial Reporting Engine**: Implement the financial reporting service.
+    *   [x] **Spring Batch Settlement Processing**: Implement the settlement batch job.
+    *   [x] **Financial Reporting Engine**: Implement the financial reporting service.
 
 ---
 

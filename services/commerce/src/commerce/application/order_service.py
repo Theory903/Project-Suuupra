@@ -2,7 +2,7 @@
 Order Service - Handles order creation and management.
 
 Coordinates cart-to-order conversion, aggregate persistence,
-and saga orchestration for order fulfillment.
+saga orchestration, and Kafka event publishing for order fulfillment.
 """
 
 from typing import Dict, Any, Optional, List
@@ -14,6 +14,8 @@ from ..domain.entities.cart import ShoppingCart
 from ..domain.entities.order import PaymentMethod, ShippingAddress
 from ..infrastructure.persistence.event_store import AggregateRepository
 from ..infrastructure.persistence.cart_repository import CartRepository
+from ..infrastructure.messaging.kafka_producer import get_kafka_producer
+from ..domain.events.order_events import OrderCreatedEvent, OrderUpdatedEvent, OrderCancelledEvent
 from .saga_orchestrator import SagaOrchestrator
 
 logger = structlog.get_logger(__name__)
@@ -36,6 +38,17 @@ class OrderService:
         self.aggregate_repo = aggregate_repo or AggregateRepository()
         self.cart_repo = cart_repo or CartRepository()
         self.saga_orchestrator = saga_orchestrator or SagaOrchestrator()
+        self.kafka_producer = None
+        
+    async def _get_kafka_producer(self):
+        """Get Kafka producer with error handling."""
+        if self.kafka_producer is None:
+            try:
+                self.kafka_producer = get_kafka_producer()
+            except RuntimeError:
+                logger.warning("Kafka producer not available, events will not be published")
+                return None
+        return self.kafka_producer
     
     async def create_order_from_cart(
         self,
@@ -114,10 +127,13 @@ class OrderService:
         # 3. Persist order aggregate (this will save events)
         await self.aggregate_repo.save(order)
         
-        # 4. Mark cart as converted
+        # 4. Publish order.created event to Kafka
+        await self._publish_order_created_event(order, order_items, shipping_addr)
+        
+        # 5. Mark cart as converted
         await self.cart_repo.convert_to_order(cart_id, order.aggregate_id)
         
-        # 5. Start order fulfillment saga
+        # 6. Start order fulfillment saga
         saga_context = {
             "order_id": order.aggregate_id,
             "customer_id": customer_id,
@@ -230,6 +246,9 @@ class OrderService:
         # Persist changes
         await self.aggregate_repo.save(order)
         
+        # Publish order.cancelled event to Kafka
+        await self._publish_order_cancelled_event(order, reason, customer_id)
+        
         logger.info(
             "Order cancelled",
             order_id=order_id,
@@ -274,3 +293,133 @@ class OrderService:
         # This would typically query a read model/projection
         # For now, return empty list
         return []
+    
+    async def _publish_order_created_event(
+        self,
+        order: OrderAggregate,
+        order_items: List[Dict[str, Any]],
+        shipping_address: Dict[str, Any]
+    ) -> None:
+        """
+        Publish order.created event to Kafka.
+        
+        Args:
+            order: The order aggregate
+            order_items: List of order items
+            shipping_address: Shipping address details
+        """
+        try:
+            kafka_producer = await self._get_kafka_producer()
+            if not kafka_producer:
+                return
+            
+            # Create order created event
+            event = OrderCreatedEvent(
+                order_id=order.aggregate_id,
+                customer_id=order.customer_id,
+                items=order_items,
+                total_amount=order.total_amount,
+                currency=order.currency,
+                shipping_address=shipping_address,
+                billing_address=shipping_address,  # Assuming same for simplicity
+                payment_method=order.payment_method.value if order.payment_method else "",
+                created_by=order.customer_id
+            )
+            
+            # Set aggregate information for the event
+            event.aggregate_id = order.aggregate_id
+            event.aggregate_type = "order"
+            
+            # Publish to Kafka
+            success = await kafka_producer.publish_event(event)
+            
+            if success:
+                logger.info(
+                    "Order created event published successfully",
+                    order_id=order.aggregate_id,
+                    customer_id=order.customer_id,
+                    event_id=event.event_id
+                )
+            else:
+                logger.error(
+                    "Failed to publish order created event",
+                    order_id=order.aggregate_id,
+                    customer_id=order.customer_id
+                )
+                
+        except Exception as e:
+            logger.error(
+                "Error publishing order created event",
+                order_id=order.aggregate_id,
+                customer_id=order.customer_id,
+                error=str(e)
+            )
+    
+    async def _publish_order_cancelled_event(
+        self,
+        order: OrderAggregate,
+        reason: str,
+        cancelled_by: str
+    ) -> None:
+        """
+        Publish order.cancelled event to Kafka.
+        
+        Args:
+            order: The order aggregate
+            reason: Cancellation reason
+            cancelled_by: Who cancelled the order
+        """
+        try:
+            kafka_producer = await self._get_kafka_producer()
+            if not kafka_producer:
+                return
+            
+            # Prepare inventory items to release
+            inventory_to_release = [
+                {
+                    "product_id": item.product_id,
+                    "quantity": item.quantity
+                }
+                for item in order.items
+            ]
+            
+            # Create order cancelled event
+            event = OrderCancelledEvent(
+                order_id=order.aggregate_id,
+                customer_id=order.customer_id,
+                previous_status=order.status.value,
+                cancellation_reason=reason,
+                cancelled_by=cancelled_by,
+                cancelled_at=order.cancelled_at or order.updated_at,
+                refund_amount=order.total_amount,
+                inventory_to_release=inventory_to_release
+            )
+            
+            # Set aggregate information for the event
+            event.aggregate_id = order.aggregate_id
+            event.aggregate_type = "order"
+            
+            # Publish to Kafka
+            success = await kafka_producer.publish_event(event)
+            
+            if success:
+                logger.info(
+                    "Order cancelled event published successfully",
+                    order_id=order.aggregate_id,
+                    customer_id=order.customer_id,
+                    event_id=event.event_id
+                )
+            else:
+                logger.error(
+                    "Failed to publish order cancelled event",
+                    order_id=order.aggregate_id,
+                    customer_id=order.customer_id
+                )
+                
+        except Exception as e:
+            logger.error(
+                "Error publishing order cancelled event",
+                order_id=order.aggregate_id,
+                customer_id=order.customer_id,
+                error=str(e)
+            )

@@ -14,6 +14,11 @@ sqlalchemy[asyncio]==2.0.23
 redis[hiredis]==5.0.1
 aioredis==2.0.1
 
+# Kafka & Messaging
+aiokafka==0.8.11
+confluent-kafka[avro]==2.3.0
+fastavro==1.9.0
+
 # HTTP Client
 httpx==0.25.2
 aiohttp==3.9.1
