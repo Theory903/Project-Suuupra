@@ -19,5 +19,22 @@ module.exports = {
       tsconfig: 'tsconfig.test.json'
     }]
   },
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"]
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
+  collectCoverage: true,
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/**/index.ts",
+    "!src/server.ts",
+    "!src/workers/**"
+  ],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "lcov"],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  }
 };

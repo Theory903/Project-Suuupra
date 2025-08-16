@@ -2,6 +2,7 @@ export * from './Content';
 export * from './Category';
 export * from './UploadSession';
 export * from './MediaAsset';
+export * from './IdempotencyKey';
 
 import mongoose from 'mongoose';
 import { config } from '@/config';
@@ -83,13 +84,15 @@ export class DatabaseManager {
       const { Category } = await import('./Category');
       const { UploadSession } = await import('./UploadSession');
       const { MediaAsset } = await import('./MediaAsset');
+      const { IdempotencyKey } = await import('./IdempotencyKey');
 
       // Create indexes
       await Promise.all([
         Content.createIndexes(),
         Category.createIndexes(),
         UploadSession.createIndexes(),
-        MediaAsset.createIndexes()
+        MediaAsset.createIndexes(),
+        IdempotencyKey.createIndexes()
       ]);
 
       logger.info('Database indexes created successfully');

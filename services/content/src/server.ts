@@ -75,8 +75,8 @@ class ContentService {
         await this.startBackgroundWorkers();
       }
 
-      // Setup scheduled tasks
-      this.setupScheduledTasks();
+    // Setup scheduled tasks
+    this.setupScheduledTasks();
 
       // Setup graceful shutdown
       this.setupGracefulShutdown();
@@ -240,6 +240,19 @@ class ContentService {
         await this.syncWorker.processDLQ(10);
       } catch (error) {
         logger.error('DLQ processing failed:', error);
+      }
+    });
+
+    // Soft-delete retention sweep daily
+    cron.schedule('0 3 * * *', async () => {
+      try {
+        const retentionDays = parseInt(process.env.CONTENT_RETENTION_DAYS || '30', 10);
+        const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+        const { Content } = await import('@/models/Content');
+        const res = await Content.deleteMany({ deleted: true, deletedAt: { $lte: cutoff } });
+        logger.info('Retention sweep completed', { deletedCount: res.deletedCount, retentionDays });
+      } catch (error) {
+        logger.error('Retention sweep failed:', error);
       }
     });
 

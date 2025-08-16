@@ -322,6 +322,35 @@ export const authenticateApiKey = (req: Request, res: Response, next: NextFuncti
   }
 };
 
+// Request signing middleware (HMAC of body + timestamp)
+export const verifyRequestSignature = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    const signature = req.headers['x-signature'] as string;
+    const timestamp = req.headers['x-timestamp'] as string;
+    const secret = process.env.WEBHOOK_SECRET || config.webhooks.secret;
+
+    if (!signature || !timestamp) {
+      throw new UnauthorizedError('Missing signature headers');
+    }
+
+    const ts = parseInt(timestamp, 10);
+    if (!ts || Math.abs(Date.now() - ts) > 5 * 60 * 1000) {
+      throw new UnauthorizedError('Stale or invalid timestamp');
+    }
+
+    const payload = JSON.stringify(req.body || {});
+    const hmac = require('crypto').createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex');
+
+    if (hmac !== signature) {
+      throw new UnauthorizedError('Invalid signature');
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Rate limiting per user
 export const rateLimitPerUser = (windowMs: number, maxRequests: number) => {
   const userRequestCounts = new Map<string, { count: number; resetTime: number }>();

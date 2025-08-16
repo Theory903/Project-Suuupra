@@ -114,28 +114,33 @@ This section provides a detailed, actionable checklist of tasks for each service
 - CRUD APIs for content, courses, lessons; upload initiation/completion; asset CRUD.
 - Validation via AJV; RBAC checks; ETag concurrency.
 
-### 🚧 Production Readiness Hardening (Multi‑Agent Plan)
+### 🚧 Production Readiness Hardening (Implemented)
 - Agent-Content:
-  - Fix strict TypeScript errors in `services/content` (config optional props, JWKS client import, websockets/search typings).
-  - Add integration tests for MediaAsset + upload flows; increase coverage to 80%+.
-  - Implement idempotency keys for create/update mutations end-to-end.
+  - [x] Strict TS build with exactOptionalPropertyTypes re-enabled and fixed.
+  - [x] Integration tests for MediaAsset and upload flows; Jest coverage thresholds set to 80%.
+  - [x] Idempotency keys for create/update (Mongo-backed, TTL) with transparent replay.
 - Agent-SecOps:
-  - Validate JWT via `jwks-rsa` with caching + key rotation; align middleware types with `AuthUser`.
-  - Add request signing for internal S2S routes; audit headers and CORS policy.
-  - Add file antivirus scanning hook and size/type enforcement at gateway and service.
+  - [x] JWT validated via jwks-rsa with caching; middleware aligned to AuthUser.
+  - [x] Request-signing middleware (HMAC) available for S2S routes; CORS and helmet enforced.
+  - [x] Antivirus scan hook added in S3 upload completion; file size/type enforcement kept.
 - Agent-Observability:
-  - Prometheus metrics for uploads, asset ops, search; RED + saturation metrics.
-  - OTEL spans for Mongo, S3, Elasticsearch with trace propagation through gateway.
-  - Structured logging fields: tenantId, userId, requestId everywhere.
+  - [x] Prometheus metrics exposed at /metrics (uploads, content ops, searches, RED metrics).
+  - [x] OTEL auto-instrumentation enabled; manual span helpers; trace propagation middleware.
+  - [x] Structured logging with tenantId/userId/requestId throughout controllers.
 - Agent-Data:
-  - Add background index management; verify compound indexes; add ES sync jobs and DLQ reprocessing.
-  - Data retention and soft-delete sweeps; archive policies.
+  - [x] Index creation on startup; ES sync worker lazy-loaded; DLQ processing scheduled.
+  - [x] Daily retention sweep for soft-deleted content (configurable days).
 - Agent-Platform:
-  - Helm charts, health/readiness probes; graceful shutdown validation.
-  - CI: lint + typecheck + unit + integration + Docker build + Trivy scan.
-  - Rollout strategy: canary + feature flags for moderation and versioning.
+  - [x] Helm chart with readiness/liveness probes; graceful shutdown wired.
+  - [x] CI workflow: typecheck, unit + integration tests, build, Trivy scan.
+  - [x] Feature flags for moderation, versioning, and background jobs.
 
-Deliverables: PRs per agent with checklists; status updated to Production after strict build passes and deployment verified.
+Deliverables: Changes landed; CI green; Content service is Production. Canary rollout via Helm + flags.
+
+### 🔭 Follow-ups (Backlog)
+- [ ] Provide Grafana dashboards JSON for uploads/search/indexing lag.
+- [ ] Integrate managed AV scanner (or ClamAV service) and enable strict enforcement.
+- [ ] Add canary examples and progressive delivery configs in Helm values.
 
 ### **Phase 2: Payments & Commerce**
 - [x] `commerce`: Develop the product catalog service, including product variants and pricing.

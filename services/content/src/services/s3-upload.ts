@@ -282,6 +282,17 @@ export class S3UploadService {
         throw new Error('Failed to complete multipart upload');
       }
 
+      // Optional antivirus scan hook
+      const clean = await this.scanFile(uploadSession.s3Metadata.key);
+      if (!clean) {
+        this.contextLogger.warn('Antivirus scan failed, aborting', { uploadSessionId });
+        // In a real implementation, delete the object and mark failed
+        uploadSession.status = 'failed';
+        uploadSession.failureReason = 'Antivirus scan failed';
+        await uploadSession.save();
+        throw new Error('Upload failed antivirus scan');
+      }
+
       // Update upload session
       uploadSession.status = 'completed';
       uploadSession.completedAt = new Date();
@@ -330,6 +341,18 @@ export class S3UploadService {
       }
 
       throw error;
+    }
+  }
+
+  // Antivirus scan hook (stub)
+  private async scanFile(s3Key: string): Promise<boolean> {
+    try {
+      // Integrate with ClamAV or a scanning service here
+      // For now, assume clean
+      return true;
+    } catch (error) {
+      this.contextLogger.error('AV scan error', error as Error, { s3Key });
+      return false;
     }
   }
 

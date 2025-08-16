@@ -5,6 +5,8 @@ import { S3UploadService } from '@/services/s3-upload';
 import { WebSocketService } from '@/services/websocket';
 import { validate, validationMiddleware, sanitizeHtml } from '@/utils/validation';
 import { ApiResponse, PaginationQuery, ContentFilters, NotFoundError, ConflictError, ValidationError } from '@/types';
+import { IdempotencyKey } from '@/models/IdempotencyKey';
+import { recordContentOperation, recordUploadOperation } from '@/utils/metrics';
 import { logger, ContextLogger } from '@/utils/logger';
 import semver from 'semver';
 import { v4 as uuidv4 } from 'uuid';
@@ -51,6 +53,28 @@ export class ContentController {
         }
       }
 
+      // Idempotency: check existing
+      if (idempotencyKey) {
+        const existing = await IdempotencyKey.findOne({
+          tenantId: user.tenantId,
+          userId: user.userId,
+          key: idempotencyKey,
+          endpoint: '/content',
+          method: 'POST'
+        });
+        if (existing) {
+          const prior = await Content.findOne({ _id: existing.resourceId, tenantId: user.tenantId, deleted: false });
+          if (prior) {
+            res.status(200).json({
+              success: true,
+              data: prior.toJSON(),
+              meta: { requestId: user.requestId, timestamp: new Date().toISOString(), idempotent: true }
+            });
+            return;
+          }
+        }
+      }
+
       // Create content
       const contentData: any = {
         _id: uuidv4(),
@@ -94,6 +118,25 @@ export class ContentController {
       const content = new Content(contentData);
       await content.save();
 
+      // Store idempotency record
+      if (idempotencyKey) {
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await IdempotencyKey.updateOne({
+          tenantId: user.tenantId,
+          userId: user.userId,
+          key: idempotencyKey,
+          endpoint: '/content',
+          method: 'POST'
+        }, {
+          $set: {
+            resourceType: 'content',
+            resourceId: content._id,
+            status: 'succeeded',
+            expiresAt
+          }
+        }, { upsert: true });
+      }
+
       this.contextLogger.info('Content created successfully', {
         requestId: user.requestId,
         contentId: content._id,
@@ -115,6 +158,8 @@ export class ContentController {
         }
       };
 
+      // Metrics
+      recordContentOperation('create', content.contentType, content.status, user.tenantId);
       res.status(201).json(response);
     } catch (error) {
       next(error);
@@ -236,6 +281,25 @@ export class ContentController {
         }
       }
 
+      // Idempotency
+      const idempotencyKey = (req.body && (req.body as any).idempotencyKey) as string | undefined;
+      if (idempotencyKey) {
+        const existing = await IdempotencyKey.findOne({
+          tenantId: user.tenantId,
+          userId: user.userId,
+          key: idempotencyKey,
+          endpoint: `/content/${id}`,
+          method: 'PUT'
+        });
+        if (existing) {
+          const prior = await Content.findOne({ _id: existing.resourceId, tenantId: user.tenantId, deleted: false });
+          if (prior) {
+            res.status(200).json({ success: true, data: prior.toJSON(), meta: { requestId: user.requestId, timestamp: new Date().toISOString(), idempotent: true } });
+            return;
+          }
+        }
+      }
+
       // Update version if content is published
       let newVersion = content.version;
       if (content.status === 'published') {
@@ -266,6 +330,25 @@ export class ContentController {
       Object.assign(content, updates);
       await content.save();
 
+      // Store idempotency record
+      if (idempotencyKey) {
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await IdempotencyKey.updateOne({
+          tenantId: user.tenantId,
+          userId: user.userId,
+          key: idempotencyKey,
+          endpoint: `/content/${id}`,
+          method: 'PUT'
+        }, {
+          $set: {
+            resourceType: 'content',
+            resourceId: content._id,
+            status: 'succeeded',
+            expiresAt
+          }
+        }, { upsert: true });
+      }
+
       this.contextLogger.info('Content updated successfully', {
         requestId: user.requestId,
         contentId: content._id,
@@ -288,6 +371,7 @@ export class ContentController {
         }
       };
 
+      recordContentOperation('update', content.contentType, content.status, user.tenantId);
       res.json(response);
     } catch (error) {
       next(error);
@@ -358,6 +442,7 @@ export class ContentController {
         }
       };
 
+      recordContentOperation('delete', content.contentType, content.status, user.tenantId);
       res.json(response);
     } catch (error) {
       next(error);
@@ -533,6 +618,7 @@ export class ContentController {
         }
       };
 
+      recordUploadOperation('initiate', 'success', user.tenantId);
       res.status(201).json(response);
     } catch (error) {
       next(error);
@@ -628,6 +714,7 @@ export class ContentController {
         }
       };
 
+      recordUploadOperation('complete', 'success', user.tenantId, undefined, uploadResult.fileSize, content.contentType);
       res.json(response);
     } catch (error) {
       // Broadcast upload error
