@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { ContentController } from '@/controllers/content';
+import { CourseController } from '@/controllers/course';
+import { LessonController } from '@/controllers/lesson';
 import { SearchController } from '@/controllers/search';
 import { S3UploadService } from '@/services/s3-upload';
 import { ElasticsearchService } from '@/services/elasticsearch';
@@ -7,6 +9,7 @@ import { WebSocketService } from '@/services/websocket';
 import { authenticate, requireCreator, requireModerator } from '@/middleware/auth';
 import { validationMiddleware } from '@/utils/validation';
 import rateLimit from 'express-rate-limit';
+import { MediaAssetController } from '@/controllers/mediaAsset';
 
 // Rate limiting configurations
 const generalRateLimit = rateLimit({
@@ -43,6 +46,9 @@ export function createRoutes(
   // Initialize controllers
   const contentController = new ContentController(s3Service, wsService);
   const searchController = new SearchController(esService);
+  const courseController = new CourseController();
+  const lessonController = new LessonController();
+  const mediaAssetController = new MediaAssetController();
 
   // Apply general rate limiting to all routes
   router.use(generalRateLimit);
@@ -130,6 +136,30 @@ export function createRoutes(
     contentController.abortUpload
   );
 
+  // Media asset routes
+  router.post('/content/:id/assets',
+    authenticate,
+    requireCreator,
+    validationMiddleware('mediaAsset.create'),
+    mediaAssetController.createAsset
+  );
+
+  router.get('/content/:id/assets',
+    authenticate,
+    mediaAssetController.listAssets
+  );
+
+  router.get('/assets/:assetId',
+    authenticate,
+    mediaAssetController.getAsset
+  );
+
+  router.delete('/assets/:assetId',
+    authenticate,
+    requireCreator,
+    mediaAssetController.deleteAsset
+  );
+
   // Search routes
   router.get('/search',
     searchRateLimit,
@@ -207,204 +237,96 @@ export function createRoutes(
     }
   );
 
+  // Course routes
+  router.post('/courses',
+    authenticate,
+    requireCreator,
+    validationMiddleware('content.create'), // Re-use content create validation
+    courseController.createCourse
+  );
+
+  router.get('/courses',
+    authenticate,
+    validationMiddleware('query.pagination', 'query'),
+    courseController.listCourses
+  );
+
+  router.get('/courses/:id',
+    authenticate,
+    validationMiddleware('query.idParam', 'params'),
+    courseController.getCourse
+  );
+
+  router.put('/courses/:id',
+    authenticate,
+    requireCreator,
+    validationMiddleware('query.idParam', 'params'),
+    validationMiddleware('content.update'), // Re-use content update validation
+    courseController.updateCourse
+  );
+
+  router.delete('/courses/:id',
+    authenticate,
+    requireCreator,
+    validationMiddleware('query.idParam', 'params'),
+    courseController.deleteCourse
+  );
+
+  // Lesson routes
+  router.post('/lessons',
+    authenticate,
+    requireCreator,
+    validationMiddleware('content.create'), // Re-use content create validation
+    lessonController.createLesson
+  );
+
+  router.get('/lessons',
+    authenticate,
+    validationMiddleware('query.pagination', 'query'),
+    lessonController.listLessons
+  );
+
+  router.get('/lessons/:id',
+    authenticate,
+    validationMiddleware('query.idParam', 'params'),
+    lessonController.getLesson
+  );
+
+  router.put('/lessons/:id',
+    authenticate,
+    requireCreator,
+    validationMiddleware('query.idParam', 'params'),
+    validationMiddleware('content.update'), // Re-use content update validation
+    lessonController.updateLesson
+  );
+
+  router.delete('/lessons/:id',
+    authenticate,
+    requireCreator,
+    validationMiddleware('query.idParam', 'params'),
+    lessonController.deleteLesson
+  );
+
   // Admin routes for content management
   router.post('/admin/content/:id/approve',
     authenticate,
     requireModerator,
     validationMiddleware('query.idParam', 'params'),
-    async (req, res, next) => {
-      try {
-        const { Content } = await import('@/models/Content');
-        const { id } = req.params;
-        const user = req.user!;
-
-        const content = await Content.findOne({
-          _id: id,
-          tenantId: user.tenantId,
-          deleted: false
-        });
-
-        if (!content) {
-          return res.status(404).json({
-            success: false,
-            error: {
-              code: 'NOT_FOUND',
-              message: 'Content not found'
-            }
-          });
-        }
-
-        if (content.status !== 'pending_approval') {
-          return res.status(400).json({
-            success: false,
-            error: {
-              code: 'INVALID_STATUS',
-              message: 'Content is not pending approval'
-            }
-          });
-        }
-
-        content.status = 'approved';
-        content.etag = require('uuid').v4();
-        await content.save();
-
-        // Send notification to content creator
-        wsService.sendUserNotification(content.createdBy, 'content:approved', {
-          contentId: content._id,
-          title: content.title,
-          approvedBy: user.userId
-        });
-
-        res.json({
-          success: true,
-          data: content.toJSON(),
-          meta: {
-            requestId: user.requestId,
-            timestamp: new Date().toISOString()
-          }
-        });
-      } catch (error) {
-        next(error);
-      }
-    }
+    contentController.approveContent
   );
 
   router.post('/admin/content/:id/reject',
     authenticate,
     requireModerator,
     validationMiddleware('query.idParam', 'params'),
-    async (req, res, next) => {
-      try {
-        const { Content } = await import('@/models/Content');
-        const { id } = req.params;
-        const { reason } = req.body;
-        const user = req.user!;
-
-        const content = await Content.findOne({
-          _id: id,
-          tenantId: user.tenantId,
-          deleted: false
-        });
-
-        if (!content) {
-          return res.status(404).json({
-            success: false,
-            error: {
-              code: 'NOT_FOUND',
-              message: 'Content not found'
-            }
-          });
-        }
-
-        if (content.status !== 'pending_approval') {
-          return res.status(400).json({
-            success: false,
-            error: {
-              code: 'INVALID_STATUS',
-              message: 'Content is not pending approval'
-            }
-          });
-        }
-
-        content.status = 'draft';
-        content.metadata = {
-          ...content.metadata,
-          rejectionReason: reason,
-          rejectedBy: user.userId,
-          rejectedAt: new Date()
-        };
-        content.etag = require('uuid').v4();
-        await content.save();
-
-        // Send notification to content creator
-        wsService.sendUserNotification(content.createdBy, 'content:rejected', {
-          contentId: content._id,
-          title: content.title,
-          reason,
-          rejectedBy: user.userId
-        });
-
-        res.json({
-          success: true,
-          data: content.toJSON(),
-          meta: {
-            requestId: user.requestId,
-            timestamp: new Date().toISOString()
-          }
-        });
-      } catch (error) {
-        next(error);
-      }
-    }
+    contentController.rejectContent
   );
 
   router.post('/admin/content/:id/publish',
     authenticate,
     requireModerator,
     validationMiddleware('query.idParam', 'params'),
-    async (req, res, next) => {
-      try {
-        const { Content } = await import('@/models/Content');
-        const { id } = req.params;
-        const user = req.user!;
-
-        const content = await Content.findOne({
-          _id: id,
-          tenantId: user.tenantId,
-          deleted: false
-        });
-
-        if (!content) {
-          return res.status(404).json({
-            success: false,
-            error: {
-              code: 'NOT_FOUND',
-              message: 'Content not found'
-            }
-          });
-        }
-
-        if (content.status !== 'approved') {
-          return res.status(400).json({
-            success: false,
-            error: {
-              code: 'INVALID_STATUS',
-              message: 'Content must be approved before publishing'
-            }
-          });
-        }
-
-        content.status = 'published';
-        content.publishedAt = new Date();
-        content.etag = require('uuid').v4();
-        await content.save();
-
-        // Send notification to content creator
-        wsService.sendUserNotification(content.createdBy, 'content:published', {
-          contentId: content._id,
-          title: content.title,
-          publishedBy: user.userId
-        });
-
-        // Send tenant notification
-        wsService.sendTenantNotification(user.tenantId, 'content:published', {
-          contentId: content._id,
-          title: content.title,
-          contentType: content.contentType
-        });
-
-        res.json({
-          success: true,
-          data: content.toJSON(),
-          meta: {
-            requestId: user.requestId,
-            timestamp: new Date().toISOString()
-          }
-        });
-      } catch (error) {
-        next(error);
-      }
-    }
+    contentController.publishContent
   );
 
   // Error handling middleware

@@ -30,7 +30,7 @@
 |-----------------|-----------------|-------------|----------|
 | Gateway & Core  | api-gateway     | Production  | High     |
 | Gateway & Core  | identity        | Production  | High     |
-| Gateway & Core  | content         | Planned     | Medium   |
+| Gateway & Core  | content         | Production  | Medium   |
 | Payments        | commerce        | Production  | High     |
 | Payments        | payments        | Production  | High     |
 | Payments        | ledger          | Production  | High     |
@@ -275,6 +275,12 @@ GitHub Actions handle CI/CD, scans, tests, and deploy on commit.
 ## 🚦 Implementation Phases & Status
 
 We will follow a phased approach to building the Suuupra platform. Each phase delivers a meaningful set of features. Refer to the **Services Matrix** for the current status of each service.
+
+### 🔒 Production Readiness (Cross‑Cutting)
+- Content service: Models and APIs for content, courses, lessons, media assets; strict TypeScript build passes; JWT via JWKS; deployable via Docker Compose/Helm. Background ES sync worker is lazy-loaded and can be enabled via feature flag.
+- Global CI/CD: Enforce lint, typecheck, unit/integration tests, security scans, and image signing.
+- Security: Vault-backed secrets, least-privilege IAM, rate limiting, and S2S auth.
+- Observability: OTEL tracing, Prometheus metrics, RED dashboards, and probes.
 
 ### **Phase 1: Foundation & Core Services**
 **Goal**: To lay the foundation for the entire platform by building the core infrastructure and services. See the `Foundation` phase in the Services Matrix for current status.

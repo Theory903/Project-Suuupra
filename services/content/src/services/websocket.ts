@@ -4,9 +4,9 @@ import jwt from 'jsonwebtoken';
 import { config } from '@/config';
 import { logger, ContextLogger } from '@/utils/logger';
 import { UploadSession } from '@/models/UploadSession';
-import { RequestContext } from '@/types';
+import { AuthUser } from '@/types';
 
-export interface SocketUser extends RequestContext {
+export interface SocketUser extends AuthUser {
   socketId: string;
 }
 

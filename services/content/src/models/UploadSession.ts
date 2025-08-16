@@ -192,7 +192,7 @@ UploadSessionSchema.methods.markPartComplete = function(
 ): void {
   // Check if part already exists
   const existingPartIndex = this.s3Metadata.parts.findIndex(
-    part => part.partNumber === partNumber
+    (part: { partNumber: number }) => part.partNumber === partNumber
   );
   
   if (existingPartIndex >= 0) {
@@ -206,7 +206,7 @@ UploadSessionSchema.methods.markPartComplete = function(
   // Update progress
   this.progressData.uploadedParts = this.s3Metadata.parts.length;
   this.progressData.uploadedBytes = this.s3Metadata.parts.reduce(
-    (total, part) => total + part.size, 
+    (total: number, part: { size: number }) => total + part.size,
     0
   );
   
@@ -216,7 +216,7 @@ UploadSessionSchema.methods.markPartComplete = function(
   }
   
   // Sort parts by part number for consistency
-  this.s3Metadata.parts.sort((a, b) => a.partNumber - b.partNumber);
+  this.s3Metadata.parts.sort((a: { partNumber: number }, b: { partNumber: number }) => a.partNumber - b.partNumber);
 };
 
 // Static methods
@@ -245,15 +245,16 @@ UploadSessionSchema.statics.cleanupExpired = function() {
 
 // Transform output
 UploadSessionSchema.set('toJSON', {
-  transform: (doc, ret) => {
+  transform: (doc: any, ret: any) => {
     ret.id = ret._id;
     delete ret._id;
     delete ret.__v;
     
     // Add computed fields
-    ret.progress = doc.calculateProgress();
-    ret.estimatedTimeRemaining = doc.estimateTimeRemaining();
-    ret.canResume = doc.canBeResumed();
+    const sessionDoc = doc as unknown as IUploadSession;
+    ret.progress = sessionDoc.calculateProgress();
+    ret.estimatedTimeRemaining = sessionDoc.estimateTimeRemaining();
+    ret.canResume = sessionDoc.canBeResumed();
     
     return ret;
   }

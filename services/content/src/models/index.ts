@@ -1,6 +1,7 @@
 export * from './Content';
 export * from './Category';
 export * from './UploadSession';
+export * from './MediaAsset';
 
 import mongoose from 'mongoose';
 import { config } from '@/config';
@@ -81,12 +82,14 @@ export class DatabaseManager {
       const { Content } = await import('./Content');
       const { Category } = await import('./Category');
       const { UploadSession } = await import('./UploadSession');
+      const { MediaAsset } = await import('./MediaAsset');
 
       // Create indexes
       await Promise.all([
         Content.createIndexes(),
         Category.createIndexes(),
-        UploadSession.createIndexes()
+        UploadSession.createIndexes(),
+        MediaAsset.createIndexes()
       ]);
 
       logger.info('Database indexes created successfully');
@@ -118,3 +121,13 @@ export class DatabaseManager {
     }
   }
 }
+
+const dbManager = DatabaseManager.getInstance();
+
+export const connectDB = async (): Promise<void> => {
+  await dbManager.connect();
+};
+
+export const disconnectDB = async (): Promise<void> => {
+  await dbManager.disconnect();
+};

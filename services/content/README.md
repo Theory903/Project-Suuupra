@@ -199,6 +199,81 @@ POST /api/v1/admin/content/:id/reject
   "reason": "Content needs revision"
 }
 
+#### Courses and Lessons
+
+Courses and lessons are modeled as content types (`contentType` = `course` | `lesson`) and use the same CRUD APIs as content, plus convenience endpoints:
+
+```bash
+# Courses
+POST /api/v1/courses
+GET  /api/v1/courses
+GET  /api/v1/courses/:id
+PUT  /api/v1/courses/:id
+DEL  /api/v1/courses/:id
+
+# Lessons
+POST /api/v1/lessons
+GET  /api/v1/lessons
+GET  /api/v1/lessons/:id
+PUT  /api/v1/lessons/:id
+DEL  /api/v1/lessons/:id
+```
+
+#### Media Assets
+
+Media assets allow multiple files (video, transcripts, attachments) to be linked to a single content item.
+
+```bash
+# Create asset for a content
+POST /api/v1/content/:id/assets
+{
+  "type": "video",
+  "title": "1080p MP4",
+  "fileInfo": {
+    "filename": "lesson-1.mp4",
+    "contentType": "video/mp4",
+    "fileSize": 104857600,
+    "s3Key": "content/<tenant>/<date>/<content>/<file>",
+    "cdnUrl": "https://cdn.example.com/content/..."
+  },
+  "metadata": { "bitrate": 4500 }
+}
+
+# List assets for a content
+GET /api/v1/content/:id/assets
+
+# Get asset
+GET /api/v1/assets/:assetId
+
+# Delete asset
+DELETE /api/v1/assets/:assetId
+```
+
+Model: `MediaAsset` with fields: `tenantId`, `contentId`, `type`, `fileInfo`, `metadata`, `createdBy`, timestamps.
+
+### Metrics
+- Endpoint: `GET /metrics` (Prometheus format).
+- Default counters and histograms are registered plus service-specific metrics (uploads, searches, content ops).
+
+### Tracing
+- OpenTelemetry Node SDK initialized with HTTP, Express, MongoDB, Redis instrumentations.
+- Trace attributes include `tenant.id`, `user.id`, `request.id` via middleware.
+
+## Helm
+
+Basic Helm chart is provided at `infrastructure/helm/content-service/`.
+
+```bash
+helm install content services/content/infrastructure/helm/content-service \
+  --set image.repository=ghcr.io/your-org/content-service \
+  --set image.tag=latest \
+  --set env.ENABLE_BACKGROUND_JOBS=false
+```
+
+## CI
+
+GitHub Actions workflow at `.github/workflows/content-ci.yml` runs typecheck, unit + integration tests, build, and an optional Trivy scan.
+
 # Publish content
 POST /api/v1/admin/content/:id/publish
 ```

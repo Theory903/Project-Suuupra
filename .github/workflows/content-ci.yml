@@ -1,0 +1,61 @@
+name: Content Service CI
+
+on:
+  push:
+    paths:
+      - 'services/content/**'
+      - '.github/workflows/content-ci.yml'
+  pull_request:
+    paths:
+      - 'services/content/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh --quiet || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/content/package-lock.json
+      - name: Install deps
+        working-directory: services/content
+        run: npm ci
+      - name: Typecheck
+        working-directory: services/content
+        run: npm run typecheck
+      - name: Unit tests
+        working-directory: services/content
+        run: npm test -- --ci --reporters=default
+      - name: Integration tests
+        working-directory: services/content
+        run: npm run test:integration -- --ci --reporters=default
+      - name: Build
+        working-directory: services/content
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container image
+        working-directory: services/content
+        run: |
+          docker build --tag content-service:test -f Dockerfile .
+        continue-on-error: true
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: content-service:test
+          format: table
+          exit-code: '0'
+        continue-on-error: true

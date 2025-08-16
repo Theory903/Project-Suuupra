@@ -1,24 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import jwksClient from 'jwks-client';
+import { JwksClient } from 'jwks-rsa';
 import { config } from '@/config';
-import { UnauthorizedError, ForbiddenError, RequestContext } from '@/types';
+import { UnauthorizedError, ForbiddenError, AuthUser } from '@/types';
 import { logger } from '@/utils/logger';
 
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: RequestContext;
-      requestId?: string;
-    }
-  }
-}
-
 // JWKS client for token verification
-const client = jwksClient({
+const client = new JwksClient({
   jwksUri: config.auth.jwksUri,
-  requestHeaders: {},
   timeout: 30000,
   cache: true,
   cacheMaxEntries: 5,
@@ -28,12 +17,13 @@ const client = jwksClient({
 });
 
 // Get signing key from JWKS
-function getKey(header: any, callback: any): void {
+function getKey(header: any, callback: (err: Error | null, key?: string) => void): void {
   client.getSigningKey(header.kid, (err, key) => {
     if (err) {
-      return callback(err);
+      return callback(err as Error);
     }
     const signingKey = key?.getPublicKey();
+    if (!signingKey) return callback(new Error('No signing key'));
     callback(null, signingKey);
   });
 }
@@ -62,11 +52,11 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Verify JWT token
-    const decoded = await verifyToken(token);
+    const decoded = await verifyToken(token) as any;
     
     // Extract user context from token
-    const userContext: RequestContext = {
-      requestId: req.requestId || generateRequestId(),
+    const userContext: AuthUser = {
+      requestId: (req as any).requestId || generateRequestId(),
       userId: decoded.sub,
       tenantId: decoded.tenant_id || decoded.tid,
       roles: decoded.roles || [],
@@ -85,7 +75,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Add user context to request
-    req.user = userContext;
+    (req as any).user = userContext;
 
     logger.debug('User authenticated successfully', {
       requestId: userContext.requestId,
@@ -262,19 +252,19 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     }
 
     try {
-      const decoded = await verifyToken(token);
+      const decoded: any = await verifyToken(token);
       
-      const userContext: RequestContext = {
+      const userContext: AuthUser = {
         requestId: req.requestId || generateRequestId(),
         userId: decoded.sub,
         tenantId: decoded.tenant_id || decoded.tid,
         roles: decoded.roles || [],
         permissions: decoded.permissions || decoded.perms || [],
         clientId: decoded.client_id || decoded.azp,
-        sessionId: decoded.sid
+        sessionId: decoded.sid || 'optional'
       };
 
-      req.user = userContext;
+      (req as any).user = userContext;
     } catch (tokenError) {
       // Invalid token, but we continue without authentication
       logger.debug('Optional authentication failed', {
@@ -316,13 +306,14 @@ export const authenticateApiKey = (req: Request, res: Response, next: NextFuncti
     }
 
     // Set a service context
-    req.user = {
+    (req as any).user = {
       requestId: req.requestId || generateRequestId(),
       userId: 'system',
       tenantId: 'system',
       roles: ['service'],
       permissions: ['*'],
-      clientId: 'api-key'
+      clientId: 'api-key',
+      sessionId: 'system'
     };
 
     next();

@@ -85,19 +85,19 @@ export class SearchController {
       this.contextLogger.info('Search completed successfully', {
         requestId: user.requestId,
         query: searchQuery.q,
-        resultsCount: searchResults.results.length,
-        totalHits: searchResults.totalHits,
-        queryTime: searchResults.queryTimeMs
+        resultsCount: searchResults.data.length,
+        totalHits: searchResults.meta.totalHits,
+        queryTime: searchResults.meta.queryTimeMs
       });
 
       const response: ApiResponse = {
         success: true,
-        data: searchResults.results,
+        data: searchResults.data,
         meta: {
-          pagination: searchResults.pagination,
-          aggregations: searchResults.aggregations,
-          queryTimeMs: searchResults.queryTimeMs,
-          totalHits: searchResults.totalHits,
+          ...(searchResults.meta.pagination ? { pagination: searchResults.meta.pagination } : {}),
+          ...(searchResults.meta.aggregations ? { aggregations: searchResults.meta.aggregations } : {}),
+          queryTimeMs: searchResults.meta.queryTimeMs,
+          totalHits: searchResults.meta.totalHits,
           requestId: user.requestId,
           timestamp: new Date().toISOString()
         }
@@ -178,7 +178,7 @@ export class SearchController {
 
       const response: ApiResponse = {
         success: true,
-        data: searchResults.aggregations || {},
+        data: searchResults.meta.aggregations || {},
         meta: {
           requestId: user.requestId,
           timestamp: new Date().toISOString()

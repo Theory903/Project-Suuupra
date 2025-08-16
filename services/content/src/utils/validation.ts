@@ -28,11 +28,12 @@ export const contentSchemas = {
       },
       contentType: {
         type: 'string',
-        enum: ['video', 'article', 'quiz', 'document']
+        enum: ['video', 'article', 'quiz', 'document', 'course', 'lesson']
       },
       categoryId: {
         type: 'string',
-        format: 'uuid'
+        // Accept UUID v4 or 24-char hex Mongo ObjectId
+        pattern: '(^[0-9a-fA-F]{24}$)|(^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$)'
       },
       tags: {
         type: 'array',
@@ -73,7 +74,7 @@ export const contentSchemas = {
       },
       categoryId: {
         type: 'string',
-        format: 'uuid'
+        pattern: '(^[0-9a-fA-F]{24}$)|(^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$)'
       },
       tags: {
         type: 'array',
@@ -136,7 +137,7 @@ export const contentSchemas = {
             type: 'array',
             items: {
               type: 'string',
-              enum: ['video', 'article', 'quiz', 'document']
+              enum: ['video', 'article', 'quiz', 'document', 'course', 'lesson']
             }
           },
           category: {
@@ -299,6 +300,37 @@ export const uploadSchemas = {
   }
 };
 
+// Media asset validation schemas
+export const mediaAssetSchemas = {
+  create: {
+    type: 'object',
+    properties: {
+      type: {
+        type: 'string',
+        enum: ['video', 'audio', 'image', 'document', 'transcript', 'subtitle', 'attachment']
+      },
+      title: { type: 'string', minLength: 1, maxLength: 255 },
+      description: { type: 'string', maxLength: 1000 },
+      metadata: { type: 'object', additionalProperties: true },
+      fileInfo: {
+        type: 'object',
+        properties: {
+          filename: { type: 'string', minLength: 1, maxLength: 255 },
+          contentType: { type: 'string', minLength: 3, maxLength: 100 },
+          fileSize: { type: 'integer', minimum: 1 },
+          s3Key: { type: 'string', minLength: 3 },
+          cdnUrl: { type: 'string' },
+          checksumSha256: { type: 'string' }
+        },
+        required: ['filename', 'contentType', 'fileSize', 's3Key'],
+        additionalProperties: true
+      }
+    },
+    required: ['type', 'fileInfo'],
+    additionalProperties: false
+  }
+};
+
 // Common query validation schemas
 export const querySchemas = {
   pagination: {
@@ -355,6 +387,9 @@ const validators = {
     initiate: ajv.compile(uploadSchemas.initiate),
     complete: ajv.compile(uploadSchemas.complete)
   },
+  mediaAsset: {
+    create: ajv.compile(mediaAssetSchemas.create)
+  },
   query: {
     pagination: ajv.compile(querySchemas.pagination),
     idParam: ajv.compile(querySchemas.idParam)
@@ -383,13 +418,20 @@ export function validationMiddleware(
   schema: 'content.create' | 'content.update' | 'content.search' |
          'category.create' | 'category.update' |
          'upload.initiate' | 'upload.complete' |
-         'query.pagination' | 'query.idParam',
+         'mediaAsset.create' |
+         'query.pagination' | 'query.idParam', // Add new schemas here if needed
   target: 'body' | 'query' | 'params' = 'body'
 ) {
   return (req: any, res: any, next: any) => {
     try {
       const [group, action] = schema.split('.');
-      const validator = (validators as any)[group][action];
+      const validatorGroup = (validators as any)[group];
+      
+      if (!validatorGroup) {
+        throw new Error(`Validator group not found: ${group}`);
+      }
+      
+      const validator = validatorGroup[action];
       
       if (!validator) {
         throw new Error(`Validator not found: ${schema}`);
@@ -435,12 +477,19 @@ export function sanitizeFileName(filename: string): string {
 
 // Content sanitization
 export function sanitizeHtml(html: string): string {
-  // This would typically use DOMPurify, but we'll implement basic sanitization
+  // This would typically use DOMPurify or a similar library for robust sanitization.
+  // For this example, we'll implement basic sanitization to remove common attack vectors.
   return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/javascript:/gi, '');
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove inline event handlers (e.g., onclick)
+    .replace(/javascript:/gi, '') // Remove javascript: URIs
+    .replace(/data:text\/html/gi, '') // Remove data URIs with HTML content
+    .replace(/<link\s+rel=["']stylesheet["'][^>]*>/gi, '') // Remove external stylesheets
+    .replace(/<meta\s+http-equiv=["']refresh["'][^>]*>/gi, '') // Remove meta refresh
+    .replace(/<!--.*?-->/g, '') // Remove HTML comments (can hide attacks)
+    .replace(/<\/?(object|embed|applet|form|input|button|select|textarea|style|frame|frameset|noframes)\b[^>]*>/gi, '') // Remove dangerous tags
+    .replace(/expression\s*\(.*?\)/gi, ''); // Remove CSS expressions
 }
 
 export { validators };

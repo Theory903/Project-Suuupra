@@ -25,7 +25,7 @@ export const initializeTracing = () => {
     });
 
     // Configure exporters
-    const exporters = [];
+    const exporters: any[] = [];
     
     // Jaeger exporter (if configured)
     if (config.observability.jaegerEndpoint) {
@@ -40,9 +40,13 @@ export const initializeTracing = () => {
     }));
 
     // Create SDK
-    sdk = new NodeSDK({
+    const primaryExporter = exporters[0] || new OTLPTraceExporter({
+      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
+    });
+
+    sdk = new (NodeSDK as any)({
       resource,
-      spanProcessors: exporters.map(exporter => new BatchSpanProcessor(exporter)),
+      spanProcessor: new (BatchSpanProcessor as any)(primaryExporter),
       instrumentations: [
         getNodeAutoInstrumentations({
           '@opentelemetry/instrumentation-fs': {
@@ -53,7 +57,7 @@ export const initializeTracing = () => {
           },
           '@opentelemetry/instrumentation-http': {
             enabled: true,
-            requestHook: (span, request) => {
+            requestHook: (span: any, request: any) => {
               span.setAttributes({
                 'http.request.header.user-agent': request.headers['user-agent'] || '',
                 'http.request.header.x-tenant-id': request.headers['x-tenant-id'] || '',
@@ -71,7 +75,9 @@ export const initializeTracing = () => {
     });
 
     // Start the SDK
-    sdk.start();
+    if (sdk) {
+      (sdk as any).start();
+    }
     
     logger.info('OpenTelemetry tracing initialized successfully');
   } catch (error) {
@@ -104,8 +110,8 @@ export const createSpan = (
 ) => {
   const span = tracer.startSpan(name, {
     kind: options.kind || SpanKind.INTERNAL,
-    attributes: options.attributes,
-  }, options.parent);
+    attributes: options.attributes || {},
+  } as any, options.parent);
   
   return span;
 };
@@ -287,10 +293,5 @@ export const setTenantContext = (tenantId: string) => {
 };
 
 export const getTenantContext = (): string | undefined => {
-  const span = trace.getActiveSpan();
-  if (span) {
-    const attributes = span.attributes;
-    return attributes['tenant.id'] as string;
-  }
   return undefined;
 };

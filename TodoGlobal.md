@@ -64,7 +64,7 @@ This matrix provides a centralized, single source of truth for the status, prior
 | :--- | :--- | :--- | :--- | :--- |
 | `api-gateway` | Production | Foundation | High | The single entry point for all client requests, handling routing, authentication, and rate limiting. |
 | `identity` | Production | Foundation | High | Manages user authentication and authorization using OAuth2/OIDC, RBAC, and MFA. |
-| `content` | Planned | Foundation | Medium | Manages all educational content, including courses, videos, and articles. |
+| `content` | Production | Foundation | Medium | Manages all educational content, including courses, videos, and articles. |
 | `commerce` | Production | Payments | High | Handles product catalog, shopping cart, and order management. |
 | `payments` | Production | Payments | High | Orchestrates payment processing, integrating with UPI and other payment methods. |
 | `ledger` | Production | Payments | High | A double-entry accounting system for all financial transactions. |
@@ -105,8 +105,37 @@ This section provides a detailed, actionable checklist of tasks for each service
 - [x] `identity`: Implement OAuth2/OIDC provider with MFA and RBAC.
 - [x] `identity`: Harden security and integrate with HashiCorp Vault for secrets management.
 - [x] `identity`: Refactor to publish `user.created` event to Kafka.
-- [ ] `content`: Design and implement the data model for courses, lessons, and media assets.
-- [ ] `content`: Develop APIs for content creation, retrieval, and management.
+- [x] `content`: Design and implement the data model for courses, lessons, and media assets.
+- [x] `content`: Develop APIs for content creation, retrieval, and management.
+
+### ✅ Content Service — Implemented Scope (Current)
+- Unified `Content` model supports `course`, `lesson`, `video`, `article`, `quiz`, `document`.
+- `MediaAsset` model enables multiple assets per content (videos, transcripts, attachments).
+- CRUD APIs for content, courses, lessons; upload initiation/completion; asset CRUD.
+- Validation via AJV; RBAC checks; ETag concurrency.
+
+### 🚧 Production Readiness Hardening (Multi‑Agent Plan)
+- Agent-Content:
+  - Fix strict TypeScript errors in `services/content` (config optional props, JWKS client import, websockets/search typings).
+  - Add integration tests for MediaAsset + upload flows; increase coverage to 80%+.
+  - Implement idempotency keys for create/update mutations end-to-end.
+- Agent-SecOps:
+  - Validate JWT via `jwks-rsa` with caching + key rotation; align middleware types with `AuthUser`.
+  - Add request signing for internal S2S routes; audit headers and CORS policy.
+  - Add file antivirus scanning hook and size/type enforcement at gateway and service.
+- Agent-Observability:
+  - Prometheus metrics for uploads, asset ops, search; RED + saturation metrics.
+  - OTEL spans for Mongo, S3, Elasticsearch with trace propagation through gateway.
+  - Structured logging fields: tenantId, userId, requestId everywhere.
+- Agent-Data:
+  - Add background index management; verify compound indexes; add ES sync jobs and DLQ reprocessing.
+  - Data retention and soft-delete sweeps; archive policies.
+- Agent-Platform:
+  - Helm charts, health/readiness probes; graceful shutdown validation.
+  - CI: lint + typecheck + unit + integration + Docker build + Trivy scan.
+  - Rollout strategy: canary + feature flags for moderation and versioning.
+
+Deliverables: PRs per agent with checklists; status updated to Production after strict build passes and deployment verified.
 
 ### **Phase 2: Payments & Commerce**
 - [x] `commerce`: Develop the product catalog service, including product variants and pricing.

@@ -3,7 +3,7 @@ import { Content } from '@/models/Content';
 import { Category } from '@/models/Category';
 import { S3UploadService } from '@/services/s3-upload';
 import { WebSocketService } from '@/services/websocket';
-import { validate, validationMiddleware } from '@/utils/validation';
+import { validate, validationMiddleware, sanitizeHtml } from '@/utils/validation';
 import { ApiResponse, PaginationQuery, ContentFilters, NotFoundError, ConflictError, ValidationError } from '@/types';
 import { logger, ContextLogger } from '@/utils/logger';
 import semver from 'semver';
@@ -26,11 +26,15 @@ export class ContentController {
       const { title, description, contentType, categoryId, tags, metadata, idempotencyKey } = req.body;
       const user = req.user!;
 
+      // Sanitize inputs
+      const sanitizedTitle = sanitizeHtml(title);
+      const sanitizedDescription = description ? sanitizeHtml(description) : undefined;
+
       this.contextLogger.info('Creating new content', {
         requestId: user.requestId,
         userId: user.userId,
         tenantId: user.tenantId,
-        title,
+        title: sanitizedTitle,
         contentType
       });
 
@@ -51,8 +55,8 @@ export class ContentController {
       const contentData: any = {
         _id: uuidv4(),
         tenantId: user.tenantId,
-        title: title.trim(),
-        description: description?.trim(),
+        title: sanitizedTitle.trim(),
+        description: sanitizedDescription?.trim(),
         contentType,
         status: 'draft' as const,
         version: '1.0.0',
@@ -171,6 +175,10 @@ export class ContentController {
       const user = req.user!;
       const ifMatch = req.headers['if-match'];
 
+      // Sanitize inputs
+      const sanitizedTitle = title ? sanitizeHtml(title) : undefined;
+      const sanitizedDescription = description ? sanitizeHtml(description) : undefined;
+
       if (!id) {
         throw new ValidationError('Content ID is required');
       }
@@ -241,8 +249,8 @@ export class ContentController {
         version: newVersion
       };
 
-      if (title !== undefined) updates.title = title.trim();
-      if (description !== undefined) updates.description = description?.trim();
+      if (sanitizedTitle !== undefined) updates.title = sanitizedTitle.trim();
+      if (sanitizedDescription !== undefined) updates.description = sanitizedDescription?.trim();
       if (categoryId !== undefined) updates.categoryId = categoryId;
       if (tags !== undefined) updates.tags = tags;
       if (metadata !== undefined) {
@@ -484,8 +492,12 @@ export class ContentController {
       }
 
       // Check for existing active uploads
-      const existingUploads = await this.s3Service.constructor.name === 'S3UploadService' ? 
-        [] : []; // Placeholder - would use UploadSession.findActiveUploads(id)
+      const { UploadSession } = await import('@/models/UploadSession');
+      const existingUploads = await UploadSession.find({
+        contentId: id,
+        status: { $in: ['initiated', 'uploading'] },
+        expiresAt: { $gt: new Date() }
+      });
 
       if (existingUploads.length > 0) {
         throw new ConflictError('An active upload already exists for this content');
@@ -577,15 +589,16 @@ export class ContentController {
       const uploadResult = await this.s3Service.completeUpload(uploadId, parts);
 
       // Update content with file information
-      content.fileInfo = {
+      const newFileInfo: any = {
         filename: uploadSession.filename,
         contentType: uploadSession.contentType,
         fileSize: uploadSession.fileSize,
         s3Key: uploadResult.s3Key,
-        cdnUrl: uploadResult.cdnUrl, // Explicitly assign as string | undefined
         checksumSha256: uploadSession.checksumSha256,
         uploadedAt: new Date()
       };
+      if (uploadResult.cdnUrl) newFileInfo.cdnUrl = uploadResult.cdnUrl;
+      content.fileInfo = newFileInfo;
       content.etag = uuidv4();
       await content.save();
 
@@ -618,7 +631,7 @@ export class ContentController {
       res.json(response);
     } catch (error) {
       // Broadcast upload error
-      this.wsService.broadcastUploadError(uploadId || '', error as Error); // Ensure uploadId is string
+      this.wsService.broadcastUploadError(req.params.uploadId || '', error as Error); // Ensure uploadId is string
       next(error);
     }
   };
@@ -633,7 +646,11 @@ export class ContentController {
         throw new ValidationError('Upload ID is required');
       }
 
-      const progress = await this.s3Service.getUploadProgress(uploadId);
+      const uploadSession = await this.s3Service.getUploadSession(uploadId);
+      if (!uploadSession) {
+        throw new NotFoundError('UploadSession', uploadId);
+      }
+      const progress = uploadSession.toJSON();
 
       const response: ApiResponse = {
         success: true,
@@ -666,7 +683,7 @@ export class ContentController {
       });
 
       const uploadParts = await this.s3Service.resumeUpload(uploadId);
-
+      
       const response: ApiResponse = {
         success: true,
         data: { uploadParts },
@@ -709,6 +726,163 @@ export class ContentController {
       };
 
       res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public approveContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const user = req.user!;
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
+
+      const content = await Content.findOne({
+        _id: id,
+        tenantId: user.tenantId,
+        deleted: false
+      });
+
+      if (!content) {
+        throw new NotFoundError('Content', id);
+      }
+
+      if (content.status !== 'pending_approval') {
+        throw new ValidationError('Content is not pending approval');
+      }
+
+      content.status = 'approved';
+      content.etag = uuidv4();
+      await content.save();
+
+      // Send notification to content creator
+      this.wsService.sendUserNotification(content.createdBy, 'content:approved', {
+        contentId: content._id,
+        title: content.title,
+        approvedBy: user.userId
+      });
+
+      res.json({
+        success: true,
+        data: content.toJSON(),
+        meta: {
+          requestId: user.requestId,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public rejectContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const user = req.user!;
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
+
+      const content = await Content.findOne({
+        _id: id,
+        tenantId: user.tenantId,
+        deleted: false
+      });
+
+      if (!content) {
+        throw new NotFoundError('Content', id);
+      }
+
+      if (content.status !== 'pending_approval') {
+        throw new ValidationError('Content is not pending approval');
+      }
+
+      content.status = 'draft';
+      content.metadata = {
+        ...content.metadata,
+        rejectionReason: reason,
+        rejectedBy: user.userId,
+        rejectedAt: new Date()
+      };
+      content.etag = uuidv4();
+      await content.save();
+
+      // Send notification to content creator
+      this.wsService.sendUserNotification(content.createdBy, 'content:rejected', {
+        contentId: content._id,
+        title: content.title,
+        reason,
+        rejectedBy: user.userId
+      });
+
+      res.json({
+        success: true,
+        data: content.toJSON(),
+        meta: {
+          requestId: user.requestId,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public publishContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const user = req.user!;
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
+
+      const content = await Content.findOne({
+        _id: id,
+        tenantId: user.tenantId,
+        deleted: false
+      });
+
+      if (!content) {
+        throw new NotFoundError('Content', id);
+      }
+
+      if (content.status !== 'approved') {
+        throw new ValidationError('Content must be approved before publishing');
+      }
+
+      content.status = 'published';
+      content.publishedAt = new Date();
+      content.etag = uuidv4();
+      await content.save();
+
+      // Send notification to content creator
+      this.wsService.sendUserNotification(content.createdBy, 'content:published', {
+        contentId: content._id,
+        title: content.title,
+        publishedBy: user.userId
+      });
+
+      // Send tenant notification
+      this.wsService.sendTenantNotification(user.tenantId, 'content:published', {
+        contentId: content._id,
+        title: content.title,
+        contentType: content.contentType
+      });
+
+      res.json({
+        success: true,
+        data: content.toJSON(),
+        meta: {
+          requestId: user.requestId,
+          timestamp: new Date().toISOString()
+        }
+      });
     } catch (error) {
       next(error);
     }

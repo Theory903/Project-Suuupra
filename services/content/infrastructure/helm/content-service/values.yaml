@@ -1,0 +1,37 @@
+image:
+  repository: ghcr.io/your-org/content-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8082
+  metricsPort: 9090
+  type: ClusterIP
+
+env:
+  NODE_ENV: production
+  ENABLE_BACKGROUND_JOBS: "false"
+  LOG_LEVEL: info
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 20
+  periodSeconds: 10
+
+readinessProbe:
+  path: /health
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+

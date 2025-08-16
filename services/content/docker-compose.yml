@@ -40,7 +40,7 @@ services:
       ENABLE_APPROVAL_WORKFLOW: "true"
       ENABLE_WEBHOOK_DELIVERY: "true"
       ENABLE_CONTENT_MODERATION: "true"
-      ENABLE_BACKGROUND_JOBS: "true"
+      ENABLE_BACKGROUND_JOBS: ${ENABLE_BACKGROUND_JOBS:-false}
       
       # Observability
       LOG_LEVEL: info

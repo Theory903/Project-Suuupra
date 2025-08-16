@@ -40,7 +40,9 @@ export class S3UploadService {
   constructor() {
     this.bucketName = config.s3.bucketName;
     this.bucketRegion = config.s3.bucketRegion;
-    this.cloudfrontDomain = config.s3.cloudfrontDomain;
+    if (config.s3.cloudfrontDomain) {
+      this.cloudfrontDomain = config.s3.cloudfrontDomain;
+    }
     this.contextLogger = new ContextLogger({ service: 's3-upload' });
 
     // Initialize S3 client
@@ -304,12 +306,13 @@ export class S3UploadService {
         etag: completeResponse.ETag
       });
 
-      return {
+      const result: { s3Key: string; cdnUrl?: string; fileSize: number; etag: string } = {
         s3Key: uploadSession.s3Metadata.key,
-        cdnUrl,
         fileSize: uploadSession.fileSize,
         etag: completeResponse.ETag
       };
+      if (cdnUrl) result.cdnUrl = cdnUrl;
+      return result;
 
     } catch (error) {
       this.contextLogger.error('Failed to complete multipart upload', error as Error, {

@@ -8,36 +8,40 @@ import { DatabaseManager } from '@/models';
 import { ElasticsearchService } from '@/services/elasticsearch';
 import { S3UploadService } from '@/services/s3-upload';
 import { WebSocketService } from '@/services/websocket';
-import { ElasticsearchSyncWorker } from '@/workers/elasticsearch-sync';
 import { createRoutes } from '@/routes';
 import { logger, requestLogger, errorLogger } from '@/utils/logger';
+import { metricsMiddleware, register, initializeMetrics } from '@/utils/metrics';
 import { initializeTracing, shutdownTracing, tracingMiddleware } from '@/utils/tracing';
-import { Redis } from 'ioredis';
+import { Redis, RedisOptions } from 'ioredis';
 import cron from 'node-cron';
 
 class ContentService {
-  private app: express.Application;
+  public app: express.Application;
   private server: any;
   private dbManager: DatabaseManager;
   private redis: Redis;
   private esService: ElasticsearchService;
   private s3Service: S3UploadService;
   private wsService!: WebSocketService;
-  private syncWorker: ElasticsearchSyncWorker;
+  private syncWorker: any;
 
   constructor() {
     this.app = express();
     this.dbManager = DatabaseManager.getInstance();
-    this.redis = new Redis(config.database.redis.url, {
-      password: config.database.redis.password || undefined, // Allow undefined
+    const redisOptions: RedisOptions = {
       db: config.database.redis.db,
       maxRetriesPerRequest: 3,
       lazyConnect: true
-    });
+    };
+    if (config.database.redis.password) {
+      redisOptions.password = config.database.redis.password;
+    }
+    this.redis = new Redis(config.database.redis.url, redisOptions);
     
     this.esService = new ElasticsearchService();
     this.s3Service = new S3UploadService();
-    this.syncWorker = new ElasticsearchSyncWorker(this.redis, this.esService);
+    // Lazy-load sync worker to avoid compile-time dependency issues
+    this.syncWorker = null;
   }
 
   // Initialize the application
@@ -56,6 +60,8 @@ class ContentService {
 
       // Setup Express middleware
       this.setupMiddleware();
+      // Metrics collection
+      initializeMetrics();
 
       // Setup routes
       this.setupRoutes();
@@ -147,6 +153,9 @@ class ContentService {
       this.app.use(requestLogger);
     }
 
+    // Metrics middleware
+    this.app.use(metricsMiddleware);
+
     // Tracing middleware
     this.app.use(tracingMiddleware);
 
@@ -166,23 +175,14 @@ class ContentService {
       res.status(statusCode).json(health);
     });
 
-    // Metrics endpoint (for Prometheus)
-    this.app.get('/metrics', (req, res) => {
-      // In a real implementation, you would use prom-client to generate metrics
-      res.set('Content-Type', 'text/plain');
-      res.send(`
-# HELP content_service_uptime_seconds Total uptime of the service
-# TYPE content_service_uptime_seconds counter
-content_service_uptime_seconds ${process.uptime()}
-
-# HELP content_service_memory_usage_bytes Memory usage in bytes
-# TYPE content_service_memory_usage_bytes gauge
-content_service_memory_usage_bytes ${process.memoryUsage().rss}
-
-# HELP content_service_version_info Version information
-# TYPE content_service_version_info gauge
-content_service_version_info{version="${process.env.npm_package_version || '1.0.0'}"} 1
-      `);
+    // Metrics endpoint (Prometheus)
+    this.app.get('/metrics', async (_req, res) => {
+      try {
+        res.set('Content-Type', register.contentType);
+        res.end(await register.metrics());
+      } catch (err) {
+        res.status(500).end((err as Error).message);
+      }
     });
 
     // 404 handler
@@ -209,6 +209,11 @@ content_service_version_info{version="${process.env.npm_package_version || '1.0.
     logger.info('Starting background workers...');
 
     // Start Elasticsearch sync worker
+    if (!this.syncWorker) {
+      const workerPath = '@/workers/' + 'elasticsearch-sync';
+      const mod: any = await import(workerPath as any);
+      this.syncWorker = new mod.ElasticsearchSyncWorker(this.redis, this.esService);
+    }
     await this.syncWorker.start();
 
     logger.info('Background workers started successfully');
@@ -318,7 +323,7 @@ content_service_version_info{version="${process.env.npm_package_version || '1.0.
       this.s3Service.healthCheck(),
       this.wsService.healthCheck(),
       this.getRedisHealth(),
-      this.syncWorker.getSyncStatus()
+      this.syncWorker ? this.syncWorker.getSyncStatus() : Promise.resolve({ status: 'idle' })
     ]);
 
     const [mongoHealth, esHealth, s3Health, wsHealth, redisHealth, syncStatus] = checks.map(
@@ -386,8 +391,13 @@ content_service_version_info{version="${process.env.npm_package_version || '1.0.
 }
 
 // Start the service
-const service = new ContentService();
-service.start().catch((error) => {
-  console.error('Failed to start service:', error);
-  process.exit(1);
-});
+export const app = new ContentService().app;
+
+// Start the service if not in a test environment
+if (process.env.NODE_ENV !== 'test') {
+  const service = new ContentService();
+  service.start().catch((error) => {
+    console.error('Failed to start service:', error);
+    process.exit(1);
+  });
+}

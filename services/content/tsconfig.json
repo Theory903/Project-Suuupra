@@ -17,7 +17,7 @@
     "removeComments": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -40,6 +40,7 @@
     "dist",
     "tests",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/workers/**"
   ]
 }

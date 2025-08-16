@@ -61,10 +61,11 @@ const ContentSchema = new Schema<IContent>({
     maxlength: 2000,
     trim: true
   },
-  contentType: { 
-    type: String, 
-    required: true, 
-    enum: ['video', 'article', 'quiz', 'document'],
+  contentType: {
+    type: String,
+    required: true,
+    // Include course and lesson to align with controllers and types
+    enum: ['video', 'article', 'quiz', 'document', 'course', 'lesson'],
     index: true
   },
   status: { 
@@ -90,15 +91,18 @@ const ContentSchema = new Schema<IContent>({
     trim: true,
     lowercase: true
   }],
-  metadata: { 
-    type: Schema.Types.Mixed, 
-    default: {} 
+  metadata: {
+    type: Schema.Types.Mixed,
+    default: {}
   },
-  fileInfo: FileInfoSchema,
-  createdBy: { 
-    type: String, 
-    required: true, 
-    index: true 
+  fileInfo: {
+    type: FileInfoSchema,
+    required: false // Make fileInfo optional in schema
+  },
+  createdBy: {
+    type: String,
+    required: true,
+    index: true
   },
   createdAt: { 
     type: Date, 

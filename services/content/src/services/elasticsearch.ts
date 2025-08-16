@@ -1,25 +1,38 @@
-import { Client } from '@elastic/elasticsearch';
+import { Client, ClientOptions } from '@elastic/elasticsearch';
 import { config } from '@/config';
 import { logger, ContextLogger } from '@/utils/logger';
 import { SearchQuery, SearchResult, SearchResponse } from '@/types';
+import { CircuitBreaker } from '@/utils/circuitBreaker';
 
 export class ElasticsearchService {
   private client: Client;
   private contextLogger: ContextLogger;
   private indexPrefix: string;
+  private circuitBreaker: CircuitBreaker;
 
   constructor() {
     this.indexPrefix = config.database.elasticsearch.indexPrefix;
     this.contextLogger = new ContextLogger({ service: 'elasticsearch' });
     
     // Initialize Elasticsearch client
-    this.client = new Client({
+    const clientOptions: ClientOptions = {
       node: config.database.elasticsearch.node,
-      auth: config.database.elasticsearch.auth,
       maxRetries: 3,
       requestTimeout: 30000,
       sniffOnStart: false,
       sniffInterval: false
+    };
+
+    if (config.database.elasticsearch.auth) {
+      clientOptions.auth = config.database.elasticsearch.auth;
+    }
+
+    this.client = new Client(clientOptions);
+
+    this.circuitBreaker = new CircuitBreaker('elasticsearch-breaker', {
+      failureThreshold: 5,
+      resetTimeout: 60000, // 1 minute
+      successThreshold: 3,
     });
   }
 
@@ -61,7 +74,7 @@ export class ElasticsearchService {
           analysis: {
             analyzer: {
               content_analyzer: {
-                type: 'custom',
+                type: 'custom' as const,
                 tokenizer: 'standard',
                 filter: [
                   'lowercase',
@@ -71,14 +84,14 @@ export class ElasticsearchService {
                 ]
               },
               exact_analyzer: {
-                type: 'custom',
+                type: 'custom' as const,
                 tokenizer: 'keyword',
                 filter: ['lowercase']
               }
             },
             filter: {
               content_synonyms: {
-                type: 'synonym',
+                type: 'synonym' as const,
                 synonyms: [
                   'javascript,js',
                   'typescript,ts',
@@ -93,82 +106,81 @@ export class ElasticsearchService {
           }
         },
         mappings: {
-          dynamic: 'strict',
+          dynamic: true,
           properties: {
-            id: { type: 'keyword' },
-            tenant_id: { type: 'keyword' },
+            id: { type: 'keyword' as const },
+            tenant_id: { type: 'keyword' as const },
             title: {
-              type: 'text',
+              type: 'text' as const,
               analyzer: 'content_analyzer',
               fields: {
                 exact: {
-                  type: 'text',
+                  type: 'text' as const,
                   analyzer: 'exact_analyzer'
                 },
                 suggest: {
-                  type: 'completion'
+                  type: 'completion' as const
                 }
               }
             },
             description: {
-              type: 'text',
+              type: 'text' as const,
               analyzer: 'content_analyzer'
             },
-            content_type: { type: 'keyword' },
-            status: { type: 'keyword' },
-            version: { type: 'keyword' },
+            content_type: { type: 'keyword' as const },
+            status: { type: 'keyword' as const },
+            version: { type: 'keyword' as const },
             category: {
-              type: 'object',
+              type: 'object' as const,
               properties: {
-                id: { type: 'keyword' },
+                id: { type: 'keyword' as const },
                 name: {
-                  type: 'text',
+                  type: 'text' as const,
                   analyzer: 'content_analyzer'
                 },
                 path: {
-                  type: 'text',
+                  type: 'text' as const,
                   analyzer: 'path_hierarchy'
                 }
               }
             },
-            tags: { type: 'keyword' },
+            tags: { type: 'keyword' as const },
             metadata: {
-              type: 'object',
+              type: 'object' as const,
               dynamic: true
             },
             file_info: {
-              type: 'object',
+              type: 'object' as const,
               properties: {
                 filename: {
-                  type: 'text',
+                  type: 'text' as const,
                   analyzer: 'content_analyzer'
                 },
-                content_type: { type: 'keyword' },
-                file_size: { type: 'long' },
-                duration: { type: 'integer' }
+                content_type: { type: 'keyword' as const },
+                file_size: { type: 'long' as const },
+                duration: { type: 'integer' as const }
               }
             },
             embedding: {
-              type: 'dense_vector',
+              type: 'dense_vector' as const,
               dims: 768,
               index: true,
-              similarity: 'cosine'
             },
-            created_by: { type: 'keyword' },
+            created_by: { type: 'keyword' as const },
             created_at: {
-              type: 'date',
+              type: 'date' as const,
               format: 'strict_date_optional_time||epoch_millis'
             },
             updated_at: {
-              type: 'date',
+              type: 'date' as const,
               format: 'strict_date_optional_time||epoch_millis'
             },
             published_at: {
-              type: 'date',
+              type: 'date' as const,
               format: 'strict_date_optional_time||epoch_millis'
             },
-            view_count: { type: 'integer' },
-            engagement_score: { type: 'float' }
+            view_count: { type: 'integer' as const },
+            engagement_score: { type: 'float' as const }
           }
         }
       },
@@ -204,11 +216,13 @@ export class ElasticsearchService {
     const indexName = params.index || this.getIndexName(params.tenantId!);
     
     try {
-      await this.client.index({
-        index: indexName,
-        id: params.id,
-        body: params.body,
-        refresh: 'wait_for'
+      await this.circuitBreaker.execute(async () => {
+        await this.client.index({
+          index: indexName,
+          id: params.id,
+          body: params.body,
+          refresh: 'wait_for'
+        });
       });
       
       this.contextLogger.debug('Document indexed successfully', {
@@ -233,10 +247,12 @@ export class ElasticsearchService {
     const indexName = params.index || this.getIndexName(params.tenantId!);
     
     try {
-      await this.client.delete({
-        index: indexName,
-        id: params.id,
-        refresh: 'wait_for'
+      await this.circuitBreaker.execute(async () => {
+        await this.client.delete({
+          index: indexName,
+          id: params.id,
+          refresh: 'wait_for'
+        });
       });
       
       this.contextLogger.debug('Document deleted successfully', {
@@ -265,10 +281,12 @@ export class ElasticsearchService {
     try {
       const searchBody = this.buildSearchQuery(query);
       
-      const response = await this.client.search({
-        index: indexName,
-        body: searchBody,
-        track_total_hits: true
+      const response = await this.circuitBreaker.execute(async () => {
+        return await this.client.search({
+          index: indexName,
+          body: searchBody,
+          track_total_hits: true
+        });
       });
 
       const queryTime = Date.now() - startTime;
@@ -442,18 +460,22 @@ export class ElasticsearchService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      results,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      },
-      aggregations: response.aggregations,
-      queryTimeMs: queryTime,
-      totalHits: total
+      data: results,
+      meta: {
+        requestId: 'N/A', // This should be set from RequestContext if available
+        timestamp: new Date().toISOString(),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        },
+        aggregations: response.aggregations,
+        queryTimeMs: queryTime,
+        totalHits: total
+      }
     };
   }
 
@@ -462,22 +484,24 @@ export class ElasticsearchService {
     const indexName = this.getIndexName(tenantId);
 
     try {
-      const response = await this.client.search({
-        index: indexName,
-        body: {
-          suggest: {
-            title_suggest: {
-              prefix: query,
-              completion: {
-                field: 'title.suggest',
-                size: limit
+      const response = await this.circuitBreaker.execute(async () => {
+        return await this.client.search({
+          index: indexName,
+          body: {
+            suggest: {
+              title_suggest: {
+                prefix: query,
+                completion: {
+                  field: 'title.suggest',
+                  size: limit
+                }
               }
             }
           }
-        }
+        });
       });
 
-      const suggestions = response.suggest?.title_suggest?.[0]?.options || [];
+      const suggestions = (response.suggest?.title_suggest?.[0]?.options || []) as any[];
       return suggestions.map((option: any) => option.text);
     } catch (error) {
       this.contextLogger.error('Failed to get suggestions', error as Error, {
@@ -493,23 +517,25 @@ export class ElasticsearchService {
     const indexName = this.getIndexName(tenantId);
 
     try {
-      const body = documents.flatMap(doc => [
-        { index: { _index: indexName, _id: doc.id } },
-        doc.body
-      ]);
+      await this.circuitBreaker.execute(async () => {
+        const body = documents.flatMap(doc => [
+          { index: { _index: indexName, _id: doc.id } },
+          doc.body
+        ]);
 
-      const response = await this.client.bulk({
-        body,
-        refresh: 'wait_for'
+        const response = await this.client.bulk({
+          body,
+          refresh: 'wait_for'
+        });
+
+        if (response.errors) {
+          const errors = response.items
+            .filter((item: any) => item.index && item.index.error)
+            .map((item: any) => item.index.error);
+          
+          this.contextLogger.error('Bulk index had errors', new Error('Bulk index errors'), { errors });
+        }
       });
-
-      if (response.errors) {
-        const errors = response.items
-          .filter((item: any) => item.index && item.index.error)
-          .map((item: any) => item.index.error);
-        
-        this.contextLogger.error('Bulk index had errors', new Error('Bulk index errors'), { errors });
-      }
 
       this.contextLogger.debug('Bulk index completed', {
         index: indexName,
@@ -546,8 +572,11 @@ export class ElasticsearchService {
   // Health check
   public async healthCheck(): Promise<{ status: string; details: any }> {
     try {
-      const health = await this.client.cluster.health();
-      const info = await this.client.info();
+      const { health, info } = await this.circuitBreaker.execute(async () => {
+        const health = await this.client.cluster.health();
+        const info = await this.client.info();
+        return { health, info };
+      });
 
       return {
         status: health.status === 'red' ? 'unhealthy' : 'healthy',
@@ -571,9 +600,11 @@ export class ElasticsearchService {
   // Get all tenant indexes
   public async getTenantIndexes(): Promise<string[]> {
     try {
-      const response = await this.client.cat.indices({
-        index: `${this.indexPrefix}-*`,
-        format: 'json'
+      const response = await this.circuitBreaker.execute(async () => {
+        return await this.client.cat.indices({
+          index: `${this.indexPrefix}-*`,
+          format: 'json'
+        });
       });
 
       return response.map((index: any) => index.index);

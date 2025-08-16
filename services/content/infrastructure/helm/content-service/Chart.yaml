@@ -1,0 +1,7 @@
+apiVersion: v2
+name: content-service
+description: Helm chart for Suuupra Content Service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+

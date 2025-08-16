@@ -18,7 +18,6 @@ beforeAll(async () => {
     host: 'localhost',
     port: 6379,
     maxRetriesPerRequest: 1,
-    retryDelayOnFailover: 100,
     lazyConnect: true
   });
   
@@ -40,7 +39,9 @@ beforeEach(async () => {
   // Clear all collections before each test
   const collections = mongoose.connection.collections;
   for (const key in collections) {
-    await collections[key].deleteMany({});
+    if (collections[key]) {
+      await collections[key].deleteMany({});
+    }
   }
   
   // Clear Redis

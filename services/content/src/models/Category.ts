@@ -48,7 +48,7 @@ const CategorySchema = new Schema<ICategory>({
     type: String, 
     index: true,
     validate: {
-      validator: function(value: string) {
+      validator: function(this: any, value: string): boolean {
         // Prevent self-reference
         return !value || value !== this._id;
       },
@@ -116,7 +116,7 @@ CategorySchema.pre('save', async function(next) {
 // Instance methods
 CategorySchema.methods.getFullPath = async function(): Promise<string> {
   const ancestors = await this.getAncestors();
-  const pathParts = [...ancestors.map(cat => cat.name), this.name];
+  const pathParts = [...ancestors.map((cat: ICategory) => cat.name), this.name];
   return pathParts.join(' > ');
 };
 
@@ -168,7 +168,7 @@ CategorySchema.statics.buildHierarchy = async function(tenantId: string): Promis
   const rootCategories: any[] = [];
   
   // Create category map
-  categories.forEach(cat => {
+  categories.forEach((cat: ICategory) => {
     categoryMap.set(cat._id, {
       ...cat.toJSON(),
       children: []
@@ -176,7 +176,7 @@ CategorySchema.statics.buildHierarchy = async function(tenantId: string): Promis
   });
   
   // Build hierarchy
-  categories.forEach(cat => {
+  categories.forEach((cat: ICategory) => {
     const categoryData = categoryMap.get(cat._id);
     
     if (cat.parentId && categoryMap.has(cat.parentId)) {

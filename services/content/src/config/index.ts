@@ -18,34 +18,46 @@ export class Config {
       }
     };
 
+    // Build database config with exactOptionalPropertyTypes-friendly optionals
+    const esConfig: any = {
+      node: process.env.ELASTICSEARCH_NODE || 'http://localhost:9200',
+      indexPrefix: process.env.ELASTICSEARCH_INDEX_PREFIX || 'content'
+    };
+    if (process.env.ELASTICSEARCH_USERNAME) {
+      esConfig.auth = {
+        username: process.env.ELASTICSEARCH_USERNAME,
+        password: process.env.ELASTICSEARCH_PASSWORD || ''
+      };
+    }
+
+    const redisConfig: any = {
+      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      db: parseInt(process.env.REDIS_DB || '0', 10)
+    };
+    if (process.env.REDIS_PASSWORD) {
+      redisConfig.password = process.env.REDIS_PASSWORD;
+    }
+
     this.database = {
       mongodb: {
         uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/content_dev',
         options: this.parseJsonConfig(process.env.MONGODB_OPTIONS, {})
       },
-      elasticsearch: {
-        node: process.env.ELASTICSEARCH_NODE || 'http://localhost:9200',
-        auth: process.env.ELASTICSEARCH_USERNAME ? {
-          username: process.env.ELASTICSEARCH_USERNAME,
-          password: process.env.ELASTICSEARCH_PASSWORD || ''
-        } : undefined,
-        indexPrefix: process.env.ELASTICSEARCH_INDEX_PREFIX || 'content'
-      },
-      redis: {
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
-        password: process.env.REDIS_PASSWORD,
-        db: parseInt(process.env.REDIS_DB || '0', 10)
-      }
+      elasticsearch: esConfig,
+      redis: redisConfig
     };
 
-    this.s3 = {
+    const s3Config: any = {
       region: process.env.AWS_REGION || 'us-east-1',
       accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
       bucketName: process.env.S3_BUCKET_NAME || 'suuupra-content-dev',
-      bucketRegion: process.env.S3_BUCKET_REGION || 'us-east-1',
-      cloudfrontDomain: process.env.CLOUDFRONT_DOMAIN
+      bucketRegion: process.env.S3_BUCKET_REGION || 'us-east-1'
     };
+    if (process.env.CLOUDFRONT_DOMAIN) {
+      s3Config.cloudfrontDomain = process.env.CLOUDFRONT_DOMAIN;
+    }
+    this.s3 = s3Config;
 
     this.auth = {
       jwtSecret: process.env.JWT_SECRET || 'your-jwt-secret-key',

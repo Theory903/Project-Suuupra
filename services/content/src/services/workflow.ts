@@ -21,8 +21,8 @@ export interface WorkflowEvent {
   fromStatus: ContentStatus;
   toStatus: ContentStatus;
   userId: string;
-  reason?: string;
-  metadata?: Record<string, any>;
+  reason?: string | undefined;
+  metadata?: Record<string, any> | undefined;
   timestamp: Date;
 }
 
@@ -133,8 +133,8 @@ export class ContentWorkflowService {
       fromStatus: content.status as ContentStatus,
       toStatus: transition.to,
       userId,
-      reason: options.reason,
-      metadata: options.metadata,
+      reason: options.reason as string | undefined,
+      metadata: options.metadata as any,
       timestamp: new Date()
     };
 
@@ -249,20 +249,20 @@ export class ContentWorkflowService {
     switch (event.action) {
       case 'approve':
         updates.metadata = {
-          ...content.metadata,
+          ...(content.metadata as any),
           approvedBy: event.userId,
           approvedAt: event.timestamp,
           approvalReason: event.reason
-        };
+        } as any;
         break;
 
       case 'reject':
         updates.metadata = {
-          ...content.metadata,
+          ...(content.metadata as any),
           rejectedBy: event.userId,
           rejectedAt: event.timestamp,
           rejectionReason: event.reason
-        };
+        } as any;
         // Clear approval metadata if previously approved
         delete updates.metadata.approvedBy;
         delete updates.metadata.approvedAt;
@@ -272,28 +272,28 @@ export class ContentWorkflowService {
       case 'publish':
         updates.publishedAt = event.timestamp;
         updates.metadata = {
-          ...content.metadata,
+          ...(content.metadata as any),
           publishedBy: event.userId,
-          firstPublishedAt: content.metadata?.firstPublishedAt || event.timestamp
-        };
+          firstPublishedAt: (content.metadata as any)?.firstPublishedAt || event.timestamp
+        } as any;
         break;
 
       case 'archive':
         updates.metadata = {
-          ...content.metadata,
+          ...(content.metadata as any),
           archivedBy: event.userId,
           archivedAt: event.timestamp,
           archiveReason: event.reason
-        };
+        } as any;
         break;
 
       case 'restore':
         updates.metadata = {
-          ...content.metadata,
+          ...(content.metadata as any),
           restoredBy: event.userId,
           restoredAt: event.timestamp,
           restoreReason: event.reason
-        };
+        } as any;
         // Clear archive metadata
         delete updates.metadata.archivedBy;
         delete updates.metadata.archivedAt;
@@ -302,7 +302,7 @@ export class ContentWorkflowService {
     }
 
     // Store workflow event in content history
-    const workflowHistory = content.metadata?.workflowHistory || [];
+    const workflowHistory = (content.metadata as any)?.workflowHistory || [];
     workflowHistory.push({
       id: uuidv4(),
       action: event.action,
@@ -409,7 +409,7 @@ export class ContentWorkflowService {
 
   // Get workflow history for content
   public getWorkflowHistory(content: IContent): any[] {
-    return content.metadata?.workflowHistory || [];
+    return (content.metadata as any)?.workflowHistory || [];
   }
 
   // Get workflow statistics
