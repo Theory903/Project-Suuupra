@@ -1,0 +1,225 @@
+# ==============================================================================
+# Suuupra EdTech Platform - Unified Docker Compose
+#
+# This file defines the entire platform stack for local development.
+# It uses environment variables from the .env file for configuration.
+#
+# To run:
+# 1. Make sure you have a .env file (copy from .env.example).
+# 2. Run `docker-compose up -d`
+# ==============================================================================
+version: '3.8'
+
+networks:
+  suuupra-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+services:
+  # ----------------------------------------------------------------------------
+  # INFRASTRUCTURE SERVICES
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: suuupra-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DB_IDENTITY},${POSTGRES_DB_PAYMENTS},${POSTGRES_DB_COMMERCE},${POSTGRES_DB_LEDGER},${POSTGRES_DB_BANK_SIMULATOR},${POSTGRES_DB_UPI_CORE}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: suuupra-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: suuupra-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: suuupra-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
+      KAFKA_ZOOKEEPER_CONNECT: ${KAFKA_ZOOKEEPER_CONNECT}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: suuupra-jaeger
+    ports:
+      - "16686:16686" # UI
+      - "14268:14268" # Collector
+    environment:
+      COLLECTOR_OTLP_ENABLED: ${COLLECTOR_OTLP_ENABLED}
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: suuupra-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: suuupra-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION SERVICES
+  # ----------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: suuupra-api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - identity
+      - payments
+      - commerce
+    environment:
+      OIDC_DISCOVERY_URL: ${API_GATEWAY_OIDC_DISCOVERY_URL}
+      OIDC_ISSUER: ${API_GATEWAY_OIDC_ISSUER}
+      OIDC_AUDIENCE: ${API_GATEWAY_OIDC_AUDIENCE}
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  identity:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+    container_name: suuupra-identity
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB_IDENTITY}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_REDIS_HOST: ${REDIS_HOST}
+      SPRING_REDIS_PORT: ${REDIS_PORT}
+      SECURITY_JWT_ISSUER: ${IDENTITY_JWT_ISSUER}
+      KMS_KEKBASE64: ${KMS_KEKBASE64}
+      SECURITY_MFA_KEKBASE64: ${SECURITY_MFA_KEKBASE64}
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  payments:
+    build:
+      context: ./services/payments
+      dockerfile: Dockerfile
+    container_name: suuupra-payments
+    depends_on:
+      - postgres
+      - kafka
+    environment: {}
+      # Add payments-specific env vars here
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  commerce:
+    build:
+      context: ./services/commerce
+      dockerfile: Dockerfile
+    container_name: suuupra-commerce
+    depends_on:
+      - postgres
+      - kafka
+    environment: {}
+      # Add commerce-specific env vars here
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  ledger:
+    build:
+      context: ./services/ledger
+      dockerfile: Dockerfile
+    container_name: suuupra-ledger
+    depends_on:
+      - postgres
+    environment: {}
+      # Add ledger-specific env vars here
+    networks:
+      - suuupra-network
+    restart: unless-stopped
+
+  # --- Other services would be added here in the same standardized format ---
+  # Example:
+  # notifications:
+  #   build:
+  #     context: ./services/notifications
+  #   ...

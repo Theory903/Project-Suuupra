@@ -25,33 +25,33 @@ This project is designed to be a learning experience. By the end of this project
 
 ```mermaid
 graph TD
-    subgraph User
-        A[Clients]
+    subgraph Clients
+        A[Web & Mobile Apps] --> B[API Gateway];
     end
 
-    subgraph Platform
-        B(API Gateway)
-        C(Identity)
-        D(Content)
-        E(Commerce)
-        F(Payments)
-        G(Ledger)
-        H(Live Classes)
-        I(VOD)
-        J(Mass Live)
-        K(Creator Studio)
-        L(Recommendations)
-        M(Search & Crawler)
-        N(LLM Tutor)
-        O(Analytics)
-        P(Counters)
-        Q(Live Tracking)
-        R(Notifications)
-        S(Admin)
+    subgraph Platform Core
+        B -- REST/gRPC --> C[Identity];
+        B -- REST/gRPC --> E[Commerce];
+        B -- REST/gRPC --> F[Payments];
     end
 
-    A --> B
-    B --> C & D & E & F & H & I & J & K & L & M & N & O & P & Q & R & S
+    subgraph Event Bus
+        K[Kafka];
+    end
+
+    subgraph Service Communication
+        C -- Publishes --> K[user.created];
+        E -- Publishes --> K[order.created];
+        F -- Consumes --> K[order.created];
+        F -- Publishes --> K[payment.succeeded];
+        subgraph Downstream Services
+            R[Notifications] -- Consumes --> K[user.created, payment.succeeded];
+            G[Ledger] -- Consumes --> K[payment.succeeded];
+            O[Analytics] -- Consumes --> K;
+        end
+    end
+
+    style K fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 ---
@@ -90,11 +90,16 @@ This matrix provides a centralized, single source of truth for the status, prior
 This section provides a detailed, actionable checklist of tasks for each service, organized by implementation phase.
 
 ### **Phase 1: Foundation**
+- [-] `Global`: Create unified docker-compose.yml for entire platform.
+- [-] `Global`: Implement .env file for centralized configuration.
+- [ ] `Global`: Develop master build-all.sh script.
+- [-] `Docs`: Update architecture diagrams to show event-driven flows.
 - [ ] `api-gateway`: Implement dynamic routing based on service discovery.
 - [ ] `api-gateway`: Integrate authentication and authorization middleware with the `identity` service.
 - [ ] `api-gateway`: Add comprehensive rate limiting and abuse prevention.
 - [x] `identity`: Implement OAuth2/OIDC provider with MFA and RBAC.
 - [x] `identity`: Harden security and integrate with HashiCorp Vault for secrets management.
+- [ ] `identity`: Refactor to publish `user.created` event to Kafka.
 - [ ] `content`: Design and implement the data model for courses, lessons, and media assets.
 - [ ] `content`: Develop APIs for content creation, retrieval, and management.
 
@@ -102,11 +107,14 @@ This section provides a detailed, actionable checklist of tasks for each service
 - [-] `commerce`: Develop the product catalog service, including product variants and pricing.
 - [-] `commerce`: Implement shopping cart and checkout orchestration logic.
 - [ ] `commerce`: Integrate with the `payments` service to process orders.
+- [ ] `commerce`: Refactor to publish `order.created` event to Kafka.
 - [x] `payments`: Implement event-sourced architecture for payment orchestration.
 - [x] `payments`: Integrate with `upi-core` and `bank-simulator` for end-to-end payment processing.
+- [ ] `payments`: Refactor to consume `order.created` event and publish `payment.succeeded` event.
 - [-] `ledger`: Implement core double-entry accounting logic and transaction processing.
 - [ ] `ledger`: Add support for currency conversion and multi-currency transactions.
 - [ ] `ledger`: Develop robust audit trail and reporting features, including hash-chaining for data integrity.
+- [ ] `ledger`: Refactor to consume `payment.succeeded` event.
 - [x] `upi-core`: Simulate the UPI switch for handling payment requests.
 - [x] `bank-simulator`: Simulate a core banking system to respond to payment authorization requests.
 

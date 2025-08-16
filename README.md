@@ -155,12 +155,52 @@ curl -s http://localhost:8081/actuator/health | jq
 
 ## 📡 Communication Patterns
 
-| Type      | Protocols                            |
-|-----------|---------------------------------------|
-| API       | REST / OpenAPI                        |
-| Internal  | gRPC + REST (hybrid microservices)    |
-| Events    | Kafka + RabbitMQ                      |
-| Realtime  | WebSocket, WebRTC, SSE                |
+| Type      | Protocols                            | Use Case                                                              |
+|-----------|--------------------------------------|-----------------------------------------------------------------------|
+| **Asynchronous** | **Kafka** (Primary)             | Cross-domain business events, service decoupling (e.g., `user.registered`) |
+| **Synchronous**  | **gRPC** (Internal)              | High-performance, low-latency internal service-to-service requests      |
+| **Synchronous**  | **REST / OpenAPI** (External)    | External client-facing APIs, third-party integrations                 |
+| **Real-time**    | **WebSocket, WebRTC, SSE**       | Live updates, interactive sessions, streaming                         |
+
+### 🏛️ Event-Driven Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Clients
+        A[Web & Mobile Apps] --> B[API Gateway];
+    end
+
+    subgraph Platform Core
+        B -- REST/gRPC --> C[Identity];
+        B -- REST/gRPC --> E[Commerce];
+        B -- REST/gRPC --> F[Payments];
+    end
+
+    subgraph Event Bus
+        K[Kafka];
+    end
+
+    subgraph Service Communication
+        C -- Publishes --> K[user.created];
+        E -- Publishes --> K[order.created];
+        F -- Consumes --> K[order.created];
+        F -- Publishes --> K[payment.succeeded];
+        subgraph Downstream Services
+            R[Notifications] -- Consumes --> K[user.created, payment.succeeded];
+            G[Ledger] -- Consumes --> K[payment.succeeded];
+            O[Analytics] -- Consumes --> K;
+        end
+    end
+
+    style K fill:#f9f,stroke:#333,stroke-width:2px
+```
+
+### 🗂️ Shared Schemas and Contracts
+
+The `shared/` directory is the **single source of truth** for all cross-service contracts, ensuring consistency and type safety across the platform.
+
+- **`shared/proto`**: Contains all gRPC service definitions (`.proto` files). Services use these to generate client and server stubs.
+- **`shared/events`**: Contains all asynchronous event schemas (e.g., Avro, Protobuf). This ensures that event producers and consumers agree on the event structure.
 
 ---
 
