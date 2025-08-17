@@ -1,0 +1,399 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "LLM Tutor - Cost & Resource Optimization",
+    "tags": ["llm", "tutor", "cost", "optimization", "resources"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "5m",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Hourly Cost",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(token_cost_total_usd[1h]))",
+            "legendFormat": "Cost/Hour"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Average Cost per Request",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(cost_per_request_usd_bucket[1h]))",
+            "legendFormat": "Avg Cost/Request"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 4,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.01},
+                {"color": "red", "value": 0.05}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "GPU Utilization",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(gpu_usage_percent)",
+            "legendFormat": "GPU Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 60},
+                {"color": "green", "value": 80}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Memory Efficiency",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(system_memory_usage_percent)",
+            "legendFormat": "Memory Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 90}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Cost Breakdown by Component",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (service_component) (rate(cost_per_request_usd_sum[1h]))",
+            "legendFormat": "{{service_component}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Token Cost by Model",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (model_name) (rate(token_cost_total_usd[1h]))",
+            "legendFormat": "{{model_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Cost Trends Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(token_cost_total_usd[1h]) by (model_name)",
+            "legendFormat": "{{model_name}} - Tokens"
+          },
+          {
+            "expr": "sum(rate(resource_cost_hourly_usd[1h])) by (resource_type)",
+            "legendFormat": "{{resource_type}} - Infrastructure"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Cost/Hour ($)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Resource Utilization vs Cost",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "avg(gpu_usage_percent)",
+            "legendFormat": "GPU Utilization %"
+          },
+          {
+            "expr": "rate(token_cost_total_usd[1h]) * 100",
+            "legendFormat": "Cost/Hour ($) x 100"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percentage / Cost Factor",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Model Cache Efficiency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(model_cache_hits_total[5m]) / (rate(model_cache_hits_total[5m]) + rate(model_cache_misses_total[5m]))",
+            "legendFormat": "Cache Hit Rate - {{model_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Hit Rate",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Cost per User Tier",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum by (user_tier) (rate(cost_per_request_usd_sum[1h])) / sum by (user_tier) (rate(cost_per_request_usd_count[1h]))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "displayMode": "color-background"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.01},
+                {"color": "red", "value": 0.05}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 11,
+        "title": "GPU Memory Utilization",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "gpu_memory_usage_bytes / (1024^3)",
+            "legendFormat": "GPU {{gpu_id}} Memory (GB)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (GB)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      },
+      {
+        "id": 12,
+        "title": "Efficiency Metrics",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "rate(llm_tokens_total[1h]) / rate(token_cost_total_usd[1h])",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "displayName": "Tokens per Dollar",
+            "custom": {
+              "displayMode": "color-background"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "green", "value": 10000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40}
+      },
+      {
+        "id": 13,
+        "title": "Model Loading Efficiency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(model_loading_duration_seconds_bucket[1h]))",
+            "legendFormat": "p95 Load Time - {{model_name}}"
+          },
+          {
+            "expr": "rate(model_cache_misses_total[5m])",
+            "legendFormat": "Cache Misses/sec - {{model_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Time (s) / Misses/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40}
+      },
+      {
+        "id": 14,
+        "title": "Cost Optimization Opportunities",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(1 - (rate(model_cache_hits_total[1h]) / (rate(model_cache_hits_total[1h]) + rate(model_cache_misses_total[1h])))) * 100",
+            "legendFormat": "Cache Miss Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 25}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 48}
+      },
+      {
+        "id": 15,
+        "title": "Idle Resource Cost",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(resource_cost_hourly_usd) - sum(rate(token_cost_total_usd[1h]))",
+            "legendFormat": "Idle Cost/Hour"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 20}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 48}
+      },
+      {
+        "id": 16,
+        "title": "Peak vs Off-Peak Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(llm_requests_total[1h])",
+            "legendFormat": "Requests/Hour"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/Hour",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "model_name",
+          "type": "query",
+          "query": "label_values(token_cost_total_usd, model_name)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "resource_type",
+          "type": "query",
+          "query": "label_values(resource_cost_hourly_usd, resource_type)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Cost Alerts",
+          "datasource": "prometheus",
+          "expr": "ALERTS{alertname=~\".*Cost.*\"}",
+          "textFormat": "{{alertname}}: {{description}}"
+        }
+      ]
+    }
+  }
+}

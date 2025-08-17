@@ -1,0 +1,333 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "LLM Tutor - Safety & Content Moderation",
+    "tags": ["llm", "tutor", "safety", "moderation"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Content Block Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(safety_filter_results_total{action=\"block\"}[5m]) / rate(safety_filter_results_total[5m]) * 100",
+            "legendFormat": "Block Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Safety Filter Latency (p95)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(safety_filter_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{filter_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.1},
+                {"color": "red", "value": 0.25}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Average Safety Confidence",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(safety_confidence_score_bucket[5m]))",
+            "legendFormat": "Confidence"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.7},
+                {"color": "green", "value": 0.9}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Total Safety Checks",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(safety_filter_results_total[5m]) * 60",
+            "legendFormat": "Checks/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "red", "value": 5000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Safety Filter Results by Type",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (classification) (rate(safety_filter_results_total[5m]))",
+            "legendFormat": "{{classification}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Block Reasons Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (block_reason) (rate(content_blocked_rate[5m]))",
+            "legendFormat": "{{block_reason}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Safety Filter Performance Trends",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(safety_filter_results_total{action=\"allow\"}[5m])",
+            "legendFormat": "Allowed - {{filter_type}}"
+          },
+          {
+            "expr": "rate(safety_filter_results_total{action=\"block\"}[5m])",
+            "legendFormat": "Blocked - {{filter_type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Operations/sec",
+            "min": 0
+          }
+        ],
+        "seriesOverrides": [
+          {
+            "alias": "/Blocked.*/",
+            "color": "red"
+          },
+          {
+            "alias": "/Allowed.*/",
+            "color": "green"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Safety Confidence Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(safety_confidence_score_bucket[5m])",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "dataFormat": "tsbuckets",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Filter Latency by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(safety_filter_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 - {{filter_type}} - {{model_name}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(safety_filter_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 - {{filter_type}} - {{model_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Safety Incidents Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(safety_filter_results_total{action=\"block\"}[1h])",
+            "legendFormat": "Blocked Content - {{classification}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Incidents",
+            "min": 0
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [10],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "type": "last"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "5m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Safety Incidents",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      },
+      {
+        "id": 11,
+        "title": "Input vs Output Safety Metrics",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "rate(safety_filter_results_total{filter_type=\"input\"}[1h]) by (classification)",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "rate(safety_filter_results_total{filter_type=\"output\"}[1h]) by (classification)",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40}
+      },
+      {
+        "id": 12,
+        "title": "Safety Model Performance",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "avg_over_time(safety_confidence_score[1h]) by (filter_type, model_name)",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.7},
+                {"color": "green", "value": 0.9}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "filter_type",
+          "type": "query",
+          "query": "label_values(safety_filter_results_total, filter_type)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "time_range",
+          "type": "interval",
+          "options": ["5m", "15m", "1h", "6h", "24h"],
+          "current": {
+            "text": "5m",
+            "value": "5m"
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Safety Alerts",
+          "datasource": "prometheus",
+          "expr": "ALERTS{alertname=~\".*Safety.*\"}",
+          "textFormat": "{{alertname}}: {{description}}"
+        }
+      ]
+    }
+  }
+}

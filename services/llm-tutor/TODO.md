@@ -1,207 +1,207 @@
-# Service PRD: LLM Tutor Service (GPT‑OSS + Hugging Face + LangChain + Voice)
+# PRD & Implementation Plan: LLM Tutor Service (Industry Grade)
 
-## 1. 🎯 The Challenge: Problem Statement & Mission
+**Document Status:** DRAFT | **Version:** 2.0 | **Last Updated:** 2025-08-17
 
-### Problem Statement
-> Traditional online learning lacks the personalized guidance and immediate feedback of a human tutor. We must build an AI tutor that understands student needs, adapts learning paths, and offers real‑time help while staying safe, accurate, age‑appropriate, and grounded in citations.
-
-### Mission
-> Deliver a safe, multimodal tutor on Suuupra using open‑weight **GPT‑OSS** models (served via Hugging Face + vLLM), **LangChain** for RAG, and a robust **voice** stack (Whisper ASR + OpenVoice/Coqui XTTS‑v2 TTS) to produce accessible, grounded learning experiences.
+**Lead Agent:** Kilo Code
+**Contributing Agents:** `Agent-Architect`, `Agent-LLM-RAG`, `Agent-DevOps`, `Agent-QA`, `Agent-SecOps`, `Agent-Voice`
 
 ---
 
-## 2. 🧠 Core Requirements & Edge Cases
+## 1. Vision & Strategy (Agent: Product Owner)
 
-### 2.1 Functional Requirements (FRs)
+### 1.1. Mission
+To deliver a safe, adaptive, and highly engaging multimodal AI tutor. We will leverage open-weight GPT-OSS models, advanced RAG techniques, and a state-of-the-art voice interface to provide a personalized and effective learning experience that is both accessible and grounded in factual knowledge.
 
-| FR-ID | Feature | Description |
-|---|---|---|
-| FR-1 | **Conversational AI (GPT‑OSS)** | Multi‑turn tutor with citations, tool use, and streaming. Start with 20B for latency/cost; scale to 120B when needed. Use Harmony chat format. |
-| FR-2 | **RAG & Knowledge Base (LangChain)** | Hybrid retrieval (vector + BM25) with reranking; Parent‑Document and Self‑Query retrievers for long docs and filtered queries. |
-| FR-3 | **Personalized Learning** | Session memory, mastery tracking, spaced practice, difficulty adaptation. |
-| FR-4 | **Safety & Moderation** | Input/output classification, deterministic refusal flows, audit logging. |
-| FR-5 | **Adaptive Assessment** | Diagnostics, hints, and next‑best‑action recommendations; mastery map per topic. |
-| FR-6 | **Voice I/O** | **ASR:** Whisper large‑v3. **TTS:** OpenVoice or Coqui XTTS‑v2 for natural multilingual output; cloning only with explicit consent. |
+### 1.2. Problem Statement
+Traditional online learning platforms often fail to provide the immediate, personalized feedback that is crucial for effective learning. Students lack a guide who can adapt to their pace, identify knowledge gaps, and provide encouragement. This service will bridge that gap with an AI that acts as a dedicated, one-on-one tutor.
 
-### 2.2 Non‑Functional Requirements (NFRs)
-
-| NFR-ID | Requirement | Target | Notes |
-|---|---|---|---|
-| NFR-1 | **Latency** | p95 < 2 s | vLLM PagedAttention + continuous batching; token streaming for UX. |
-| NFR-2 | **Grounded Accuracy** | > 90% | Evaluate via RAG triad: context relevance, groundedness, answer relevance. |
-| NFR-3 | **Safety** | < 0.1% harmful pass‑through | Layered filters + red‑teaming prior to release. |
-| NFR-4 | **Embeddings Throughput** | Burst to 10k QPS | Serve embeddings via Hugging Face **Text Embeddings Inference (TEI)**. |
-
-### 2.3 Edge Cases & Failure Scenarios
-- **Hallucinations:** Retrieval‑first prompting; rerank and corrective flow when low retrieval confidence is detected.
-- **Harmful/unsafe content:** Classify inputs/outputs; deterministic refusals; capture traces for audit.
-- **Student disengagement:** Detect frustration markers (rapid turns, drop‑offs) and switch to step‑by‑step coaching or simpler problems.
+### 1.3. Key Performance Indicators (KPIs)
+*   **User Engagement:** Daily Active Users (DAU), Session Duration, Interaction per Session.
+*   **Learning Efficacy:** Mastery Velocity (rate of skill improvement), Quiz/Assessment Scores, Hint Efficiency (rate of successful problem-solving after a hint).
+*   **System Performance:** p95 Latency, Uptime (SLA), Cost per User.
+*   **Safety & Trust:** Harmful Content Block Rate, Citation Accuracy, User Trust Score (via surveys).
 
 ---
 
-## 3. 🗺️ Architecture & Design
+## 2. Architecture & Design (Agent: Solutions Architect)
 
-### 3.1 System Architecture Diagram
+### 2.1. System Architecture
+The architecture is designed for scalability, modularity, and low latency, with clear separation of concerns between orchestration, AI/ML inference, and state management.
+
+```mermaid
+graph TD
+    subgraph User Endpoints
+        C[Clients: Web, Mobile, Voice API]
+    end
+
+    subgraph Gateway & Core Services
+        C -- HTTPS/WSS --> GW[API Gateway]
+        GW -- gRPC --> Auth[Identity Service: AuthN/AuthZ]
+        GW -- gRPC --> Orch[Conversation Orchestrator]
+    end
+
+    subgraph Conversation Orchestrator (FastAPI + LangChain)
+        Orch --> SM[Session Manager: Redis]
+        Orch --> PM[Profile Manager: Postgres]
+        Orch --> RAG[RAG Pipeline]
+        Orch --> Safety[Safety & Guardrails]
+        Orch --> LLM[LLM Inference Service]
+    end
+
+    subgraph RAG Pipeline
+        RAG --> Router{Query Router}
+        Router --> SQ[Self-Query Retriever]
+        Router --> HR[Hybrid Retriever]
+        SQ --> VDB[(Vector DB: Milvus)]
+        HR --> VDB
+        HR --> BM25[BM25 Index: Elasticsearch]
+        VDB -- Top K Docs --> Reranker[Cross-Encoder Reranker]
+        BM25 -- Top K Docs --> Reranker
+        Reranker -- Reranked Docs --> PDR[Parent Document Retriever]
+        PDR -- Final Context --> Orch
+    end
+
+    subgraph AI/ML Inference (GPU-enabled)
+        LLM[LLM Inference: vLLM]
+        TEI[Embedding Service: TEI]
+        Reranker
+        ASR[ASR Service: Whisper]
+        TTS[TTS Service: OpenVoice]
+    end
+
+    subgraph Observability
+        Orch -- OTel --> OTelCollector[OTel Collector]
+        LLM -- OTel --> OTelCollector
+        OTelCollector -- Traces --> Jaeger
+        OTelCollector -- Metrics --> Prometheus
+        Prometheus -- Alerts --> Alertmanager
+        Prometheus -- Data --> Grafana[Grafana Dashboards]
+    end
+
+    style VDB fill:#cde4ff
+    style LLM fill:#ffcda8
+    style TEI fill:#ffcda8
 ```
-flowchart LR
-  C[Client (Web/Mobile/Voice)] --> |Text/Audio| GW[API Gateway]
-  GW --> Auth[Auth & Policy]
-  GW --> Orch[Conversation Orchestrator (LangChain graph)]
-  Orch --> Retr{RAG Router}
-  Retr --> V[(Vector Store)]
-  Retr --> B[BM25 Index]
-  V --> RR[Reranker]
-  B --> RR
-  RR --> Ctx[Context Pack]
-  Orch --> LLM[GPT‑OSS via vLLM]
-  Ctx --> LLM
-  LLM --> Safe[Safety & Policy Filters]
-  Safe --> VO{Voice Out?}
-  VO --> |Yes| TTS[OpenVoice / XTTS‑v2]
-  VO --> |No| Out[Text Response]
-  TTS --> Out
-  GW --> Obs[Observability (Tracing, Metrics, Grafana)]
-```
 
-### 3.2 Tech Stack
-
-| Component | Technology | Notes |
-|---|---|---|
-| **LLM Serving** | GPT‑OSS‑20B/120B on Hugging Face; **vLLM** | 20B fits ~16 GB; 120B targets ~80 GB. Use Harmony prompt format; consider MXFP4/quant for fit and throughput. |
-| **Backend** | Python 3.11, FastAPI | Async/streaming APIs; policy hooks. |
-| **RAG** | **LangChain** | Parent‑Document, Self‑Query, contextual compression, cross‑encoder reranker. |
-| **Embeddings** | HF models via **TEI** | Production embedding server; integrates with Milvus/Chroma/Pinecone. |
-| **Vector DB** | Milvus / Pinecone / Chroma | Hybrid retrieval, metadata filters. |
-| **Reranking** | Cross‑encoder (open CE) | Improves precision on top‑k candidates. |
-| **ASR** | Whisper large‑v3 | Robust multilingual speech recognition. |
-| **TTS** | OpenVoice / Coqui XTTS‑v2 | Instant cloning, multilingual synthesis (consent required). |
-| **Observability** | Traces + Prometheus/Grafana | Latency, retrieval hit@k, WER, safety events. |
-
-### 3.3 Key Components
-- **RAG Pipeline:** Hybrid search (vector + BM25), rerank with cross‑encoder; Parent‑Document fetch to broaden context; Self‑Query for structured filters.
-- **Serving:** vLLM PagedAttention and continuous batching for SLA compliance.
-- **Voice:** Whisper ASR; TTS via OpenVoice or XTTS‑v2 with clear consent UI and logging.
+### 2.2. Tech Stack
+| Component | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Backend** | Python 3.11, FastAPI | High-performance async framework, strong community support. |
+| **LLM Serving** | **vLLM** on Kubernetes | SOTA throughput with PagedAttention and continuous batching. |
+| **Embeddings** | **Hugging Face TEI** | Optimized for high-throughput, low-latency embedding inference. |
+| **RAG Framework** | LangChain | Comprehensive toolkit for building complex RAG pipelines. |
+| **Vector DB** | Milvus | Scalable, supports metadata filtering and hybrid search. |
+| **Session Store** | Redis | Low-latency key-value store for managing conversational state. |
+| **ASR** | Whisper large-v3 | Industry-standard for accurate multilingual speech recognition. |
+| **TTS** | OpenVoice / Coqui XTTS-v2 | High-quality, fast voice synthesis with cloning capabilities. |
+| **CI/CD** | GitHub Actions, Helm | Automated build, test, and deployment to Kubernetes. |
+| **Observability** | OpenTelemetry, Prometheus, Grafana | Standardized, powerful stack for monitoring and tracing. |
+| **IaC** | Terraform, Kubernetes | Declarative infrastructure for reproducible environments. |
 
 ---
 
-## 4. 🚀 Implementation Phases
+## 3. Implementation Roadmap & Tasks
 
-> Duration: **10 weeks** total. Parallelize where feasible.
+### Phase 0: Core Infrastructure & Serving Foundation (Weeks 1-2)
+**Goal:** Establish a production-ready serving layer for all ML models.
+- **[ ] `Agent-DevOps`:** Provision EKS cluster and GPU node groups using Terraform.
+- **[ ] `Agent-DevOps`:** Deploy GPT-OSS-20B model via **vLLM** using a Helm chart.
+    - **Deliverable:** Internal streaming endpoint is live and benchmarked.
+- **[ ] `Agent-DevOps`:** Deploy Hugging Face **TEI** server with a chosen embedding model.
+    - **Deliverable:** High-throughput embedding endpoint is live.
+- **[ ] `Agent-DevOps`:** Provision managed Milvus and Redis services.
+- **[ ] `Agent-LLM-RAG`:** Create the base FastAPI service with async endpoints and placeholder logic.
+    - **Deliverable:** Service skeleton deployed to dev environment.
 
-### Phase 0 — Foundations (Week 1)
-**Objective:** Stand up core serving and storage.  
-**Tasks:**
-- Deploy GPT‑OSS‑20B via vLLM with streaming; validate Harmony prompts.
-- Spin up embeddings via HF **TEI**.
-- Provision vector database (Milvus/Pinecone/Chroma).  
-**Exit Criteria:**
-- Response token‑start p95 ≤ 600 ms warm.
-- Embeddings QPS ≥ 2k single instance.
+### Phase 1: RAG v1 - Hybrid Retrieval & Citations (Weeks 3-4)
+**Goal:** Implement a robust, multi-stage retrieval pipeline.
+- **[ ] `Agent-LLM-RAG`:** Build content ingestion pipeline (Unstructured.io, LangChain chunkers).
+- **[ ] `Agent-LLM-RAG`:** Implement hybrid retrieval (vector + BM25) and a cross-encoder reranker.
+- **[ ] `Agent-LLM-RAG`:** Integrate Parent-Document and Self-Query retrievers.
+- **[ ] `Agent-QA`:** Build initial RAG evaluation dataset (question, context, ground-truth answer).
+    - **Deliverable:** End-to-end RAG pipeline returning cited answers, passing initial eval.
 
-### Phase 1 — RAG v1 (Weeks 2–3)
-**Objective:** Working retrieval and citations.  
-**Tasks:**
-- Content ingestion + chunking.
-- Embedding pipeline + hybrid retrieval (vector + BM25).
-- Integrate reranker and contextual compression.  
-**Exit Criteria:**
-- Tutor answers include ≥ 2 citations.
-- Groundedness ≥ 0.85 on pilot eval set; p95 ≤ 2 s at 10 RPS.
+### Phase 2: Conversation Management & Safety (Weeks 5-6)
+**Goal:** Enable multi-turn conversations and enforce strict safety guardrails.
+- **[ ] `Agent-Architect`:** Implement Redis-backed session memory and a Postgres-backed learner profile store.
+- **[ ] `Agent-SecOps`:** Implement input/output content classifiers for safety (e.g., Llama Guard).
+- **[ ] `Agent-SecOps`:** Create a comprehensive audit logging system for all safety-related decisions.
+    - **Deliverable:** Tutor can hold a multi-turn conversation; all unsafe content is blocked and logged.
 
-### Phase 2 — Conversation & Safety (Weeks 4–5)
-**Objective:** Durable sessions + policy guardrails.  
-**Tasks:**
-- Redis‑backed session memory and learner profile store.
-- Input/output classification; refusal templates; audit logging.  
-**Exit Criteria:**
-- < 0.1% unsafe pass‑through on staged red‑team corpus.
-- Full traceability of blocked/allowed decisions.
+### Phase 3: Voice Interface (Weeks 7-8)
+**Goal:** Integrate real-time speech-to-text and text-to-speech.
+- **[ ] `Agent-Voice`:** Integrate Whisper large-v3 for ASR.
+- **[ ] `Agent-Voice`:** Integrate OpenVoice/XTTS-v2 for TTS.
+- **[ ] `Agent-SecOps`:** Build a consent flow and watermarking system for voice cloning.
+    - **Deliverable:** User can interact with the tutor via voice.
 
-### Phase 3 — Voice I/O (Week 6)
-**Objective:** Voice input and read‑aloud output.  
-**Tasks:**
-- Whisper ASR API; language auto‑detect, punctuation.
-- TTS via OpenVoice or XTTS‑v2; consent flow for cloning; watermarks/logs.  
-**Exit Criteria:**
-- ASR WER meets domain target.
-- TTS latency < 700 ms for short utterances.
+### Phase 4: Personalization & Assessment (Weeks 9-10)
+**Goal:** Make the tutor adaptive to individual learners.
+- **[ ] `Agent-LLM-RAG`:** Implement mastery tracking and learning progress analytics.
+- **[ ] `Agent-LLM-RAG`:** Build a difficulty adaptation engine and a spaced practice scheduler.
+- **[ ] `Agent-LLM-RAG`:** Create an intelligent hint system with next-best-action recommendations.
+    - **Deliverable:** The tutor adjusts difficulty based on user performance.
 
-### Phase 4 — Adaptive Assessment & Personalization (Weeks 7–8)
-**Objective:** Diagnostics, mastery map, and next‑best‑action.  
-**Tasks:**
-- Item bank; difficulty adaptation; spaced‑practice scheduler.  
-**Exit Criteria:**
-- Mastery deltas observable over 1‑week cohorts.
-- Hint efficiency improves week‑over‑week.
-
-### Phase 5 — Evals, Observability, Launch Readiness (Weeks 9–10)
-**Objective:** Hardening and compliance.  
-**Tasks:**
-- Traces, metrics, dashboards, SLOs.
-- Load tests; privacy & consent UX (DSR export/delete).  
-**Exit Criteria:**
-- p95 latency ≤ 2 s at target RPS.
-- DSR/consent flows verified; launch checklist passed.
+### Phase 5: Production Hardening & Launch (Weeks 11-12)
+**Goal:** Ensure the service is secure, observable, and ready for production traffic.
+- **[ ] `Agent-DevOps`:** Setup full OpenTelemetry tracing and Prometheus metrics. Create Grafana dashboards.
+- **[ ] `Agent-DevOps`:** Implement a full CI/CD pipeline with automated testing and canary deployments.
+- **[ ] `Agent-QA`:** Conduct load testing to validate performance SLAs.
+- **[ ] `Agent-SecOps`:** Perform security audit, penetration testing, and implement DSR functionality.
+    - **Deliverable:** Service is live in production, meeting all NFRs.
 
 ---
 
-## 5. 🧪 Testing & Quality Strategy
+## 4. Testing & Quality Strategy (Agent: QA)
 
-| Layer | Tools | Scope |
-|---|---|---|
-| Unit | `pytest` | Prompt utils, chunkers, safety adapters, reranker wrapper |
-| Integration | Testcontainers | End‑to‑end RAG: embed → retrieve → rerank → answer |
-| E2E | Cypress | Tutor journeys, quizzes, voice read‑aloud |
-| LLM Evals | Custom + LangChain evals | RAG triad, citation correctness, refusal correctness |
-| Red Team | Curated prompts | Jailbreaks, data leakage, unsafe topics |
-
----
-
-## 6. 🔭 Monitoring & Alerting
-
-**KPIs**
-- **Technical:** p95 latency, tokens/s, retrieval hit@k, reranker NDCG/MRR, ASR WER, safety events.
-- **Learning:** Mastery gains, hint efficiency, session retention.
-
-**Alerts**
-- `HighResponseLatency` if p99 > 2 s for 5 min.
-- `LowGroundedness` below threshold on rolling window.
-- `SafetyFilterFailure` on any unblocked critical event.
+| Layer | Tools | Scope & Deliverables |
+| :--- | :--- | :--- |
+| **Unit** | `pytest`, `pytest-asyncio` | Test individual functions: prompt formatters, chunking logic, API data models. **Coverage target: 90%**. |
+| **Integration** | Testcontainers, `pytest` | Test components together: RAG pipeline (embed→retrieve→rerank→generate), session management. |
+| **E2E** | Cypress, Playwright | Test full user journeys: sign-up → start conversation → ask question → receive cited/spoken answer. |
+| **LLM Evals** | `uptrain`, RAGAs | **RAG Triad:** Context Relevance, Groundedness, Answer Relevance. **Citation:** Precision/Recall. **Safety:** Refusal correctness. |
+| **Performance** | k6, Locust | Load test API endpoints to validate latency, throughput, and auto-scaling behavior under production load. |
+| **Red Teaming** | Manual + Automated | Curated prompts to test for jailbreaks, data leakage, harmful content generation, and bias. |
 
 ---
 
-## 7. 📚 Knowledge Base & References
+## 5. Observability & Monitoring (Agent: DevOps/SRE)
 
-- GPT‑OSS models and Harmony prompt schema.
-- vLLM serving features (PagedAttention, batching).
-- LangChain retrievers: Parent‑Document, Self‑Query, compression + reranker.
-- Hugging Face **TEI** for high‑throughput embeddings.
-- Whisper large‑v3 (ASR), OpenVoice / Coqui XTTS‑v2 (TTS).
+### 5.1. Key Metrics & Dashboards
+*   **RAG Performance Dashboard:**
+    *   Retrieval Hit Rate @ K
+    *   Reranker NDCG/MRR
+    *   End-to-end RAG latency (p50, p90, p95)
+    *   Groundedness & Answer Relevance scores (rolling average)
+*   **Inference Service Dashboard (vLLM, TEI):**
+    *   GPU Utilization, Memory Usage
+    *   Tokens per second, Time to First Token
+    *   Request throughput, error rate
+*   **Application Dashboard:**
+    *   API RED Metrics (Rate, Errors, Duration)
+    *   Session duration, number of turns
+*   **Voice Services Dashboard:**
+    *   ASR Word Error Rate (WER)
+    *   TTS Latency (Time to first audio chunk)
 
----
-
-## 8. ✅ Acceptance Criteria
-
-- Tutor responses return p95 < 2 s with ≥ 2 citations on RAG queries.
-- Groundedness ≥ 0.90 on curated eval set; citation correctness ≥ 0.95.
-- < 0.1% unsafe I/O over 10k staged turns.
-- Voice: ASR WER meets domain target; TTS latency < 700 ms for short utterances.
-- Privacy: DSR export/delete and consent flows verified.
-
----
-
-## 9. 🔧 Implementation Notes
-
-- Start on **GPT‑OSS‑20B** (fits ~16 GB); scale to **120B** on 80 GB (H100/MI300X) as usage grows.
-- Lock prompts to **Harmony** format for consistent outputs.
-- Use **TEI** for embeddings throughput; compatible with Milvus/Chroma/Pinecone.
-- Rerank after hybrid retrieval to boost precision (open cross‑encoder works well).
+### 5.2. Alerting Rules
+*   **P1 (Critical):** `HighResponseLatency` (p95 > 3s for 5m), `HighErrorRate` (>2% for 5m), `SafetyFilterFailure`.
+*   **P2 (Warning):** `LowGroundedness` (score < 0.85 for 1h), `LowRetrievalHitRate`, `HighGpuTemp`.
 
 ---
 
-## 10. 📎 Appendix: Model IDs (Hugging Face)
+## 6. Security & Compliance (Agent: SecOps)
 
-- LLM: `openai/gpt-oss-20b`, `openai/gpt-oss-120b`
-- ASR: `openai/whisper-large-v3`
-- TTS: `myshell-ai/OpenVoice` (or `myshell-ai/OpenVoiceV2`), `coqui/XTTS-v2`
-- Embedding server: Hugging Face Text Embeddings Inference (TEI)
+### 6.1. Threat Model & Mitigations
+| Threat | Mitigation Strategy |
+| :--- | :--- |
+| **Prompt Injection** | Strict input validation, use of structured prompt formats (e.g., Harmony), instruction-tuned models, output parsing. |
+| **PII Leakage** | PII detection and masking on both input and retrieved context before sending to the LLM. |
+| **Harmful Content** | Multi-layered approach: input classifier, output classifier (e.g., Llama Guard), and deterministic refusal flows. All decisions logged. |
+| **Denial of Service** | Rate limiting at the API Gateway, cost-based limiting on query complexity, robust auto-scaling. |
+
+### 6.2. Compliance & Data Privacy
+*   **Data Subject Rights (DSR):** Implement automated pipelines for data export and deletion requests.
+*   **Consent Management:** Explicit, logged consent for any PII storage and for voice cloning features.
+*   **Data Retention:** Enforce strict TTLs on conversational history and other sensitive data.
+*   **Dependency Scanning:** Use Trivy/Snyk in the CI pipeline to scan for vulnerabilities in container images and libraries.

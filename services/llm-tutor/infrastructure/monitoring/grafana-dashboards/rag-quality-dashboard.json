@@ -1,0 +1,304 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "LLM Tutor - RAG Quality & Accuracy",
+    "tags": ["llm", "tutor", "rag", "quality"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "RAG Hit Rate (Hit@K)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(rag_hit_rate_bucket{k_value=\"10\"}[5m]))",
+            "legendFormat": "Hit@10"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.7},
+                {"color": "green", "value": 0.9}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Average Relevance Score",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(rag_relevance_score_bucket[5m]))",
+            "legendFormat": "Relevance"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.6},
+                {"color": "green", "value": 0.8}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "RAG Pipeline Latency (p95)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(rag_pipeline_duration_seconds_bucket{status=\"success\"}[5m]))",
+            "legendFormat": "{{pipeline_stage}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1.0}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Average Chunks Retrieved",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(rag_chunks_retrieved_count_bucket[5m]))",
+            "legendFormat": "Chunks"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 15},
+                {"color": "red", "value": 25}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Hit Rate by K Value",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(rag_hit_rate_bucket[5m]))",
+            "legendFormat": "Hit@{{k_value}} - {{retrieval_type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Hit Rate",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Relevance Score Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(rag_relevance_score_bucket[5m]))",
+            "legendFormat": "{{retrieval_type}} - Rerank: {{rerank_enabled}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Relevance Score",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "RAG Pipeline Performance by Stage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(rag_pipeline_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 - {{pipeline_stage}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(rag_pipeline_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 - {{pipeline_stage}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Vector DB Operation Metrics",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(vector_db_operations_total[5m])",
+            "legendFormat": "{{operation}} - {{collection}} ({{status}})"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Operations/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Vector DB Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(vector_db_operation_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 - {{operation}} - {{collection}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(vector_db_operation_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 - {{operation}} - {{collection}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Context Length Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(rag_context_length_chars_bucket[5m])",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "dataFormat": "tsbuckets",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      },
+      {
+        "id": 11,
+        "title": "RAG Quality by Subject Area",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "avg_over_time(rag_hit_rate[1h]) by (subject_area)",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.7},
+                {"color": "green", "value": 0.9}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40}
+      },
+      {
+        "id": 12,
+        "title": "Retrieval Type Performance Comparison",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "avg_over_time(rag_relevance_score[1h]) by (retrieval_type)",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.6},
+                {"color": "green", "value": 0.8}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "retrieval_type",
+          "type": "query",
+          "query": "label_values(rag_pipeline_duration_seconds, retrieval_type)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "subject_area",
+          "type": "query",
+          "query": "label_values(rag_hit_rate, subject_area)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    }
+  }
+}
