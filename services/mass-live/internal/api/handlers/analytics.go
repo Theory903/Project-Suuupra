@@ -214,7 +214,7 @@ func (h *AnalyticsHandler) GetRealtimeMetrics(c *gin.Context) {
 
 	// System metrics
 	metrics["system"] = map[string]interface{}{
-		"uptime_seconds": time.Since(startTime).Seconds(),
+		"uptime_seconds": time.Since(ServiceStartTime).Seconds(),
 		"memory_usage":   "TODO", // TODO: Implement memory monitoring
 		"cpu_usage":      "TODO", // TODO: Implement CPU monitoring
 	}

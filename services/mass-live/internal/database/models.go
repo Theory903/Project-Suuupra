@@ -41,7 +41,7 @@ type Stream struct {
 
 	// Relationships
 	ViewerSessions  []ViewerSession `gorm:"foreignKey:StreamID" json:"-"`
-	ChatMessages    []ChatMessage   `gorm:"foreignKey:StreamID" json:"-"`
+	Messages        []ChatMessage   `gorm:"foreignKey:StreamID" json:"-"`
 	StreamQualities []StreamQuality `gorm:"foreignKey:StreamID" json:"-"`
 }
 

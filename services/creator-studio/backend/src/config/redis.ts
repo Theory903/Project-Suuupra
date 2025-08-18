@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import pino from 'pino';
+import { Logger } from 'pino';
 
 const logger = pino({ name: 'redis' });
 
@@ -24,7 +25,7 @@ redisClient.on('ready', () => {
   logger.info('Redis connection ready');
 });
 
-redisClient.on('error', (error) => {
+redisClient.on('error', (error: Error) => {
   logger.error('Redis connection error:', error);
 });
 

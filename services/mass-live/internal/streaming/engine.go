@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -20,14 +21,14 @@ import (
 
 // Engine handles live streaming processing and distribution
 type Engine struct {
-	cfg         *config.Config
-	db          *database.DB
-	redis       *redis.Client
-	logger      logger.Logger
-	streams     map[string]*Stream
+	cfg          *config.Config
+	db           *database.DB
+	redis        *redis.Client
+	logger       logger.Logger
+	streams      map[string]*Stream
 	streamsMutex sync.RWMutex
-	ctx         context.Context
-	cancel      context.CancelFunc
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 // Stream represents an active live stream
@@ -54,7 +55,7 @@ type Stream struct {
 // New creates a new streaming engine
 func New(cfg *config.Config, db *database.DB, redis *redis.Client, logger logger.Logger) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &Engine{
 		cfg:     cfg,
 		db:      db,
@@ -87,16 +88,16 @@ func (e *Engine) Start() error {
 // Stop shuts down the streaming engine
 func (e *Engine) Stop() {
 	e.logger.Info("Stopping streaming engine...")
-	
+
 	e.cancel()
-	
+
 	// Stop all active streams
 	e.streamsMutex.Lock()
 	for _, stream := range e.streams {
 		e.stopStreamInternal(stream)
 	}
 	e.streamsMutex.Unlock()
-	
+
 	e.logger.Info("✅ Streaming engine stopped")
 }
 
@@ -248,9 +249,10 @@ func (e *Engine) GetStream(streamID string) (*Stream, error) {
 	stream, exists := e.streams[streamID]
 	if !exists {
 		// Try to load from Redis
-		if cachedStream, err := e.redis.GetStream(streamID); err == nil && cachedStream != nil {
-			e.streams[streamID] = cachedStream
-			return cachedStream, nil
+		var cachedStream Stream
+		if err := e.redis.GetStream(streamID, &cachedStream); err == nil {
+			e.streams[streamID] = &cachedStream
+			return &cachedStream, nil
 		}
 		return nil, fmt.Errorf("stream not found: %s", streamID)
 	}
@@ -307,9 +309,9 @@ func (e *Engine) startFFmpegTranscoding(stream *Stream) error {
 	}
 
 	// Add transcoding parameters for each quality
-	for i, quality := range e.cfg.QualityLevels {
+	for _, quality := range e.cfg.QualityLevels {
 		preset := e.getQualityPreset(quality)
-		
+
 		// Video encoding
 		args = append(args,
 			"-map", "0:v",
@@ -369,28 +371,28 @@ func (e *Engine) startFFmpegTranscoding(stream *Stream) error {
 // generateManifests generates HLS and DASH manifests
 func (e *Engine) generateManifests(stream *Stream) {
 	outputDir := filepath.Join(e.cfg.LocalStoragePath, stream.ID)
-	
+
 	// Generate master HLS playlist
 	masterPlaylist := "#EXTM3U\n#EXT-X-VERSION:6\n\n"
-	
+
 	for _, quality := range e.cfg.QualityLevels {
 		preset := e.getQualityPreset(quality)
 		bitrate := e.parseBitrate(preset.Bitrate)
-		
-		masterPlaylist += fmt.Sprintf("#EXT-X-STREAM-INF:BANDWIDTH=%d,RESOLUTION=%dx%d\n", 
+
+		masterPlaylist += fmt.Sprintf("#EXT-X-STREAM-INF:BANDWIDTH=%d,RESOLUTION=%dx%d\n",
 			bitrate, preset.Width, preset.Height)
 		masterPlaylist += fmt.Sprintf("%s.m3u8\n", quality)
 	}
-	
+
 	// Write master playlist
 	masterPath := filepath.Join(outputDir, "master.m3u8")
 	if err := os.WriteFile(masterPath, []byte(masterPlaylist), 0644); err != nil {
 		e.logger.Error("Failed to write master playlist", "error", err)
 		return
 	}
-	
+
 	stream.HLSUrl = fmt.Sprintf("%s/streams/%s/master.m3u8", e.cfg.CDNBaseURL, stream.ID)
-	
+
 	e.logger.Info("Manifests generated", "stream_id", stream.ID)
 }
 
@@ -417,11 +419,11 @@ func (e *Engine) distributeToCloudFront(stream *Stream) {
 	// 2. Configuring cache behaviors for HLS segments
 	// 3. Setting up origin for S3 bucket
 	// 4. Updating stream CDN URLs
-	
-	cloudFrontUrl := fmt.Sprintf("https://%s.cloudfront.net/streams/%s/master.m3u8", 
+
+	cloudFrontUrl := fmt.Sprintf("https://%s.cloudfront.net/streams/%s/master.m3u8",
 		e.cfg.CloudFrontDistID, stream.ID)
 	stream.CDNUrls["cloudfront"] = cloudFrontUrl
-	
+
 	e.logger.Info("Stream distributed to CloudFront", "stream_id", stream.ID, "url", cloudFrontUrl)
 }
 
@@ -431,10 +433,10 @@ func (e *Engine) distributeToCloudflare(stream *Stream) {
 	// 1. Configuring Cloudflare Stream
 	// 2. Setting up cache rules for HLS content
 	// 3. Optimizing for global edge distribution
-	
+
 	cloudflareUrl := fmt.Sprintf("https://stream.cloudflare.com/%s/master.m3u8", stream.ID)
 	stream.CDNUrls["cloudflare"] = cloudflareUrl
-	
+
 	e.logger.Info("Stream distributed to Cloudflare", "stream_id", stream.ID, "url", cloudflareUrl)
 }
 
@@ -444,11 +446,11 @@ func (e *Engine) distributeToFastly(stream *Stream) {
 	// 1. Configuring Fastly service
 	// 2. Setting up VCL for HLS optimization
 	// 3. Configuring edge caching policies
-	
-	fastlyUrl := fmt.Sprintf("https://%s.global.ssl.fastly.net/streams/%s/master.m3u8", 
+
+	fastlyUrl := fmt.Sprintf("https://%s.global.ssl.fastly.net/streams/%s/master.m3u8",
 		e.cfg.FastlyServiceID, stream.ID)
 	stream.CDNUrls["fastly"] = fastlyUrl
-	
+
 	e.logger.Info("Stream distributed to Fastly", "stream_id", stream.ID, "url", fastlyUrl)
 }
 
@@ -472,16 +474,16 @@ func (e *Engine) cleanupEndedStreams() {
 	defer e.streamsMutex.Unlock()
 
 	for streamID, stream := range e.streams {
-		if stream.Status == models.StreamStatusEnded && 
-		   stream.EndTime != nil && 
-		   time.Since(*stream.EndTime) > 1*time.Hour {
-			
+		if stream.Status == models.StreamStatusEnded &&
+			stream.EndTime != nil &&
+			time.Since(*stream.EndTime) > 1*time.Hour {
+
 			// Clean up local files
 			outputDir := filepath.Join(e.cfg.LocalStoragePath, streamID)
 			if err := os.RemoveAll(outputDir); err != nil {
 				e.logger.Error("Failed to clean up stream files", "error", err, "stream_id", streamID)
 			}
-			
+
 			delete(e.streams, streamID)
 			e.logger.Info("Cleaned up ended stream", "stream_id", streamID)
 		}
@@ -515,9 +517,9 @@ func (e *Engine) updateAllViewerCounts() {
 				e.logger.Error("Failed to get viewer count", "error", err, "stream_id", stream.ID)
 				continue
 			}
-			
+
 			stream.ViewerCount = count
-			
+
 			// Update database periodically
 			if err := e.db.UpdateStreamViewerCount(stream.ID, count); err != nil {
 				e.logger.Error("Failed to update viewer count in database", "error", err)
@@ -567,11 +569,11 @@ func (e *Engine) getQualityPreset(quality string) QualityPreset {
 		"720p":  {Width: 1280, Height: 720, Bitrate: "2500k", MaxBitrate: "3750k", BufSize: "5000k", AudioBitrate: "192k"},
 		"1080p": {Width: 1920, Height: 1080, Bitrate: "5000k", MaxBitrate: "7500k", BufSize: "10000k", AudioBitrate: "256k"},
 	}
-	
+
 	if preset, exists := presets[quality]; exists {
 		return preset
 	}
-	
+
 	// Default to 720p
 	return presets["720p"]
 }

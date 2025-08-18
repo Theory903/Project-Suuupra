@@ -64,7 +64,7 @@ public class LedgerServiceTest {
         revenueAccount.setAccountCode("4001");
         revenueAccount.setAccountName("Sales Revenue");
         revenueAccount.setAccountType(AccountType.REVENUE);
-        revenueAccount.setActive(true);
+        revenueAccount.setIsActive(true);
         revenueAccount.setDescription("Revenue account for testing");
         revenueAccount = chartOfAccountsRepository.save(revenueAccount);
         revenueAccountId = revenueAccount.getId();

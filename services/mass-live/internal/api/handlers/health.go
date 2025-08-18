@@ -30,8 +30,6 @@ type HealthResponse struct {
 	Checks    map[string]string `json:"checks"`
 }
 
-var startTime = time.Now()
-
 func (h *HealthHandler) Health(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
@@ -75,7 +73,7 @@ func (h *HealthHandler) Health(c *gin.Context) {
 		Status:    overallStatus,
 		Timestamp: time.Now(),
 		Version:   "1.0.0", // TODO: Get from build info
-		Uptime:    time.Since(startTime).String(),
+		Uptime:    time.Since(ServiceStartTime).String(),
 		Checks:    checks,
 	}
 

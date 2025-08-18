@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"mass-live/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // StreamsHandler handles stream-related HTTP requests
@@ -142,7 +142,7 @@ func (h *StreamsHandler) ListStreams(c *gin.Context) {
 	}
 
 	streams := h.streamingEngine.ListStreams()
-	
+
 	// Apply filters
 	filteredStreams := make([]*streaming.Stream, 0)
 	for _, stream := range streams {
@@ -159,14 +159,14 @@ func (h *StreamsHandler) ListStreams(c *gin.Context) {
 	total := len(filteredStreams)
 	start := offset
 	end := offset + limit
-	
+
 	if start > total {
 		start = total
 	}
 	if end > total {
 		end = total
 	}
-	
+
 	paginatedStreams := filteredStreams[start:end]
 
 	c.JSON(http.StatusOK, StreamListResponse{
@@ -195,7 +195,7 @@ func (h *StreamsHandler) ListStreams(c *gin.Context) {
 // @Router /streams/{stream_id}/start [post]
 func (h *StreamsHandler) StartStream(c *gin.Context) {
 	streamID := c.Param("stream_id")
-	
+
 	var req StartStreamRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -276,14 +276,14 @@ func (h *StreamsHandler) GetStreamStats(c *gin.Context) {
 	}
 
 	stats := StreamStats{
-		StreamID:     streamID,
-		Status:       stream.Status,
-		ViewerCount:  stream.ViewerCount,
-		Duration:     int(time.Since(stream.StartTime).Seconds()),
-		IsRecording:  stream.IsRecording,
-		Qualities:    stream.Qualities,
-		CDNUrls:      stream.CDNUrls,
-		LastUpdated:  time.Now(),
+		StreamID:    streamID,
+		Status:      stream.Status,
+		ViewerCount: stream.ViewerCount,
+		Duration:    int(time.Since(stream.StartTime).Seconds()),
+		IsRecording: stream.IsRecording,
+		Qualities:   stream.Qualities,
+		CDNUrls:     stream.CDNUrls,
+		LastUpdated: time.Now(),
 	}
 
 	c.JSON(http.StatusOK, StreamStatsResponse{
@@ -326,7 +326,7 @@ func (h *StreamsHandler) GetStreamPlaylist(c *gin.Context) {
 	// Return HLS playlist
 	c.Header("Content-Type", "application/x-mpegURL")
 	c.Header("Cache-Control", "no-cache")
-	
+
 	if quality != "" {
 		// Return specific quality playlist
 		c.String(http.StatusOK, h.generateQualityPlaylist(stream, quality))
@@ -350,8 +350,8 @@ type SuccessResponse struct {
 }
 
 type StreamListResponse struct {
-	Success bool            `json:"success"`
-	Data    StreamListData  `json:"data"`
+	Success bool           `json:"success"`
+	Data    StreamListData `json:"data"`
 }
 
 type StreamListData struct {
@@ -367,14 +367,14 @@ type StreamStatsResponse struct {
 }
 
 type StreamStats struct {
-	StreamID     string                `json:"stream_id"`
-	Status       models.StreamStatus   `json:"status"`
-	ViewerCount  int                   `json:"viewer_count"`
-	Duration     int                   `json:"duration"`
-	IsRecording  bool                  `json:"is_recording"`
-	Qualities    []string              `json:"qualities"`
-	CDNUrls      map[string]string     `json:"cdn_urls"`
-	LastUpdated  time.Time             `json:"last_updated"`
+	StreamID    string              `json:"stream_id"`
+	Status      models.StreamStatus `json:"status"`
+	ViewerCount int                 `json:"viewer_count"`
+	Duration    int                 `json:"duration"`
+	IsRecording bool                `json:"is_recording"`
+	Qualities   []string            `json:"qualities"`
+	CDNUrls     map[string]string   `json:"cdn_urls"`
+	LastUpdated time.Time           `json:"last_updated"`
 }
 
 type StartStreamRequest struct {
@@ -384,11 +384,11 @@ type StartStreamRequest struct {
 // Helper methods
 func (h *StreamsHandler) generateMasterPlaylist(stream *streaming.Stream) string {
 	playlist := "#EXTM3U\n#EXT-X-VERSION:6\n\n"
-	
+
 	qualityPresets := map[string]struct {
-		Width    int
-		Height   int
-		Bitrate  int
+		Width   int
+		Height  int
+		Bitrate int
 	}{
 		"240p":  {426, 240, 400000},
 		"360p":  {640, 360, 800000},
@@ -396,7 +396,7 @@ func (h *StreamsHandler) generateMasterPlaylist(stream *streaming.Stream) string
 		"720p":  {1280, 720, 2500000},
 		"1080p": {1920, 1080, 5000000},
 	}
-	
+
 	for _, quality := range stream.Qualities {
 		if preset, exists := qualityPresets[quality]; exists {
 			playlist += fmt.Sprintf("#EXT-X-STREAM-INF:BANDWIDTH=%d,RESOLUTION=%dx%d\n",
@@ -404,7 +404,7 @@ func (h *StreamsHandler) generateMasterPlaylist(stream *streaming.Stream) string
 			playlist += fmt.Sprintf("%s.m3u8\n", quality)
 		}
 	}
-	
+
 	return playlist
 }
 
@@ -412,13 +412,13 @@ func (h *StreamsHandler) generateQualityPlaylist(stream *streaming.Stream, quali
 	// In a real implementation, this would read the actual HLS segments
 	// For now, return a basic playlist structure
 	playlist := "#EXTM3U\n#EXT-X-VERSION:6\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:0\n\n"
-	
+
 	// Add some sample segments
 	for i := 0; i < 5; i++ {
 		playlist += "#EXTINF:2.0,\n"
 		playlist += fmt.Sprintf("segment_%d.ts\n", i)
 	}
-	
+
 	return playlist
 }
 

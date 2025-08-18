@@ -1,6 +1,8 @@
 package database
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -16,19 +18,10 @@ type Database struct {
 }
 
 func NewDatabase(databaseURL string, logger *slog.Logger) (*Database, error) {
-	// Configure GORM logger
-	gormLogger := logger.NewSlogGormLogger(
-		logger.NewSlogGormLoggerConfig{
-			SlowThreshold:             200 * time.Millisecond,
-			LogLevel:                  logger.Warn,
-			IgnoreRecordNotFoundError: true,
-			Colorful:                  false,
-		},
-	)
+	// Use default GORM logger for now
 
 	// Open database connection
 	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
-		Logger: gormLogger,
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
@@ -57,7 +50,7 @@ func NewDatabase(databaseURL string, logger *slog.Logger) (*Database, error) {
 
 func (d *Database) AutoMigrate() error {
 	d.logger.Info("Running database migrations...")
-	
+
 	err := d.DB.AutoMigrate(
 		&User{},
 		&Stream{},
@@ -68,7 +61,7 @@ func (d *Database) AutoMigrate() error {
 		&Follow{},
 		&StreamReport{},
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -138,7 +131,7 @@ func (l *slogGormLogger) Trace(ctx context.Context, begin time.Time, fc func() (
 
 	elapsed := time.Since(begin)
 	sql, rows := fc()
-	
+
 	switch {
 	case err != nil && l.config.LogLevel >= logger.Error && (!l.config.IgnoreRecordNotFoundError || !errors.Is(err, gorm.ErrRecordNotFound)):
 		l.logger.ErrorContext(ctx, "Database query error",

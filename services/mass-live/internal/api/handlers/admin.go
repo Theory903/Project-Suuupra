@@ -66,7 +66,7 @@ func (h *AdminHandler) GetSystemStats(c *gin.Context) {
 		Timestamp:     time.Now(),
 		ActiveStreams: int(activeStreamsCount),
 		TotalViewers:  totalViewers,
-		ServerUptime:  time.Since(startTime).String(),
+		ServerUptime:  time.Since(ServiceStartTime).String(),
 		MemoryUsage:   "TODO", // TODO: Implement memory monitoring
 		CPUUsage:      "TODO", // TODO: Implement CPU monitoring
 		DiskUsage:     "TODO", // TODO: Implement disk monitoring

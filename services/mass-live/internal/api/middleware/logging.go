@@ -58,12 +58,12 @@ func ErrorLoggingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 			for _, err := range c.Errors {
 				logger.Error("Request error",
 					slog.String("error", err.Error()),
-					slog.String("type", err.Type.String()),
+					slog.String("type", string(err.Type)),
 					slog.String("method", c.Request.Method),
 					slog.String("path", c.Request.URL.Path),
 					slog.String("client_ip", c.ClientIP()),
 					slog.String("request_id", c.GetString("request_id")),
-					slog.Any("user_id", c.Get("user_id")),
+					slog.Any("user_id", func() interface{} { v, _ := c.Get("user_id"); return v }()),
 				)
 			}
 		}
