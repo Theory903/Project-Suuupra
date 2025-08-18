@@ -13,6 +13,7 @@ transformers==4.35.2
 sentence-transformers==2.2.2
 torch==2.1.1
 accelerate==0.24.1
+unstructured[md]==0.10.30
 
 # Vector Database & Search
 pymilvus==2.3.4
@@ -58,6 +59,7 @@ black==23.11.0
 isort==5.12.0
 flake8==6.1.0
 mypy==1.7.1
+click==8.1.7
 
 # Production
 gunicorn==21.2.0

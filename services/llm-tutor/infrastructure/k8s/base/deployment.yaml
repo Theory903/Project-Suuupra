@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-tutor
+  namespace: llm-tutor
+  labels:
+    app: llm-tutor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-tutor
+  template:
+    metadata:
+      labels:
+        app: llm-tutor
+    spec:
+      containers:
+      - name: llm-tutor
+        image: <IMAGE_REGISTRY>/llm-tutor:<IMAGE_TAG>
+        ports:
+        - containerPort: 8092
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+        env:
+        - name: VLLM_HOST
+          value: "http://vllm.llm-tutor.svc.cluster.local:8000"
+        - name: MILVUS_HOST
+          value: "milvus.llm-tutor.svc.cluster.local"
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch.llm-tutor.svc.cluster.local"

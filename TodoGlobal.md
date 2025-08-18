@@ -76,7 +76,7 @@ This matrix provides a centralized, single source of truth for the status, prior
 | `creator-studio`| Planned | Media | Medium | Tools for creators to upload and manage their content. |
 | `search-crawler`| Planned | Intelligence | Medium | Provides full-text search capabilities across the platform. |
 | `recommendations`| Planned | Intelligence | Medium | A service for providing personalized content recommendations. |
-| `llm-tutor` | Planned | Intelligence | High | An AI-powered tutor that provides personalized learning assistance. |
+| `llm-tutor` | In Progress | Intelligence | High | An AI-powered tutor that provides personalized learning assistance. |
 | `analytics` | Planned | Intelligence | Low | A service for collecting and analyzing user behavior and platform data. |
 | `counters` | Planned | Supporting | Low | A distributed counter service for tracking metrics like views and likes. |
 | `live-tracking` | Planned | Supporting | Low | A service for tracking real-time user activity. |
@@ -179,7 +179,20 @@ Deliverables: Changes landed; CI green; Content service is Production. Canary ro
 - [ ] `search-crawler`: Integrate with a search engine like Elasticsearch to provide full-text search APIs.
 - [ ] `recommendations`: Develop collaborative filtering and content-based recommendation models.
 - [ ] `recommendations`: Build APIs to serve personalized content recommendations to users.
-- [ ] `llm-tutor`: Integrate with a large language model (LLM) to provide interactive tutoring.
+- [x] `llm-tutor`: Create production-ready FastAPI application with comprehensive configuration.
+- [x] `llm-tutor`: Implement async PostgreSQL and Redis integration.
+- [x] `llm-tutor`: Design sophisticated user models for learning progress tracking.
+- [x] `llm-tutor`: Set up a comprehensive observability framework.
+- [x] `llm-tutor`: Define the infrastructure as code using Terraform and Kubernetes.
+- [x] `llm-tutor`: Create a content ingestion pipeline.
+- [x] `llm-tutor`: Implement a hybrid retriever with vector and BM25 search.
+- [x] `llm-tutor`: Add a cross-encoder reranker to improve relevance.
+- [x] `llm-tutor`: Integrate the RAG pipeline with the conversation API.
+- [x] `llm-tutor`: Implement Redis-backed session memory for conversation history.
+- [x] `llm-tutor`: Integrate a basic safety service to filter harmful content.
+- [x] `llm-tutor`: Integrate Whisper for accurate speech-to-text transcription.
+- [x] `llm-tutor`: Integrate a TTS model for text-to-speech synthesis.
+- [x] `llm-tutor`: Implement a mechanism to track user learning progress.
 - [ ] `llm-tutor`: Develop a system for managing conversational state and user progress.
 - [ ] `analytics`: Implement a data pipeline to collect and process user interaction events.
 - [ ] `analytics`: Build dashboards to visualize key platform metrics.

@@ -1,0 +1,8 @@
+"""
+Example Terraform variables
+"""
+
+aws_region = "us-east-1"
+cluster_name = "llm-tutor-cluster"
+vpc_id = "vpc-12345678"
+subnet_ids = ["subnet-12345678", "subnet-87654321"]
