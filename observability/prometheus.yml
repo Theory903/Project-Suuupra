@@ -1,0 +1,171 @@
+# ===================================================================
+# PROMETHEUS CONFIGURATION - Per TODO-010 Golden Signals Monitoring
+# ===================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'suuupra-platform'
+    environment: 'development'
+
+# Alert manager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alert-rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # PostgreSQL metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'suuupra-postgres'
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'suuupra-redis'
+
+  # Kafka metrics
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'suuupra-kafka'
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # MinIO metrics
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    scrape_interval: 30s
+    metrics_path: /minio/v2/metrics/cluster
+
+  # Vault metrics
+  - job_name: 'vault'
+    static_configs:
+      - targets: ['vault:8200']
+    scrape_interval: 30s
+    metrics_path: /v1/sys/metrics
+    params:
+      format: ['prometheus']
+
+  # Application metrics (when services are running)
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['host.docker.internal:9091']  # Adjust port based on app
+    scrape_interval: 15s
+    metrics_path: /metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'http_request_duration_seconds.*'
+        target_label: __tmp_golden_signal__
+        replacement: 'latency'
+      - source_labels: [__name__]
+        regex: 'http_requests_total'
+        target_label: __tmp_golden_signal__
+        replacement: 'traffic'
+
+  # Business metrics scraping
+  - job_name: 'business-metrics'
+    static_configs:
+      - targets: ['host.docker.internal:9092']  # Adjust based on service
+    scrape_interval: 30s
+    metrics_path: /business-metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'suuupra_revenue_.*'
+        target_label: __tmp_business_metric__
+        replacement: 'revenue'
+      - source_labels: [__name__]
+        regex: 'suuupra_users_.*'
+        target_label: __tmp_business_metric__
+        replacement: 'users'
+
+  # Container metrics (if cAdvisor is running)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    metric_relabel_configs:
+      # Only collect container metrics we care about
+      - source_labels: [__name__]
+        regex: 'container_(cpu_usage_seconds_total|memory_usage_bytes|network_.*_bytes_total|fs_.*_bytes)'
+        action: keep
+
+  # Node exporter for host metrics (optional)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    metric_relabel_configs:
+      # Only collect essential node metrics
+      - source_labels: [__name__]
+        regex: 'node_(load.*|cpu_.*|memory_.*|filesystem_.*|disk_.*|network_.*)'
+        action: keep
+
+  # Docker daemon metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+# Remote write for long-term storage (optional)
+# remote_write:
+#   - url: "https://prometheus-prod.suuupra.com/api/v1/write"
+#     basic_auth:
+#       username: "prometheus"
+#       password: "your-secure-password"
+#     queue_config:
+#       max_shards: 200
+#       max_samples_per_send: 1000
+#       batch_send_deadline: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+
+# Storage configuration
+# Note: retention.time, retention.size, min-block-duration, max-block-duration
+# are command-line flags, not YAML configuration options.
+# Use them when starting Prometheus:
+# --storage.tsdb.retention.time=30d
+# --storage.tsdb.retention.size=10GB
+# --storage.tsdb.min-block-duration=2h
+# --storage.tsdb.max-block-duration=2h

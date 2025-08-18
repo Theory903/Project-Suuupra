@@ -73,7 +73,6 @@ jobs:
             p/security-audit
             p/secrets
             p/owasp-top-ten
-          scanIgnoredFiles: false
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
       
@@ -156,7 +155,7 @@ jobs:
           fi
       
       - name: Setup Node.js
-        if: env.SERVICE_TYPE == 'node'
+        if: ${{ env.SERVICE_TYPE == 'node' }}
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -164,21 +163,21 @@ jobs:
           cache-dependency-path: 'services/${{ matrix.service }}/package-lock.json'
       
       - name: Setup Python
-        if: env.SERVICE_TYPE == 'python'
+        if: ${{ env.SERVICE_TYPE == 'python' }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip'
       
       - name: Setup Go
-        if: env.SERVICE_TYPE == 'go'
+        if: ${{ env.SERVICE_TYPE == 'go' }}
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
           cache-dependency-path: 'services/${{ matrix.service }}/go.sum'
       
       - name: Setup Java
-        if: env.SERVICE_TYPE == 'java'
+        if: ${{ env.SERVICE_TYPE == 'java' }}
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -186,7 +185,7 @@ jobs:
           cache: 'maven'
       
       - name: Setup Rust
-        if: env.SERVICE_TYPE == 'rust'
+        if: ${{ env.SERVICE_TYPE == 'rust' }}
         uses: actions-rs/toolchain@v1
         with:
           toolchain: 1.75.0
@@ -262,6 +261,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Build and push Docker image
+        id: build
         run: |
           SERVICE_PATH="services/${{ matrix.service }}"
           
@@ -273,6 +273,7 @@ jobs:
           # Generate image tags
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           IMAGE_TAG="${{ env.ECR_REGISTRY }}/${{ matrix.service }}"
+          IMAGE_URI="${IMAGE_TAG}:${SHORT_SHA}"
           
           # Build and push with multiple tags
           docker buildx build \
@@ -284,7 +285,8 @@ jobs:
             --push \
             $SERVICE_PATH
           
-          echo "IMAGE_URI=${IMAGE_TAG}:${SHORT_SHA}" >> $GITHUB_ENV
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_OUTPUT
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV
       
       - name: Update GitOps repository
         run: |
@@ -293,14 +295,14 @@ jobs:
           cd gitops-config
           
           # Update image tag in Kubernetes manifests
-          sed -i "s|image: ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:.*|image: ${{ env.IMAGE_URI }}|g" \
+          sed -i "s|image: ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:.*|image: ${{ steps.build.outputs.IMAGE_URI }}|g" \
             environments/production/services/${{ matrix.service }}/deployment.yaml
           
           # Commit and push changes
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Update ${{ matrix.service }} image to ${{ env.IMAGE_URI }}"
+          git commit -m "Update ${{ matrix.service }} image to ${{ steps.build.outputs.IMAGE_URI }}"
           git push https://${{ secrets.GITOPS_TOKEN }}@github.com/suuupra/gitops-config.git
 
   # Deploy to staging for feature branches
@@ -311,7 +313,6 @@ jobs:
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect-changes.outputs.services) }}
-    environment: staging
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

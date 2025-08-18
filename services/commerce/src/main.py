@@ -7,8 +7,14 @@ distributed order management and commerce operations.
 
 import logging
 import sys
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+
+# Add src directory to Python path for local development
+current_dir = Path(__file__).parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
 
 import structlog
 import uvicorn

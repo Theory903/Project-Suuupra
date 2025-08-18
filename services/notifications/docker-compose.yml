@@ -1,74 +1,95 @@
-version: '3.8'
+version: '4'
 
 services:
+  # notifications Service - Production Ready
   notifications:
     build:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: notifications-service
-    ports:
-      - "8085:8085"
-    environment:
-      - NODE_ENV=production
-      - PORT=8085
-      - DATABASE_URL=postgresql://notifications_user:notifications_pass@postgres:5432/notifications_db
-      - REDIS_URL=redis://redis:6379
-      - LOG_LEVEL=info
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - notifications-network
+    container_name: suuupra-notifications
     restart: unless-stopped
+    ports:
+      - "8085:8085"   # Main service port (aligned with main compose)
+      - "9096:9096"   # Metrics port (aligned with main compose)
+    environment:
+      # Core configuration (aligned with main docker-compose.yml)
+      NODE_ENV: production
+      PORT: 8085
+      METRICS_PORT: 9096
+      
+      # Database - Using main infrastructure PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DATABASE: notifications
+      
+      # Redis - Using main infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Event streaming - Using main infrastructure Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: notifications-service
+      KAFKA_GROUP_ID: notifications-consumers
+      
+      # Security & Vault - Using main infrastructure
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:-myroot}
+      VAULT_MOUNT_PATH: notifications
+      
+      # Observability - Using main infrastructure
+      OTEL_SERVICE_NAME: notifications-service
+      OTEL_SERVICE_VERSION: 1.0.0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=suuupra,deployment.environment=docker-compose
+      
+    volumes:
+      - app_logs:/app/logs
+    
+    # Use main infrastructure services (no separate dependencies)
+    external_links:
+      - postgres:postgres
+      - redis:redis
+      - kafka:kafka
+      - vault:vault
+      - otel-collector:otel-collector
+    
+    networks:
+      - suuupra-network
+    
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: notifications-postgres
-    environment:
-      POSTGRES_DB: notifications_db
-      POSTGRES_USER: notifications_user
-      POSTGRES_PASSWORD: notifications_pass
-    ports:
-      - "5434:5432"
-    volumes:
-      - notifications_postgres_data:/var/lib/postgresql/data
-    networks:
-      - notifications-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notifications_user -d notifications_db"]
-      interval: 10s
-      timeout: 5s
       retries: 5
+      start_period: 60s
+    
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9096"
 
-  redis:
-    image: redis:7-alpine
-    container_name: notifications-redis
-    ports:
-      - "6381:6379"
-    volumes:
-      - notifications_redis_data:/data
-    networks:
-      - notifications-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
+# ===================================================================
+# VOLUMES - Aligned with main infrastructure
+# ===================================================================
 volumes:
-  notifications_postgres_data:
-  notifications_redis_data:
+  app_logs:
+    external: true
+    name: suuupra_app_logs
 
+# ===================================================================
+# NETWORKS - Using main infrastructure network
+# ===================================================================
 networks:
-  notifications-network:
-    driver: bridge
+  suuupra-network:
+    external: true
+    name: suuupra-network
+
+# ===================================================================
+# NOTES:
+# - All infrastructure services (PostgreSQL, Redis, Kafka, Vault, 
+#   Prometheus, Grafana, Jaeger) are provided by main infrastructure
+# - Use: docker-compose -f ../../docker-compose.infrastructure.yml up -d
+# - Then: docker-compose -f docker-compose.yml up -d
+# ===================================================================

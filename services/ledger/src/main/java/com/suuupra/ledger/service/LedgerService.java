@@ -1,6 +1,5 @@
 package com.suuupra.ledger.service;
 
-import com.suuupra.ledger.domain.entity.ChartOfAccounts;
 import com.suuupra.ledger.domain.entity.JournalEntry;
 import com.suuupra.ledger.domain.entity.Transaction;
 import com.suuupra.ledger.domain.entity.TransactionStatus;
@@ -16,8 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;

@@ -1,74 +1,95 @@
-version: '3.8'
+version: '4'
 
 services:
+  # analytics Service - Production Ready
   analytics:
     build:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: analytics-service
-    ports:
-      - "8087:8087"
-    environment:
-      - NODE_ENV=production
-      - PORT=8087
-      - DATABASE_URL=postgresql://analytics_user:analytics_pass@postgres:5432/analytics_db
-      - REDIS_URL=redis://redis:6379
-      - LOG_LEVEL=info
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - analytics-network
+    container_name: suuupra-analytics
     restart: unless-stopped
+    ports:
+      - "8097:8097"   # Main service port (aligned with main compose)
+      - "9108:9108"   # Metrics port (aligned with main compose)
+    environment:
+      # Core configuration (aligned with main docker-compose.yml)
+      NODE_ENV: production
+      PORT: 8097
+      METRICS_PORT: 9108
+      
+      # Database - Using main infrastructure PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DATABASE: analytics
+      
+      # Redis - Using main infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Event streaming - Using main infrastructure Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: analytics-service
+      KAFKA_GROUP_ID: analytics-consumers
+      
+      # Security & Vault - Using main infrastructure
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:-myroot}
+      VAULT_MOUNT_PATH: analytics
+      
+      # Observability - Using main infrastructure
+      OTEL_SERVICE_NAME: analytics-service
+      OTEL_SERVICE_VERSION: 1.0.0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=suuupra,deployment.environment=docker-compose
+      
+    volumes:
+      - app_logs:/app/logs
+    
+    # Use main infrastructure services (no separate dependencies)
+    external_links:
+      - postgres:postgres
+      - redis:redis
+      - kafka:kafka
+      - vault:vault
+      - otel-collector:otel-collector
+    
+    networks:
+      - suuupra-network
+    
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8097/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: analytics-postgres
-    environment:
-      POSTGRES_DB: analytics_db
-      POSTGRES_USER: analytics_user
-      POSTGRES_PASSWORD: analytics_pass
-    ports:
-      - "5433:5432"
-    volumes:
-      - analytics_postgres_data:/var/lib/postgresql/data
-    networks:
-      - analytics-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
-      interval: 10s
-      timeout: 5s
       retries: 5
+      start_period: 60s
+    
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9108"
 
-  redis:
-    image: redis:7-alpine
-    container_name: analytics-redis
-    ports:
-      - "6380:6379"
-    volumes:
-      - analytics_redis_data:/data
-    networks:
-      - analytics-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
+# ===================================================================
+# VOLUMES - Aligned with main infrastructure
+# ===================================================================
 volumes:
-  analytics_postgres_data:
-  analytics_redis_data:
+  app_logs:
+    external: true
+    name: suuupra_app_logs
 
+# ===================================================================
+# NETWORKS - Using main infrastructure network
+# ===================================================================
 networks:
-  analytics-network:
-    driver: bridge
+  suuupra-network:
+    external: true
+    name: suuupra-network
+
+# ===================================================================
+# NOTES:
+# - All infrastructure services (PostgreSQL, Redis, Kafka, Vault, 
+#   Prometheus, Grafana, Jaeger) are provided by main infrastructure
+# - Use: docker-compose -f ../../docker-compose.infrastructure.yml up -d
+# - Then: docker-compose -f docker-compose.yml up -d
+# ===================================================================

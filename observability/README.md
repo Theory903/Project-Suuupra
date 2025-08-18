@@ -21,7 +21,7 @@ This directory contains the complete **Phase 3: Observability & Monitoring** imp
 
 ## 📁 **FILE STRUCTURE**
 
-```
+```text
 observability/
 ├── opentelemetry-collector.yaml    # OTEL Collector with comprehensive receivers
 ├── grafana-dashboards.yaml         # Advanced dashboards for golden signals
@@ -37,37 +37,44 @@ observability/
 ## 🚀 **DEPLOYMENT INSTRUCTIONS**
 
 ### **Step 1: Deploy Monitoring Namespace**
+
 ```bash
 kubectl create namespace monitoring
 kubectl label namespace monitoring linkerd.io/inject=enabled
 ```
 
 ### **Step 2: Deploy OpenTelemetry Collector**
+
 ```bash
 kubectl apply -f observability/opentelemetry-collector.yaml
 ```
 
 ### **Step 3: Deploy Loki Log Aggregation**
+
 ```bash
 kubectl apply -f observability/loki-stack.yaml
 ```
 
 ### **Step 4: Deploy Tempo Distributed Tracing**
+
 ```bash
 kubectl apply -f observability/tempo-tracing.yaml
 ```
 
 ### **Step 5: Setup Grafana Dashboards**
+
 ```bash
 kubectl apply -f observability/grafana-dashboards.yaml
 ```
 
 ### **Step 6: Configure Intelligent Alerting**
+
 ```bash
 kubectl apply -f observability/prometheus-alerts.yaml
 ```
 
 ### **Step 7: Integrate Application Instrumentation**
+
 Copy `application-instrumentation.ts` to your service projects and follow the integration examples.
 
 ---
@@ -75,22 +82,26 @@ Copy `application-instrumentation.ts` to your service projects and follow the in
 ## 📊 **DASHBOARDS INCLUDED**
 
 ### **🌟 Golden Signals Dashboard**
+
 - **Request Rate (RED)**: Requests per second across all services
 - **Error Rate (RED)**: Percentage of failed requests
 - **Duration (RED)**: P95 response time latency
 - **Saturation (USE)**: CPU and memory utilization
 
 ### **📨 Kafka Event Streaming**
+
 - **Message Throughput**: Real-time message rates by topic
 - **Consumer Lag**: Lag monitoring with automatic alerts
 - **Partition Distribution**: Topic partition health
 
 ### **💾 Database Performance**
+
 - **Connection Usage**: PostgreSQL connection pool monitoring
 - **Slow Queries**: Query performance tracking
 - **Database Size Growth**: Storage utilization trends
 
 ### **💰 Business Metrics**
+
 - **Real-time Revenue**: Live revenue tracking in USD
 - **Payment Success Rate**: 99%+ payment success monitoring
 - **Course Enrollments**: Daily enrollment tracking
@@ -101,18 +112,21 @@ Copy `application-instrumentation.ts` to your service projects and follow the in
 ## 🚨 **INTELLIGENT ALERTING**
 
 ### **Critical Alerts (Immediate Response)**
+
 - **High Error Rate**: >5% error rate for 5+ minutes
 - **Service Down**: API Gateway unavailable
 - **Database Exhaustion**: >90% connection pool usage
 - **Payment Failures**: Payment system error rate >1%
 
 ### **Warning Alerts (Non-Urgent)**
+
 - **Kafka Consumer Lag**: Growing lag >10K messages
 - **High Response Time**: P99 latency >2 seconds
 - **Resource Saturation**: CPU >85% for 15+ minutes
 - **Certificate Expiry**: Certificates expiring <30 days
 
 ### **Business Alerts**
+
 - **Revenue Drop**: >30% revenue decrease during business hours
 - **Payment Success Rate**: <95% payment success rate
 - **User Activity Drop**: 50% lower activity than yesterday
@@ -122,12 +136,14 @@ Copy `application-instrumentation.ts` to your service projects and follow the in
 ## 🔍 **DISTRIBUTED TRACING**
 
 ### **Trace Collection**
+
 - **OTLP Protocol**: Modern OpenTelemetry standard
 - **Jaeger Compatibility**: Legacy Jaeger protocol support  
 - **Automatic Sampling**: 10% trace sampling with error/slow trace prioritization
 - **Service Map**: Automatic service dependency mapping
 
 ### **Trace Storage**
+
 - **Tempo Backend**: High-performance trace storage
 - **Compression**: ZSTD compression for efficient storage
 - **Retention**: 1-hour retention with configurable policies
@@ -138,6 +154,7 @@ Copy `application-instrumentation.ts` to your service projects and follow the in
 ## 📋 **APPLICATION INTEGRATION**
 
 ### **Node.js Services**
+
 ```typescript
 import { initializeObservability, businessMetrics, tracingUtils } from './observability/application-instrumentation';
 
@@ -154,6 +171,7 @@ await tracingUtils.traceFunction('user.authentication', async () => {
 ```
 
 ### **Environment Variables Required**
+
 ```bash
 # Service identification
 SERVICE_NAME=identity-service
@@ -173,6 +191,7 @@ METRICS_PORT=9090
 ## 📊 **METRICS COLLECTION**
 
 ### **Technical Metrics**
+
 - **HTTP Request Metrics**: Rate, errors, duration for all endpoints
 - **Database Metrics**: Query performance, connection pool usage
 - **Kafka Metrics**: Message throughput, consumer lag, partition health
@@ -180,6 +199,7 @@ METRICS_PORT=9090
 - **JVM/Node.js Metrics**: Heap usage, garbage collection, event loop
 
 ### **Business Metrics**
+
 - **Revenue Tracking**: Real-time revenue in cents with currency breakdown
 - **User Engagement**: Active users by tier, session duration
 - **Payment Success**: Success rates, failure reasons, method breakdown
@@ -193,24 +213,28 @@ METRICS_PORT=9090
 Following Google's SRE practices, we monitor the four golden signals:
 
 ### **1. Latency**
+
 - **P50, P95, P99** response times
 - **Database query latency**
 - **External API call latency**
 - **Message processing latency**
 
 ### **2. Traffic**
+
 - **Requests per second** across all services
 - **Message throughput** in Kafka topics
 - **Database queries per second**
 - **WebSocket connections**
 
 ### **3. Errors**
+
 - **HTTP 5xx error rates**
 - **Database connection failures**
 - **Message processing failures**
 - **Payment processing errors**
 
 ### **4. Saturation**
+
 - **CPU utilization** across all nodes
 - **Memory usage** and garbage collection
 - **Database connection pool** utilization
@@ -221,6 +245,7 @@ Following Google's SRE practices, we monitor the four golden signals:
 ## 🔧 **OPERATIONAL RUNBOOKS**
 
 ### **High Error Rate Response**
+
 1. Check service health in Grafana
 2. Review recent deployments
 3. Examine error traces in Tempo
@@ -228,6 +253,7 @@ Following Google's SRE practices, we monitor the four golden signals:
 5. Implement circuit breaker if needed
 
 ### **Database Performance Issues**
+
 1. Check connection pool utilization
 2. Identify slow queries in dashboard
 3. Review database metrics
@@ -235,6 +261,7 @@ Following Google's SRE practices, we monitor the four golden signals:
 5. Optimize problematic queries
 
 ### **Kafka Consumer Lag**
+
 1. Verify consumer group health
 2. Check partition distribution
 3. Scale consumer instances if needed
@@ -246,12 +273,14 @@ Following Google's SRE practices, we monitor the four golden signals:
 ## 📈 **PERFORMANCE BENCHMARKS**
 
 ### **Observability Overhead**
+
 - **Trace Collection**: <1% CPU overhead
 - **Metrics Collection**: <0.5% memory overhead
 - **Log Shipping**: <100MB/day per service
 - **Storage Requirements**: ~10GB/month for full observability
 
 ### **Query Performance**
+
 - **Dashboard Load Time**: <2 seconds
 - **Trace Query Time**: <5 seconds
 - **Alert Evaluation**: <30 seconds
@@ -262,18 +291,21 @@ Following Google's SRE practices, we monitor the four golden signals:
 ## 🎉 **OBSERVABILITY ACHIEVEMENTS**
 
 ### **✅ Complete Visibility**
+
 - **End-to-End Tracing**: Every request traced from gateway to database
 - **Business Metrics**: Real-time revenue and user engagement tracking
 - **Error Tracking**: Comprehensive error capture with context
 - **Performance Monitoring**: Sub-second performance visibility
 
 ### **✅ Intelligent Operations**
+
 - **Smart Alerting**: Reduces alert fatigue by 80%
 - **Predictive Monitoring**: Trend analysis for proactive scaling
 - **Automatic Correlation**: Links metrics, traces, and logs automatically
 - **Business Impact Analysis**: Correlates technical issues with business metrics
 
 ### **✅ Developer Experience**
+
 - **Simple Integration**: Single import for full observability
 - **Rich Context**: Automatic service discovery and dependency mapping  
 - **Debugging Power**: Instant issue root cause identification

@@ -1,0 +1,297 @@
+# ===================================================================
+# PROMETHEUS ALERT RULES - Per TODO-011 Intelligent Alerting
+# Based on Golden Signals: Latency, Traffic, Errors, Saturation
+# ===================================================================
+
+groups:
+- name: golden-signals-critical
+  interval: 30s
+  rules:
+  
+  # ===================================================================
+  # LATENCY ALERTS (Response Time)
+  # ===================================================================
+  - alert: HighResponseTime
+    expr: |
+      histogram_quantile(0.95, 
+        sum(rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) by (le)
+      ) > 0.5
+    for: 5m
+    labels:
+      severity: critical
+      team: platform
+      golden_signal: latency
+    annotations:
+      summary: "High response time on API Gateway"
+      description: "95th percentile response time is {{ $value }}s for the last 5 minutes"
+      runbook_url: "https://wiki.suuupra.com/runbooks/high-latency"
+      dashboard_url: "http://grafana:3000/d/api-gateway/api-gateway"
+
+  - alert: DatabaseSlowQueries
+    expr: |
+      rate(pg_stat_statements_mean_time_seconds[5m]) > 1.0
+    for: 3m
+    labels:
+      severity: warning
+      team: platform
+      golden_signal: latency
+    annotations:
+      summary: "Slow database queries detected"
+      description: "Average query time is {{ $value }}s"
+      runbook_url: "https://wiki.suuupra.com/runbooks/slow-queries"
+
+  # ===================================================================
+  # TRAFFIC ALERTS (Request Volume)
+  # ===================================================================
+  - alert: LowTraffic
+    expr: |
+      sum(rate(http_requests_total{job="api-gateway"}[5m])) < 10
+    for: 10m
+    labels:
+      severity: warning
+      team: platform
+      golden_signal: traffic
+    annotations:
+      summary: "Unusually low traffic"
+      description: "Request rate is {{ $value }} req/sec (expected >10)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/low-traffic"
+
+  - alert: TrafficSpike
+    expr: |
+      sum(rate(http_requests_total{job="api-gateway"}[5m])) > 1000
+    for: 2m
+    labels:
+      severity: warning
+      team: platform
+      golden_signal: traffic
+    annotations:
+      summary: "Traffic spike detected"
+      description: "Request rate is {{ $value }} req/sec (threshold: 1000)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/traffic-spike"
+
+  # ===================================================================
+  # ERROR RATE ALERTS
+  # ===================================================================
+  - alert: HighErrorRate
+    expr: |
+      (
+        sum(rate(http_requests_total{status=~"5..",job="api-gateway"}[5m]))
+        /
+        sum(rate(http_requests_total{job="api-gateway"}[5m]))
+      ) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      team: platform
+      golden_signal: errors
+    annotations:
+      summary: "High error rate on API Gateway"
+      description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/high-error-rate"
+      
+  - alert: PaymentErrors
+    expr: |
+      sum(rate(http_requests_total{status=~"5..",path=~"/api/v1/payments.*"}[5m])) > 5
+    for: 2m
+    labels:
+      severity: critical
+      team: payments
+      golden_signal: errors
+    annotations:
+      summary: "Payment processing errors"
+      description: "{{ $value }} payment errors per second"
+      runbook_url: "https://wiki.suuupra.com/runbooks/payment-errors"
+
+  # ===================================================================
+  # SATURATION ALERTS (Resource Usage)
+  # ===================================================================
+  - alert: HighCPUUsage
+    expr: |
+      100 * (1 - avg(rate(container_cpu_usage_seconds_total{name=~"suuupra-.*"}[5m]))) > 80
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+      golden_signal: saturation
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is {{ $value }}% (threshold: 80%)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/high-cpu"
+
+  - alert: HighMemoryUsage
+    expr: |
+      (
+        container_memory_usage_bytes{name=~"suuupra-.*"} 
+        / 
+        container_spec_memory_limit_bytes{name=~"suuupra-.*"}
+      ) * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+      team: platform  
+      golden_signal: saturation
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value }}% (threshold: 85%)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/high-memory"
+
+  - alert: DatabaseConnectionPoolExhaustion
+    expr: |
+      (
+        pg_stat_activity_count 
+        / 
+        pg_settings_max_connections
+      ) > 0.8
+    for: 3m
+    labels:
+      severity: critical
+      team: platform
+      golden_signal: saturation
+    annotations:
+      summary: "Database connection pool near exhaustion"
+      description: "{{ $value | humanizePercentage }} of connections in use"
+      runbook_url: "https://wiki.suuupra.com/runbooks/db-connections"
+
+  - alert: DiskSpaceLow
+    expr: |
+      (
+        container_fs_usage_bytes{name=~"suuupra-.*"}
+        /
+        container_fs_limit_bytes{name=~"suuupra-.*"}
+      ) * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+      golden_signal: saturation
+    annotations:
+      summary: "Disk space running low"
+      description: "Disk usage is {{ $value }}% (threshold: 85%)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/disk-space"
+
+- name: infrastructure-alerts
+  interval: 60s
+  rules:
+
+  # ===================================================================
+  # SERVICE AVAILABILITY
+  # ===================================================================
+  - alert: ServiceDown
+    expr: up{job=~"api-gateway|postgres|redis|kafka"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "{{ $labels.job }} service is down"
+      description: "Service {{ $labels.job }} has been down for more than 1 minute"
+      runbook_url: "https://wiki.suuupra.com/runbooks/service-down"
+
+  # ===================================================================  
+  # KAFKA SPECIFIC ALERTS
+  # ===================================================================
+  - alert: KafkaConsumerLag
+    expr: |
+      kafka_consumer_lag > 10000
+      AND
+      rate(kafka_consumer_lag[5m]) > 0
+    for: 10m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "Kafka consumer lag is growing"
+      description: "Consumer group {{ $labels.consumergroup }} lag is {{ $value }}"
+      runbook_url: "https://wiki.suuupra.com/runbooks/kafka-lag"
+
+  - alert: KafkaOfflinePartitions
+    expr: kafka_controller_offline_partitions_count > 0
+    for: 1m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "Kafka has offline partitions"
+      description: "{{ $value }} partitions are offline"
+      runbook_url: "https://wiki.suuupra.com/runbooks/kafka-partitions"
+
+  # ===================================================================
+  # REDIS SPECIFIC ALERTS  
+  # ===================================================================
+  - alert: RedisMemoryHigh
+    expr: |
+      (
+        redis_memory_used_bytes
+        /
+        redis_memory_max_bytes
+      ) * 100 > 90
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "Redis memory usage high"
+      description: "Redis memory usage is {{ $value }}%"
+      runbook_url: "https://wiki.suuupra.com/runbooks/redis-memory"
+
+  - alert: RedisConnectionsHigh
+    expr: redis_connected_clients > 500
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "High number of Redis connections"
+      description: "{{ $value }} clients connected (threshold: 500)"
+      runbook_url: "https://wiki.suuupra.com/runbooks/redis-connections"
+
+- name: business-metrics-alerts
+  interval: 60s
+  rules:
+
+  # ===================================================================
+  # BUSINESS CRITICAL ALERTS
+  # ===================================================================
+  - alert: RevenueDropped
+    expr: |
+      (
+        sum(increase(suuupra_revenue_total[1h]))
+        <
+        sum(increase(suuupra_revenue_total[1h] offset 24h)) * 0.5
+      )
+    for: 30m
+    labels:
+      severity: critical
+      team: business
+    annotations:
+      summary: "Significant revenue drop detected"
+      description: "Revenue in the last hour is 50% below same time yesterday"
+      runbook_url: "https://wiki.suuupra.com/runbooks/revenue-drop"
+
+  - alert: UserRegistrationStopped
+    expr: |
+      increase(suuupra_users_registered_total[30m]) == 0
+    for: 30m
+    labels:
+      severity: warning
+      team: growth
+    annotations:
+      summary: "No new user registrations"
+      description: "No users have registered in the last 30 minutes"
+      runbook_url: "https://wiki.suuupra.com/runbooks/no-registrations"
+
+  - alert: PaymentFailureSpike  
+    expr: |
+      (
+        sum(rate(suuupra_payments_failed_total[10m]))
+        /
+        sum(rate(suuupra_payments_total[10m]))
+      ) > 0.1
+    for: 10m
+    labels:
+      severity: critical
+      team: payments
+    annotations:
+      summary: "Payment failure rate spike"
+      description: "{{ $value | humanizePercentage }} of payments are failing"
+      runbook_url: "https://wiki.suuupra.com/runbooks/payment-failures"

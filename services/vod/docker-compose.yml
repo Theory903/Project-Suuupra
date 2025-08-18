@@ -1,158 +1,95 @@
-version: '3.8'
+version: '4'
 
 services:
+  # vod Service - Production Ready
   vod:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-vod
+    restart: unless-stopped
     ports:
-      - "8087:8087"
+      - "8091:8091"   # Main service port (aligned with main compose)
+      - "9102:9102"   # Metrics port (aligned with main compose)
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://voduser:vodpass@postgres:5432/vod_db
-      - REDIS_URL=redis://redis:6379/4
-      - S3_BUCKET_NAME=suuupra-vod-content
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin
-      - CDN_BASE_URL=http://localhost:9000/suuupra-vod-content
-      - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
-      - LOG_LEVEL=INFO
-    depends_on:
-      - postgres
-      - redis
-      - minio
-      - celery-worker
+      # Core configuration (aligned with main docker-compose.yml)
+      NODE_ENV: production
+      PORT: 8091
+      METRICS_PORT: 9102
+      
+      # Database - Using main infrastructure PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DATABASE: vod
+      
+      # Redis - Using main infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Event streaming - Using main infrastructure Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: vod-service
+      KAFKA_GROUP_ID: vod-consumers
+      
+      # Security & Vault - Using main infrastructure
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:-myroot}
+      VAULT_MOUNT_PATH: vod
+      
+      # Observability - Using main infrastructure
+      OTEL_SERVICE_NAME: vod-service
+      OTEL_SERVICE_VERSION: 1.0.0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=suuupra,deployment.environment=docker-compose
+      
     volumes:
-      - ./videos:/tmp/videos
-      - ./transcoded:/tmp/transcoded
+      - app_logs:/app/logs
+    
+    # Use main infrastructure services (no separate dependencies)
+    external_links:
+      - postgres:postgres
+      - redis:redis
+      - kafka:kafka
+      - vault:vault
+      - otel-collector:otel-collector
+    
     networks:
-      - vod-network
+      - suuupra-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8091/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9102"
 
-  celery-worker:
-    build: .
-    command: celery -A src.services.transcoding worker --loglevel=info --concurrency=2
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://voduser:vodpass@postgres:5432/vod_db
-      - REDIS_URL=redis://redis:6379/4
-      - S3_BUCKET_NAME=suuupra-vod-content
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin
-    depends_on:
-      - postgres
-      - redis
-      - minio
-    volumes:
-      - ./videos:/tmp/videos
-      - ./transcoded:/tmp/transcoded
-    networks:
-      - vod-network
-
-  celery-flower:
-    build: .
-    command: celery -A src.services.transcoding flower --port=5555
-    ports:
-      - "5555:5555"
-    environment:
-      - REDIS_URL=redis://redis:6379/4
-    depends_on:
-      - redis
-    networks:
-      - vod-network
-
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_DB=vod_db
-      - POSTGRES_USER=voduser
-      - POSTGRES_PASSWORD=vodpass
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - vod-network
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - vod-network
-
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    networks:
-      - vod-network
-
-  # Monitoring stack
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9091:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    networks:
-      - vod-network
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3002:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-    networks:
-      - vod-network
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16687:16686"
-      - "14269:14268"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - vod-network
-
-  # CDN simulation (nginx)
-  cdn:
-    image: nginx:alpine
-    ports:
-      - "8080:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./transcoded:/usr/share/nginx/html/videos
-    networks:
-      - vod-network
-
+# ===================================================================
+# VOLUMES - Aligned with main infrastructure
+# ===================================================================
 volumes:
-  postgres_data:
-  redis_data:
-  minio_data:
-  prometheus_data:
-  grafana_data:
+  app_logs:
+    external: true
+    name: suuupra_app_logs
 
+# ===================================================================
+# NETWORKS - Using main infrastructure network
+# ===================================================================
 networks:
-  vod-network:
-    driver: bridge
+  suuupra-network:
+    external: true
+    name: suuupra-network
+
+# ===================================================================
+# NOTES:
+# - All infrastructure services (PostgreSQL, Redis, Kafka, Vault, 
+#   Prometheus, Grafana, Jaeger) are provided by main infrastructure
+# - Use: docker-compose -f ../../docker-compose.infrastructure.yml up -d
+# - Then: docker-compose -f docker-compose.yml up -d
+# ===================================================================

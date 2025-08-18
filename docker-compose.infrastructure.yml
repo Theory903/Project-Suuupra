@@ -1,5 +1,7 @@
 services:
-  # Infrastructure Services
+  # ===================================================================
+  # CORE DATABASE - PostgreSQL with Performance Optimization
+  # ===================================================================
   postgres:
     image: postgres:15-alpine
     container_name: suuupra-postgres
@@ -8,12 +10,42 @@ services:
       POSTGRES_DB: suuupra
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
-      POSTGRES_MULTIPLE_DATABASES: identity,commerce,payments,ledger,bank_simulator,upi_core,analytics,live_classes,recommendations,vod,llm_tutor,content,notifications,admin,creator_studio,counters,live_tracking,mass_live,search_crawler,upi_psp
+      POSTGRES_MULTIPLE_DATABASES: identity,commerce,payments,ledger,bank_simulator,upi_core,analytics,live_classes,recommendations,vod,llm_tutor,content,notifications,admin,creator_studio,counters,live_tracking,mass_live,search_crawler,content_delivery
+      # Performance optimizations
+      POSTGRES_SHARED_BUFFERS: 512MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1536MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 128MB
+      POSTGRES_WORK_MEM: 4MB
+      POSTGRES_MAX_CONNECTIONS: 200
+      # WAL archiving for PITR
+      POSTGRES_WAL_LEVEL: replica
+      POSTGRES_ARCHIVE_MODE: on
+      POSTGRES_MAX_WAL_SENDERS: 3
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - postgres_wal:/var/lib/postgresql/wal
       - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+      - ./optimization-excellence/postgres-performance.conf:/etc/postgresql/postgresql.conf
+    command: >
+      postgres 
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c max_worker_processes=8
+      -c max_parallel_workers_per_gather=4
+      -c max_parallel_workers=8
+      -c max_parallel_maintenance_workers=4
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
@@ -21,7 +53,13 @@ services:
       retries: 5
     networks:
       - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9187"
 
+  # ===================================================================
+  # REDIS CACHE - Performance Optimized with Monitoring
+  # ===================================================================
   redis:
     image: redis:7-alpine
     container_name: suuupra-redis
@@ -30,6 +68,22 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./optimization-excellence/redis-performance.conf:/usr/local/etc/redis/redis.conf
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --appendonly yes
+      --appendfsync everysec
+      --tcp-keepalive 300
+      --timeout 300
+      --tcp-backlog 511
+      --maxclients 10000
+      --slowlog-log-slower-than 10000
+      --slowlog-max-len 128
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -37,8 +91,30 @@ services:
       retries: 5
     networks:
       - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9121"
 
-  # Message Queue
+  # Redis Exporter for Monitoring
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: suuupra-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9121"
+
+  # ===================================================================
+  # KAFKA EVENT STREAMING - Production Optimized
+  # ===================================================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
     container_name: suuupra-zookeeper
@@ -46,8 +122,19 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 60
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
     networks:
       - suuupra-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -55,8 +142,10 @@ services:
     restart: unless-stopped
     ports:
       - "9092:9092"
+      - "9101:9101"  # JMX metrics
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -65,6 +154,25 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # Performance optimizations
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 16
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 1
+      KAFKA_LOG_FLUSH_INTERVAL_MESSAGES: 10000
+      KAFKA_LOG_FLUSH_INTERVAL_MS: 1000
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_LOG_CLEANUP_POLICY: delete
+      # Monitoring
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9101
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 30s
@@ -72,6 +180,137 @@ services:
       retries: 5
     networks:
       - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9308"
+
+  # Kafka Exporter for Monitoring
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    container_name: suuupra-kafka-exporter
+    restart: unless-stopped
+    ports:
+      - "9308:9308"
+    command:
+      - --kafka.server=kafka:29092
+      - --web.listen-address=:9308
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9308"
+
+  # ===================================================================
+  # COMPREHENSIVE OBSERVABILITY STACK - Per TODO-010/011
+  # ===================================================================
+  
+  # Prometheus - Metrics Collection & Storage
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: suuupra-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.external-url=http://localhost:9090'
+      - '--storage.tsdb.min-block-duration=2h'
+      - '--storage.tsdb.max-block-duration=2h'
+    networks:
+      - suuupra-network
+    depends_on:
+      - redis-exporter
+      - kafka-exporter
+      - postgres-exporter
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9090"
+
+  # Grafana - Visualization & Dashboards  
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: suuupra-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+      # Performance settings
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_LOG_FILTERS: rendering:debug
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - suuupra-network
+    depends_on:
+      - prometheus
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=3000"
+
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: suuupra-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # UI
+      - "14268:14268"  # Collector HTTP
+      - "14250:14250"  # Collector gRPC  
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      SPAN_STORAGE_TYPE: badger
+      BADGER_EPHEMERAL: false
+      BADGER_DIRECTORY_VALUE: /badger/data
+      BADGER_DIRECTORY_KEY: /badger/key
+    volumes:
+      - jaeger_data:/badger
+    networks:
+      - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=14269"
+
+  # OpenTelemetry Collector - Telemetry Pipeline
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.99.0
+    container_name: suuupra-otel-collector
+    restart: unless-stopped
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics
+      - "8889:8889"   # Prometheus exporter
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otelcol-contrib/otel-collector-config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/otel-collector-config.yaml"]
+    networks:
+      - suuupra-network
+    depends_on:
+      - jaeger
+      - prometheus
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=8888"
 
   # Search and Analytics
   elasticsearch:
@@ -83,13 +322,119 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - xpack.monitoring.collection.enabled=true
       - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      # Performance optimizations per TodoGlobal.md
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=85%
+      - cluster.routing.allocation.disk.watermark.high=90%
+      - indices.memory.index_buffer_size=10%
+      - thread_pool.write.queue_size=1000
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - suuupra-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9200"
 
-  # Object Storage
+  # PostgreSQL Exporter for Monitoring - Per TODO-010
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: suuupra-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres123@postgres:5432/postgres?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+    volumes:
+      - ./observability/postgres-queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9187"
+
+  # ===================================================================  
+  # SECURITY STACK - Per TODO-004/005/006
+  # ===================================================================
+  
+  # HashiCorp Vault - Secrets Management
+  vault:
+    image: hashicorp/vault:1.15.2
+    container_name: suuupra-vault
+    restart: unless-stopped
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: myroot
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://0.0.0.0:8200
+      # Production settings (comment out DEV settings above)
+      # VAULT_LOCAL_CONFIG: '{"backend": {"consul": {"address": "consul:8500", "path": "vault/"}}, "listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": 1}}, "ui": true}'
+    volumes:
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+      - ./security/vault-config.hcl:/vault/config/vault.hcl:ro
+    cap_add:
+      - IPC_LOCK
+    command: ["vault", "server", "-dev", "-dev-listen-address=0.0.0.0:8200"]
+    networks:
+      - suuupra-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8200/v1/sys/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=8200"
+
+  # JWKS Server for JWT Validation - Per TODO-005
+  jwks-server:
+    image: node:20-alpine
+    container_name: suuupra-jwks-server
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./security/jwks-server:/app:ro
+      - jwks_keys:/app/keys
+    working_dir: /app
+    command: ["node", "server.js"]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: myroot
+    depends_on:
+      vault:
+        condition: service_healthy
+    networks:
+      - suuupra-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/.well-known/jwks.json || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=3000"
+
+  # ===================================================================
+  # OBJECT STORAGE & VECTOR DATABASE
+  # ===================================================================
+  
+  # MinIO - S3-Compatible Object Storage
   minio:
     image: minio/minio:latest
     container_name: suuupra-minio
@@ -99,7 +444,10 @@ services:
       - "9001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      # Security hardening per TodoGlobal.md
+      MINIO_BROWSER_REDIRECT_URL: https://console.minio.suuupra.com
+      MINIO_SERVER_URL: https://s3.suuupra.com
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -110,8 +458,11 @@ services:
       retries: 3
     networks:
       - suuupra-network
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9000"
 
-  # Vector Database
+  # Vector Database - Milvus for AI/ML Features
   etcd:
     image: quay.io/coreos/etcd:v3.5.5
     container_name: suuupra-etcd
@@ -122,78 +473,199 @@ services:
       - ETCD_QUOTA_BACKEND_BYTES=4294967296
       - ETCD_SNAPSHOT_COUNT=50000
     command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    volumes:
+      - etcd_data:/etcd
     networks:
       - suuupra-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   milvus:
     image: milvusdb/milvus:v2.3.2
     container_name: suuupra-milvus
     restart: unless-stopped
     ports:
-      - "19530:19530"
+      - "19530:19530"  # gRPC
+      - "9091:9091"    # HTTP (Milvus web interface)
     depends_on:
-      - etcd
+      etcd:
+        condition: service_healthy
     environment:
       ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
     volumes:
       - milvus_data:/var/lib/milvus
+      - ./ai/milvus.yaml:/milvus/configs/milvus.yaml:ro
     command: ["milvus", "run", "standalone"]
     networks:
       - suuupra-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9091/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9091"
 
-  # Monitoring
-  prometheus:
-    image: prom/prometheus:v2.47.0
-    container_name: suuupra-prometheus
-    restart: unless-stopped
-    ports:
-      - "9090:9090"
+  # ===================================================================
+  # LOAD TESTING & PERFORMANCE - Per TODO-014/018
+  # ===================================================================
+  
+  # K6 Load Testing (On-Demand)
+  k6:
+    image: grafana/k6:latest
+    container_name: suuupra-k6
+    restart: "no"  # On-demand only
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
+      - ./production-hardening:/scripts:ro
+      - k6_results:/results
+    environment:
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_STATS: p(95),p(99),min,max
     networks:
       - suuupra-network
+    profiles:
+      - load-testing  # Only start with specific profile
 
-  grafana:
-    image: grafana/grafana:10.2.0
-    container_name: suuupra-grafana
+  # ===================================================================
+  # BACKUP & DISASTER RECOVERY - Per TODO-015/016
+  # ===================================================================
+  
+  # Backup Manager (Custom)
+  backup-manager:
+    image: alpine:3.18
+    container_name: suuupra-backup-manager
     restart: unless-stopped
-    ports:
-      - "3001:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
-      - grafana_data:/var/lib/grafana
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - backup_data:/backups
+      - ./disaster-recovery/backup-scripts:/scripts:ro
+    environment:
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      RETENTION_DAYS: 30
+      S3_BUCKET: suuupra-backups
+      AWS_DEFAULT_REGION: us-east-1
+    command: ["/scripts/backup-scheduler.sh"]
     networks:
       - suuupra-network
+    depends_on:
+      - postgres
+      - redis
+      - vault
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9999"
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.50
-    container_name: suuupra-jaeger
+  # ===================================================================
+  # DEVELOPMENT & DEBUGGING TOOLS
+  # ===================================================================
+  
+  # Redis Commander - Redis GUI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: suuupra-redis-commander
     restart: unless-stopped
     ports:
-      - "16686:16686"
-      - "14268:14268"
+      - "8082:8081"  # Changed to avoid conflict with identity service
     environment:
-      COLLECTOR_OTLP_ENABLED: true
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin
+    depends_on:
+      - redis
     networks:
       - suuupra-network
+    profiles:
+      - debug  # Only in debug mode
+
+  # pgAdmin - PostgreSQL GUI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: suuupra-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@suuupra.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - suuupra-network
+    profiles:
+      - debug  # Only in debug mode
 
 volumes:
+  # ===================================================================
+  # DATABASE & CACHE VOLUMES
+  # ===================================================================
   postgres_data:
+    driver: local
+  postgres_wal:
+    driver: local
   redis_data:
-  elasticsearch_data:
-  minio_data:
-  milvus_data:
+    driver: local
+    
+  # ===================================================================
+  # MESSAGE QUEUE VOLUMES
+  # ===================================================================
+  kafka_data:
+    driver: local
+  zookeeper_data:
+    driver: local
+  zookeeper_logs:
+    driver: local
+    
+  # ===================================================================  
+  # OBSERVABILITY & MONITORING VOLUMES
+  # ===================================================================
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
+  jaeger_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+    
+  # ===================================================================
+  # SECURITY VOLUMES
+  # ===================================================================
+  vault_data:
+    driver: local
+  vault_logs:
+    driver: local
+  jwks_keys:
+    driver: local
+    
+  # ===================================================================
+  # STORAGE & AI VOLUMES  
+  # ===================================================================
+  minio_data:
+    driver: local
+  milvus_data:
+    driver: local
+  etcd_data:
+    driver: local
+    
+  # ===================================================================
+  # BACKUP & DEVELOPMENT VOLUMES
+  # ===================================================================
+  backup_data:
+    driver: local
+  k6_results:
+    driver: local
+  pgadmin_data:
+    driver: local
 
 networks:
   suuupra-network:

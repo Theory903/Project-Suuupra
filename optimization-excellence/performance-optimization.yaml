@@ -1,0 +1,764 @@
+# ===================================================================
+# PERFORMANCE OPTIMIZATION FRAMEWORK - PHASE 6
+# Advanced Performance Tuning and System Optimization
+# ===================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: performance-optimization
+  labels:
+    app.kubernetes.io/name: performance-optimization
+    app.kubernetes.io/part-of: suuupra-platform
+---
+# Performance Tuned PostgreSQL Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-performance-config
+  namespace: suuupra-prod
+  labels:
+    app: postgres
+    component: performance-tuning
+data:
+  postgresql.conf: |
+    # ===================================================================
+    # POSTGRESQL PERFORMANCE OPTIMIZATION CONFIG
+    # ===================================================================
+    
+    # Memory Configuration (for 16GB RAM instance)
+    shared_buffers = 4GB                    # 25% of RAM
+    effective_cache_size = 12GB             # 75% of RAM  
+    maintenance_work_mem = 1GB              # For maintenance operations
+    work_mem = 32MB                         # Per query operation
+    
+    # Connection and Authentication
+    max_connections = 200                   # Adjust based on load
+    superuser_reserved_connections = 3
+    
+    # Write Ahead Log (WAL) Performance
+    wal_buffers = 64MB                      # WAL buffer size
+    wal_compression = on                    # Compress WAL files
+    wal_level = replica                     # For streaming replication
+    max_wal_size = 4GB                      # Maximum WAL size
+    min_wal_size = 1GB                      # Minimum WAL size
+    
+    # Checkpoint Configuration
+    checkpoint_timeout = 15min              # Checkpoint frequency
+    checkpoint_completion_target = 0.9      # Spread checkpoint I/O
+    
+    # Query Planning and Execution
+    random_page_cost = 1.1                  # SSD optimization
+    effective_io_concurrency = 200          # SSD concurrent I/O
+    max_worker_processes = 16               # CPU cores
+    max_parallel_workers_per_gather = 4     # Parallel query workers
+    max_parallel_workers = 16               # Total parallel workers
+    max_parallel_maintenance_workers = 4    # Maintenance parallelism
+    
+    # Background Writer
+    bgwriter_delay = 200ms                  # Background writer frequency
+    bgwriter_lru_maxpages = 100            # Pages to write per round
+    bgwriter_lru_multiplier = 2.0          # Adaptive page writing
+    
+    # Autovacuum Optimization
+    autovacuum = on
+    autovacuum_max_workers = 6              # Parallel autovacuum workers
+    autovacuum_naptime = 1min               # Autovacuum frequency
+    autovacuum_vacuum_threshold = 50        # Minimum tuples before vacuum
+    autovacuum_analyze_threshold = 50       # Minimum tuples before analyze
+    autovacuum_vacuum_scale_factor = 0.1    # Fraction of table before vacuum
+    autovacuum_analyze_scale_factor = 0.05  # Fraction of table before analyze
+    
+    # Statistics Collection
+    track_activities = on
+    track_counts = on
+    track_io_timing = on                    # Track I/O statistics
+    track_functions = all                   # Track function statistics
+    
+    # Logging for Performance Analysis
+    log_min_duration_statement = 1000       # Log slow queries (1 second)
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_temp_files = 0                      # Log all temp files
+    log_autovacuum_min_duration = 0         # Log all autovacuum activity
+    
+    # Shared Memory and Kernel Settings
+    huge_pages = try                        # Use huge pages if available
+    
+    # Connection Pooling (if using pgbouncer internally)
+    # These would be used with an integrated connection pooler
+    
+    # Advanced Performance Settings
+    synchronous_commit = on                 # ACID compliance (change with caution)
+    commit_delay = 0                        # Group commit delay
+    commit_siblings = 5                     # Minimum concurrent transactions for delay
+    
+    # Optimizer Configuration
+    default_statistics_target = 500         # More detailed statistics
+    constraint_exclusion = partition        # Enable for partitioned tables
+    
+    # Locale and Text Search
+    lc_messages = 'en_US.UTF-8'
+    lc_monetary = 'en_US.UTF-8'
+    lc_numeric = 'en_US.UTF-8'
+    lc_time = 'en_US.UTF-8'
+    default_text_search_config = 'pg_catalog.english'
+    
+  # Additional tuning parameters
+  performance-settings.sql: |
+    -- ===================================================================
+    -- POSTGRESQL PERFORMANCE TUNING QUERIES
+    -- ===================================================================
+    
+    -- Enable query plan caching
+    SET shared_preload_libraries = 'pg_stat_statements';
+    
+    -- Create performance monitoring views
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+    CREATE EXTENSION IF NOT EXISTS pgstattuple;
+    CREATE EXTENSION IF NOT EXISTS pg_buffercache;
+    
+    -- Performance monitoring function
+    CREATE OR REPLACE FUNCTION get_performance_stats()
+    RETURNS TABLE(
+      metric_name TEXT,
+      metric_value NUMERIC,
+      description TEXT
+    ) AS $$
+    BEGIN
+      RETURN QUERY
+      SELECT 
+        'buffer_hit_ratio'::TEXT,
+        (sum(blks_hit) * 100.0 / sum(blks_hit + blks_read))::NUMERIC,
+        'Buffer cache hit ratio (should be > 95%)'::TEXT
+      FROM pg_stat_database
+      WHERE datname = current_database()
+      
+      UNION ALL
+      
+      SELECT 
+        'active_connections'::TEXT,
+        count(*)::NUMERIC,
+        'Currently active connections'::TEXT
+      FROM pg_stat_activity
+      WHERE state = 'active'
+      
+      UNION ALL
+      
+      SELECT 
+        'idle_in_transaction'::TEXT,
+        count(*)::NUMERIC,
+        'Idle in transaction connections (should be low)'::TEXT
+      FROM pg_stat_activity
+      WHERE state = 'idle in transaction'
+      
+      UNION ALL
+      
+      SELECT 
+        'slow_queries_last_hour'::TEXT,
+        count(*)::NUMERIC,
+        'Queries slower than 1 second in last hour'::TEXT
+      FROM pg_stat_statements
+      WHERE mean_exec_time > 1000
+      AND last_exec > NOW() - INTERVAL '1 hour';
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    -- Index usage monitoring
+    CREATE OR REPLACE VIEW index_usage_stats AS
+    SELECT 
+      schemaname,
+      tablename,
+      indexname,
+      idx_tup_read,
+      idx_tup_fetch,
+      CASE 
+        WHEN idx_tup_read = 0 THEN 0
+        ELSE (idx_tup_fetch * 100.0 / idx_tup_read)
+      END AS hit_rate
+    FROM pg_stat_user_indexes
+    ORDER BY hit_rate DESC;
+---
+# Redis Performance Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-performance-config
+  namespace: suuupra-prod
+  labels:
+    app: redis
+    component: performance-tuning
+data:
+  redis.conf: |
+    # ===================================================================
+    # REDIS PERFORMANCE OPTIMIZATION CONFIG
+    # ===================================================================
+    
+    # Memory Management
+    maxmemory 8gb                           # Maximum memory usage
+    maxmemory-policy allkeys-lru            # LRU eviction for all keys
+    maxmemory-samples 10                    # Samples for LRU algorithm
+    
+    # Persistence Configuration (optimized for performance)
+    save 900 1                              # Save if 1 key changed in 15 minutes
+    save 300 10                             # Save if 10 keys changed in 5 minutes
+    save 60 10000                           # Save if 10000 keys changed in 1 minute
+    
+    # AOF (Append Only File) - for durability vs performance trade-off
+    appendonly yes
+    appendfsync everysec                    # Fsync every second (balanced)
+    no-appendfsync-on-rewrite no           # Don't fsync during AOF rewrite
+    auto-aof-rewrite-percentage 100        # Rewrite when AOF grows 100%
+    auto-aof-rewrite-min-size 64mb         # Minimum size for rewrite
+    
+    # Network and Connection Settings
+    tcp-backlog 65535                       # TCP connection backlog
+    tcp-keepalive 300                       # TCP keepalive
+    timeout 0                               # Client idle timeout (0 = disabled)
+    
+    # Advanced Configuration
+    hash-max-ziplist-entries 512           # Optimize small hashes
+    hash-max-ziplist-value 64              # Optimize small hash values
+    list-max-ziplist-size -2               # Optimize small lists
+    list-compress-depth 0                   # List compression
+    set-max-intset-entries 512             # Optimize small sets
+    zset-max-ziplist-entries 128           # Optimize small sorted sets
+    zset-max-ziplist-value 64              # Optimize small sorted set values
+    
+    # Memory Optimization
+    activerehashing yes                     # Active memory defragmentation
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    
+    # Performance Monitoring
+    slowlog-log-slower-than 10000          # Log operations slower than 10ms
+    slowlog-max-len 128                     # Keep last 128 slow operations
+    
+    # Security (performance impact minimal)
+    protected-mode yes
+    
+    # Lua Scripting
+    lua-time-limit 5000                     # Lua script timeout
+    
+    # Memory Usage Optimization
+    rdbcompression yes                      # Compress RDB files
+    rdbchecksum yes                         # RDB checksum
+    
+    # Performance Logging
+    syslog-enabled no
+    syslog-ident redis
+    loglevel notice
+    
+  # Redis performance monitoring script
+  redis-monitor.lua: |
+    -- Redis performance monitoring script
+    local stats = {}
+    
+    -- Memory stats
+    local memory_info = redis.call('INFO', 'memory')
+    stats['memory_used'] = string.match(memory_info, 'used_memory:(%d+)')
+    stats['memory_peak'] = string.match(memory_info, 'used_memory_peak:(%d+)')
+    stats['fragmentation_ratio'] = string.match(memory_info, 'mem_fragmentation_ratio:([%d%.]+)')
+    
+    -- Connection stats
+    local clients_info = redis.call('INFO', 'clients')
+    stats['connected_clients'] = string.match(clients_info, 'connected_clients:(%d+)')
+    stats['blocked_clients'] = string.match(clients_info, 'blocked_clients:(%d+)')
+    
+    -- Performance stats
+    local stats_info = redis.call('INFO', 'stats')
+    stats['total_commands_processed'] = string.match(stats_info, 'total_commands_processed:(%d+)')
+    stats['instantaneous_ops_per_sec'] = string.match(stats_info, 'instantaneous_ops_per_sec:(%d+)')
+    stats['keyspace_hits'] = string.match(stats_info, 'keyspace_hits:(%d+)')
+    stats['keyspace_misses'] = string.match(stats_info, 'keyspace_misses:(%d+)')
+    
+    -- Calculate hit ratio
+    local hits = tonumber(stats['keyspace_hits']) or 0
+    local misses = tonumber(stats['keyspace_misses']) or 0
+    if hits + misses > 0 then
+      stats['hit_ratio'] = hits / (hits + misses) * 100
+    else
+      stats['hit_ratio'] = 0
+    end
+    
+    return stats
+---
+# Application Performance Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-performance-config
+  namespace: suuupra-prod
+  labels:
+    app: api-gateway
+    component: performance-tuning
+data:
+  # Node.js performance optimizations
+  node-performance.env: |
+    # Node.js Performance Environment Variables
+    NODE_ENV=production
+    
+    # V8 Memory Management
+    NODE_OPTIONS="--max-old-space-size=4096 --max-semi-space-size=256"
+    
+    # V8 Garbage Collection Optimization
+    NODE_OPTIONS="$NODE_OPTIONS --expose-gc --optimize-for-size"
+    
+    # V8 JIT Compilation
+    NODE_OPTIONS="$NODE_OPTIONS --use-idle-notification --max-inlined-source-size=600"
+    
+    # Performance Monitoring
+    NODE_OPTIONS="$NODE_OPTIONS --trace-warnings --trace-deprecation"
+    
+    # Event Loop Performance
+    UV_THREADPOOL_SIZE=32                   # Increase thread pool size
+    
+    # DNS Resolution
+    NODE_OPTIONS="$NODE_OPTIONS --dns-result-order=ipv4first"
+    
+    # Memory Leak Detection (development)
+    # NODE_OPTIONS="$NODE_OPTIONS --trace-gc --trace-gc-verbose"
+  
+  # Application-level performance settings
+  app-config.yaml: |
+    # Application Performance Configuration
+    server:
+      # Connection settings
+      keepAliveTimeout: 65000               # Keep connections alive
+      headersTimeout: 66000                 # Headers timeout
+      maxRequestsPerSocket: 0               # No limit on requests per socket
+      
+      # Request handling
+      bodyParserLimit: '10mb'               # Request body size limit
+      parameterLimit: 1000                  # URL parameter limit
+      
+    # Database Connection Pool
+    database:
+      pool:
+        min: 10                             # Minimum connections
+        max: 100                            # Maximum connections
+        idle: 10000                         # Idle timeout (10 seconds)
+        acquire: 60000                      # Acquire timeout (60 seconds)
+        evict: 1000                         # Eviction check interval
+        
+    # Redis Connection Pool  
+    redis:
+      pool:
+        min: 5                              # Minimum connections
+        max: 50                             # Maximum connections
+        testOnBorrow: true                  # Test connections
+        testOnReturn: false
+        testWhileIdle: true
+        acquireTimeoutMillis: 30000
+        
+    # Caching Strategy
+    cache:
+      defaultTTL: 300                       # 5 minutes default TTL
+      checkPeriod: 60                       # Check expired keys every minute
+      useClones: false                      # Don't clone cached objects
+      
+      # Cache keys and TTL optimization
+      strategies:
+        user_sessions: 3600                 # 1 hour
+        course_metadata: 1800               # 30 minutes  
+        user_preferences: 7200              # 2 hours
+        static_content: 86400               # 24 hours
+        
+    # Performance Monitoring
+    monitoring:
+      enableMetrics: true
+      metricsInterval: 30000                # 30 seconds
+      enableTracing: true
+      tracingSampleRate: 0.1                # 10% sampling
+      
+    # Logging Performance
+    logging:
+      level: 'info'                         # Reduce logging overhead
+      enableConsole: false                  # Disable console logging in production
+      enableFile: true
+      maxSize: '100m'                       # Max log file size
+      maxFiles: 10                          # Keep 10 log files
+---
+# Performance Optimized Deployments
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-performance
+  namespace: suuupra-prod
+  labels:
+    app: api-gateway
+    version: performance-optimized
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      app: api-gateway
+      version: performance-optimized
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        version: performance-optimized
+      annotations:
+        # Performance annotations
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Performance-optimized node selection
+      nodeSelector:
+        node-class: "compute-optimized"     # Use CPU-optimized instances
+      
+      # Anti-affinity for performance isolation
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: ["api-gateway"]
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: instance-type
+                    operator: In
+                    values: ["c5.2xlarge", "c5.4xlarge", "c5.9xlarge"]
+      
+      # Performance container configuration
+      containers:
+        - name: api-gateway
+          image: suuupra/api-gateway:v1.2.3-performance
+          ports:
+            - containerPort: 3000
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=3072 --max-semi-space-size=256 --optimize-for-size"
+            - name: UV_THREADPOOL_SIZE
+              value: "32"
+          envFrom:
+            - configMapRef:
+                name: app-performance-config
+          
+          # Optimized resource allocation
+          resources:
+            requests:
+              cpu: 1000m                    # 1 CPU core baseline
+              memory: 2Gi                   # 2GB baseline memory
+            limits:
+              cpu: 4000m                    # 4 CPU cores max
+              memory: 4Gi                   # 4GB max memory
+          
+          # Fast health checks for performance
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 2
+          
+          # Security context optimizations
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          
+          # Volume mounts for performance
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: app-cache
+              mountPath: /app/cache
+            - name: performance-config
+              mountPath: /app/config/performance
+              readOnly: true
+      
+      # Performance-optimized volumes
+      volumes:
+        - name: tmp-volume
+          emptyDir:
+            medium: Memory              # In-memory tmp for performance
+            sizeLimit: 1Gi
+        - name: app-cache
+          emptyDir:
+            medium: Memory              # In-memory cache
+            sizeLimit: 2Gi
+        - name: performance-config
+          configMap:
+            name: app-performance-config
+      
+      # DNS and termination optimizations
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "2"                  # Reduce DNS lookups
+          - name: edns0               # Enable DNS extensions
+      terminationGracePeriodSeconds: 30
+---
+# Performance Monitoring ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: performance-metrics
+  namespace: monitoring
+  labels:
+    app: performance-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+      version: performance-optimized
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+      scrapeTimeout: 10s
+    - port: metrics
+      interval: 15s
+      path: /metrics/nodejs
+      scrapeTimeout: 10s
+---
+# Performance Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: performance-alerts
+  namespace: monitoring
+  labels:
+    app: performance-monitoring
+spec:
+  groups:
+    - name: performance-optimization
+      rules:
+        - alert: HighMemoryUsage
+          expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            impact: "Performance degradation risk"
+          annotations:
+            summary: "High memory usage detected"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value }}% of memory limit"
+            
+        - alert: HighCPUUsage  
+          expr: (rate(container_cpu_usage_seconds_total[5m])) * 100 > 80
+          for: 10m
+          labels:
+            severity: warning
+            impact: "Performance bottleneck"
+          annotations:
+            summary: "High CPU usage detected"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using {{ $value }}% CPU"
+            
+        - alert: DatabaseConnectionPoolExhaustion
+          expr: (pg_stat_activity_count / pg_settings_max_connections) * 100 > 90
+          for: 2m
+          labels:
+            severity: critical
+            impact: "Service unavailability risk"
+          annotations:
+            summary: "Database connection pool near exhaustion"
+            description: "PostgreSQL connection pool is {{ $value }}% full"
+            
+        - alert: RedisMemoryHigh
+          expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            impact: "Cache performance degradation"
+          annotations:
+            summary: "Redis memory usage high"
+            description: "Redis memory usage is {{ $value }}%"
+            
+        - alert: SlowDatabaseQueries
+          expr: avg(pg_stat_statements_mean_exec_time_ms) > 1000
+          for: 5m
+          labels:
+            severity: warning
+            impact: "Database performance degradation"
+          annotations:
+            summary: "Slow database queries detected"
+            description: "Average query execution time is {{ $value }}ms"
+            
+        - alert: LowCacheHitRatio
+          expr: (redis_keyspace_hits / (redis_keyspace_hits + redis_keyspace_misses)) * 100 < 80
+          for: 10m
+          labels:
+            severity: warning
+            impact: "Increased database load"
+          annotations:
+            summary: "Low Redis cache hit ratio"
+            description: "Cache hit ratio is {{ $value }}% (should be >80%)"
+---
+# Performance Testing Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: performance-benchmark
+  namespace: performance-optimization
+  labels:
+    app: performance-testing
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: performance-test
+          image: loadimpact/k6:latest
+          command:
+            - k6
+            - run
+            - --vus=100
+            - --duration=10m
+            - /scripts/performance-test.js
+          volumeMounts:
+            - name: test-scripts
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+      volumes:
+        - name: test-scripts
+          configMap:
+            name: performance-test-scripts
+---
+# Performance Test Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-test-scripts
+  namespace: performance-optimization
+data:
+  performance-test.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    
+    export let options = {
+      stages: [
+        { duration: '2m', target: 20 },   // Ramp up
+        { duration: '5m', target: 100 },  // Stay at 100 users
+        { duration: '2m', target: 200 },  // Ramp up to 200
+        { duration: '5m', target: 200 },  // Stay at 200
+        { duration: '3m', target: 0 },    // Ramp down
+      ],
+      thresholds: {
+        'http_req_duration': ['p(95)<500'],  // 95% of requests under 500ms
+        'http_req_failed': ['rate<0.01'],    // Error rate under 1%
+      },
+    };
+    
+    const BASE_URL = 'https://api.suuupra.io';
+    
+    export default function () {
+      // Test main API endpoints
+      let response = http.get(`${BASE_URL}/api/v1/courses`);
+      check(response, {
+        'course list status is 200': (r) => r.status === 200,
+        'course list response time < 200ms': (r) => r.timings.duration < 200,
+      });
+      
+      // Test user authentication
+      response = http.post(`${BASE_URL}/api/v1/auth/login`, {
+        email: 'test@example.com',
+        password: 'testpassword'
+      });
+      check(response, {
+        'auth response status': (r) => r.status === 200 || r.status === 401,
+        'auth response time < 300ms': (r) => r.timings.duration < 300,
+      });
+      
+      sleep(1);
+    }
+---
+# Database Performance Tuning Job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-performance-tuning
+  namespace: performance-optimization
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: db-tuner
+              image: postgres:15-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "🔧 Running database performance optimization..."
+                  
+                  # Connect to database and run optimization queries
+                  export PGPASSWORD="$POSTGRES_PASSWORD"
+                  
+                  # Analyze all tables for better query planning
+                  psql -h postgres.suuupra-prod.svc.cluster.local -U postgres -d suuupra -c "
+                    -- Analyze all tables
+                    ANALYZE;
+                    
+                    -- Update table statistics
+                    SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del
+                    FROM pg_stat_user_tables 
+                    ORDER BY n_tup_ins + n_tup_upd + n_tup_del DESC;
+                    
+                    -- Check for missing indexes
+                    SELECT schemaname, tablename, seq_scan, seq_tup_read, 
+                           seq_tup_read / seq_scan as avg_tup_read
+                    FROM pg_stat_user_tables 
+                    WHERE seq_scan > 0 
+                    ORDER BY seq_tup_read DESC;
+                    
+                    -- Vacuum tables if needed
+                    VACUUM (ANALYZE, VERBOSE);
+                    
+                    -- Reindex if fragmentation is high
+                    REINDEX DATABASE suuupra;
+                  "
+                  
+                  echo "✅ Database optimization completed"
+              env:
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: password
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 1Gi

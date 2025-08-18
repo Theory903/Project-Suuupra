@@ -1,203 +1,95 @@
-version: '3.8'
+version: '4'
 
 services:
+  # llm-tutor Service - Production Ready
   llm-tutor:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "8092:8092"
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql+asyncpg://llm_tutor:password@postgres:5432/llm_tutor
-      - REDIS_URL=redis://redis:6379/0
-      - MILVUS_HOST=milvus
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-    depends_on:
-      - postgres
-      - redis
-      - milvus
-      - elasticsearch
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./models:/app/models
-    networks:
-      - llm-tutor-network
+      target: production
+    container_name: suuupra-llm-tutor
     restart: unless-stopped
+    ports:
+      - "8096:8096"   # Main service port (aligned with main compose)
+      - "9107:9107"   # Metrics port (aligned with main compose)
+    environment:
+      # Core configuration (aligned with main docker-compose.yml)
+      NODE_ENV: production
+      PORT: 8096
+      METRICS_PORT: 9107
+      
+      # Database - Using main infrastructure PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DATABASE: llm_tutor
+      
+      # Redis - Using main infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Event streaming - Using main infrastructure Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: llm-tutor-service
+      KAFKA_GROUP_ID: llm-tutor-consumers
+      
+      # Security & Vault - Using main infrastructure
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:-myroot}
+      VAULT_MOUNT_PATH: llm-tutor
+      
+      # Observability - Using main infrastructure
+      OTEL_SERVICE_NAME: llm-tutor-service
+      OTEL_SERVICE_VERSION: 1.0.0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=suuupra,deployment.environment=docker-compose
+      
+    volumes:
+      - app_logs:/app/logs
+    
+    # Use main infrastructure services (no separate dependencies)
+    external_links:
+      - postgres:postgres
+      - redis:redis
+      - kafka:kafka
+      - vault:vault
+      - otel-collector:otel-collector
+    
+    networks:
+      - suuupra-network
+    
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8096/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 60s
+    
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9107"
 
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: llm_tutor
-      POSTGRES_USER: llm_tutor
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U llm_tutor"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  milvus:
-    image: milvusdb/milvus:v2.3.0
-    command: ["milvus", "run", "standalone"]
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-    ports:
-      - "19530:19530"
-    depends_on:
-      - etcd
-      - minio
-    volumes:
-      - milvus_data:/var/lib/milvus
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.0
-    environment:
-      - ETCD_AUTO_COMPACTION_MODE=revision
-      - ETCD_AUTO_COMPACTION_RETENTION=1000
-      - ETCD_QUOTA_BACKEND_BYTES=4294967296
-      - ETCD_SNAPSHOT_COUNT=50000
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-    volumes:
-      - etcd_data:/etcd
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-
-  minio:
-    image: minio/minio:latest
-    environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-    command: minio server /data
-    ports:
-      - "9001:9000"
-    volumes:
-      - minio_data:/data
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./infrastructure/monitoring/grafana-dashboards:/var/lib/grafana/dashboards
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"
-      - "14268:14268"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - llm-tutor-network
-    restart: unless-stopped
-
+# ===================================================================
+# VOLUMES - Aligned with main infrastructure
+# ===================================================================
 volumes:
-  postgres_data:
-  redis_data:
-  milvus_data:
-  etcd_data:
-  minio_data:
-  elasticsearch_data:
-  prometheus_data:
-  grafana_data:
+  app_logs:
+    external: true
+    name: suuupra_app_logs
 
+# ===================================================================
+# NETWORKS - Using main infrastructure network
+# ===================================================================
 networks:
-  llm-tutor-network:
-    driver: bridge
+  suuupra-network:
+    external: true
+    name: suuupra-network
+
+# ===================================================================
+# NOTES:
+# - All infrastructure services (PostgreSQL, Redis, Kafka, Vault, 
+#   Prometheus, Grafana, Jaeger) are provided by main infrastructure
+# - Use: docker-compose -f ../../docker-compose.infrastructure.yml up -d
+# - Then: docker-compose -f docker-compose.yml up -d
+# ===================================================================

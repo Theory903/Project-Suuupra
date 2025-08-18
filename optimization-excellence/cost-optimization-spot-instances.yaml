@@ -1,0 +1,750 @@
+# ===================================================================
+# COST OPTIMIZATION WITH SPOT INSTANCES - PHASE 6
+# Advanced Cost Management and Resource Optimization Strategy
+# ===================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cost-optimization
+  labels:
+    app.kubernetes.io/name: cost-optimization
+    app.kubernetes.io/part-of: suuupra-platform
+---
+# Cluster Autoscaler Configuration for Spot Instances
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-autoscaler-config
+  namespace: kube-system
+  labels:
+    app: cluster-autoscaler
+    component: config
+data:
+  cluster-autoscaler-config.yaml: |
+    # Cluster Autoscaler Configuration for Cost Optimization
+    scale-down-enabled: true
+    scale-down-delay-after-add: 10m
+    scale-down-delay-after-delete: 10s
+    scale-down-delay-after-failure: 3m
+    scale-down-unneeded-time: 10m
+    scale-down-utilization-threshold: 0.5
+    
+    # Spot instance preferences
+    node-group-auto-discovery:
+      - "asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/suuupra-cluster"
+    
+    # Cost optimization settings
+    expand-max-pods-per-node: 110
+    max-node-provision-time: 15m
+    max-nodes-total: 100
+    
+    # Spot instance handling
+    balance-similar-node-groups: true
+    skip-nodes-with-local-storage: false
+    skip-nodes-with-system-pods: false
+    
+    # Resource prioritization for spot instances
+    priority-class-names:
+      - high-priority
+      - medium-priority
+      - low-priority
+---
+# Mixed Instance Node Group for Cost Optimization
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: suuupra-cluster
+  region: us-east-1
+  version: "1.28"
+nodeGroups:
+  # On-Demand nodes for critical workloads
+  - name: on-demand-critical
+    instanceType: m5.xlarge
+    minSize: 2
+    maxSize: 10
+    desiredCapacity: 3
+    volumeSize: 100
+    volumeType: gp3
+    tags:
+      NodeType: "on-demand"
+      WorkloadType: "critical"
+      CostOptimization: "enabled"
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+        efs: true
+        albIngress: true
+        cloudWatch: true
+    labels:
+      node-type: "on-demand"
+      workload-tier: "critical"
+    taints:
+      critical-only:
+        key: "workload-tier"
+        value: "critical"
+        effect: "NoSchedule"
+  
+  # Spot instances for general workloads (70% cost savings)
+  - name: spot-general
+    instancesDistribution:
+      maxPrice: 0.10  # Maximum price per hour
+      instanceTypes:
+        - m5.large
+        - m5.xlarge  
+        - m5a.large
+        - m5a.xlarge
+        - m4.large
+        - m4.xlarge
+        - c5.large
+        - c5.xlarge
+        - c4.large
+        - c4.xlarge
+      onDemandBaseCapacity: 1
+      onDemandPercentageAboveBaseCapacity: 20  # 20% on-demand, 80% spot
+      spotAllocationStrategy: "diversified"
+      spotInstancePools: 4
+    minSize: 3
+    maxSize: 50
+    desiredCapacity: 6
+    volumeSize: 100
+    volumeType: gp3
+    tags:
+      NodeType: "spot"
+      WorkloadType: "general"
+      CostOptimization: "enabled"
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+    labels:
+      node-type: "spot"
+      workload-tier: "general"
+      instance-lifecycle: "spot"
+  
+  # Burstable spot instances for development/testing (80% cost savings)
+  - name: spot-burstable
+    instancesDistribution:
+      maxPrice: 0.05
+      instanceTypes:
+        - t3.medium
+        - t3.large
+        - t3a.medium
+        - t3a.large
+        - t2.medium
+        - t2.large
+      onDemandBaseCapacity: 0
+      onDemandPercentageAboveBaseCapacity: 0  # 100% spot for dev/test
+      spotAllocationStrategy: "diversified"
+      spotInstancePools: 6
+    minSize: 0
+    maxSize: 20
+    desiredCapacity: 2
+    volumeSize: 50
+    volumeType: gp3
+    tags:
+      NodeType: "spot"
+      WorkloadType: "development"
+      CostOptimization: "enabled"
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+    labels:
+      node-type: "spot"
+      workload-tier: "development"
+      instance-lifecycle: "spot"
+---
+# Priority Classes for Workload Classification
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000
+globalDefault: false
+description: "High priority workloads that require guaranteed resources (on-demand nodes)"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: medium-priority
+value: 100000
+globalDefault: false
+description: "Medium priority workloads suitable for mixed instance types"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: low-priority
+value: 10000
+globalDefault: true
+description: "Low priority workloads suitable for spot instances"
+---
+# Spot Instance Interrupt Handler
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: aws-node-termination-handler
+  namespace: kube-system
+  labels:
+    app: aws-node-termination-handler
+    component: spot-management
+spec:
+  selector:
+    matchLabels:
+      app: aws-node-termination-handler
+  template:
+    metadata:
+      labels:
+        app: aws-node-termination-handler
+    spec:
+      serviceAccountName: aws-node-termination-handler
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: aws-node-termination-handler
+          image: public.ecr.aws/aws-ec2/aws-node-termination-handler:v1.19.0
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SPOT_INTERRUPT_HANDLING_ENABLED
+              value: "true"
+            - name: SCHEDULED_EVENT_HANDLING_ENABLED
+              value: "true"
+            - name: CORDON_ONLY
+              value: "false"
+            - name: TAINT_NODE
+              value: "true"
+            - name: JSON_LOGGING
+              value: "true"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: WEBHOOK_URL
+              value: "" # Optional: Slack/Teams webhook for notifications
+            - name: WEBHOOK_HEADERS
+              value: "Content-Type:application/json"
+            - name: WEBHOOK_TEMPLATE
+              value: |
+                {
+                  "text": "🚨 Spot Instance Interruption Alert",
+                  "attachments": [
+                    {
+                      "color": "warning",
+                      "fields": [
+                        {"title": "Node", "value": "{{ .NodeName }}", "short": true},
+                        {"title": "Reason", "value": "{{ .EventType }}", "short": true},
+                        {"title": "Time", "value": "{{ .Time }}", "short": true}
+                      ]
+                    }
+                  ]
+                }
+            - name: ENABLE_PROMETHEUS_SERVER
+              value: "true"
+            - name: PROMETHEUS_SERVER_PORT
+              value: "9092"
+          ports:
+            - name: metrics
+              containerPort: 9092
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+            - name: uptime
+              mountPath: /proc/uptime
+              readOnly: true
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: uptime
+          hostPath:
+            path: /proc/uptime
+---
+# Service Account for Spot Instance Handler
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aws-node-termination-handler
+  namespace: kube-system
+---
+# ClusterRole for Spot Instance Handler
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aws-node-termination-handler
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+  - apiGroups: ["extensions", "apps"]
+    resources: ["daemonsets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+# ClusterRoleBinding for Spot Instance Handler
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aws-node-termination-handler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aws-node-termination-handler
+subjects:
+  - kind: ServiceAccount
+    name: aws-node-termination-handler
+    namespace: kube-system
+---
+# Cost Optimization Deployment Templates
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-spot
+  namespace: suuupra-prod
+  labels:
+    app: api-gateway
+    deployment-type: cost-optimized
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: api-gateway
+      deployment-type: cost-optimized
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        deployment-type: cost-optimized
+    spec:
+      priorityClassName: medium-priority
+      # Tolerate spot instance taints
+      tolerations:
+        - key: "node.kubernetes.io/instance-lifecycle"
+          operator: "Equal"
+          value: "spot"
+          effect: "NoSchedule"
+      # Prefer spot instances for cost savings
+      nodeSelector:
+        node-type: "spot"
+        workload-tier: "general"
+      # Pod disruption budget for spot instance handling
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: ["api-gateway"]
+                topologyKey: kubernetes.io/hostname
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: ["api-gateway"]
+                topologyKey: topology.kubernetes.io/zone
+      containers:
+        - name: api-gateway
+          image: suuupra/api-gateway:v1.2.3
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: SPOT_INSTANCE_AWARE
+              value: "true"
+          resources:
+            # Optimized resource requests for cost efficiency
+            requests:
+              cpu: 250m      # Reduced for better bin packing
+              memory: 512Mi  # Efficient memory usage
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          # Enhanced health checks for spot instances
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+---
+# Pod Disruption Budget for Spot Instances
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: suuupra-prod
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  minAvailable: 2  # Always keep at least 2 pods running during spot interruptions
+---
+# Horizontal Pod Autoscaler for Cost-Optimized Deployments
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa-cost-optimized
+  namespace: suuupra-prod
+  labels:
+    app: api-gateway
+    component: cost-optimization
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway-spot
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70  # Higher utilization for cost efficiency
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Aggressive memory utilization
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        - type: Percent
+          value: 50    # Scale down aggressively to save costs
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 30   # Quick scale up for performance
+      policies:
+        - type: Percent
+          value: 100   # Double pods when needed
+          periodSeconds: 15
+        - type: Pods
+          value: 4     # Add up to 4 pods at once
+          periodSeconds: 15
+---
+# Vertical Pod Autoscaler for Right-Sizing
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: api-gateway-vpa
+  namespace: suuupra-prod
+  labels:
+    app: api-gateway
+    component: cost-optimization
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway-spot
+  updatePolicy:
+    updateMode: "Auto"  # Automatically apply recommendations
+  resourcePolicy:
+    containerPolicies:
+      - containerName: api-gateway
+        minAllowed:
+          cpu: 100m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 2000m
+          memory: 4Gi
+        # Cost-optimized resource boundaries
+        controlledResources: ["cpu", "memory"]
+        controlledValues: RequestsAndLimits
+---
+# Cost Monitoring and Alerting
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-optimization-dashboard
+  namespace: cost-optimization
+  labels:
+    grafana_dashboard: "1"
+data:
+  cost-optimization.json: |
+    {
+      "dashboard": {
+        "title": "Suuupra Cost Optimization Dashboard",
+        "panels": [
+          {
+            "title": "Spot Instance Savings",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(sum(kube_node_labels{label_node_type=\"spot\"}) / sum(kube_node_labels)) * 100",
+                "legendFormat": "% Spot Instances"
+              }
+            ]
+          },
+          {
+            "title": "Node Utilization by Type",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "avg by (node_type) (100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance) * 100))",
+                "legendFormat": "{{node_type}} CPU %"
+              }
+            ]
+          },
+          {
+            "title": "Cost per Hour Estimate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(kube_node_labels{label_node_type=\"spot\"}) * 0.05 + sum(kube_node_labels{label_node_type=\"on-demand\"}) * 0.20",
+                "legendFormat": "$/hour"
+              }
+            ]
+          },
+          {
+            "title": "Spot Interruption Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(aws_node_termination_handler_spot_interruptions_total[5m])",
+                "legendFormat": "Interruptions/min"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+# Cost Optimization Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cost-optimization-alerts
+  namespace: monitoring
+  labels:
+    app: cost-optimization
+    component: alerts
+spec:
+  groups:
+    - name: cost-optimization
+      rules:
+        - alert: HighOnDemandUsage
+          expr: (sum(kube_node_labels{label_node_type="on-demand"}) / sum(kube_node_labels)) * 100 > 40
+          for: 30m
+          labels:
+            severity: warning
+            impact: "Increased infrastructure costs"
+          annotations:
+            summary: "High on-demand instance usage detected"
+            description: "More than 40% of nodes are on-demand instances. Consider moving workloads to spot instances for cost savings."
+            runbook_url: "https://suuupra.io/runbooks/cost-optimization"
+        
+        - alert: LowResourceUtilization
+          expr: avg(100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance) * 100)) < 30
+          for: 60m
+          labels:
+            severity: info
+            impact: "Resource waste, cost optimization opportunity"
+          annotations:
+            summary: "Low resource utilization detected"
+            description: "Average CPU utilization is below 30% for over 1 hour. Consider scaling down or using smaller instance types."
+        
+        - alert: SpotInterruptionSpike
+          expr: rate(aws_node_termination_handler_spot_interruptions_total[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            impact: "Potential service disruption, workload shuffling"
+          annotations:
+            summary: "High spot instance interruption rate"
+            description: "Spot instances are being interrupted more frequently than usual. Monitor application stability."
+        
+        - alert: CostBudgetExceeded
+          expr: sum(kube_node_labels) * 0.10 > 500  # $500/hour budget
+          for: 0m
+          labels:
+            severity: critical
+            impact: "Budget exceeded, immediate cost review needed"
+          annotations:
+            summary: "Infrastructure cost budget exceeded"
+            description: "Current estimated hourly cost exceeds $500 budget. Immediate review and cost reduction measures required."
+---
+# Cost Optimization CronJob - Daily Cost Analysis
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-cost-analysis
+  namespace: cost-optimization
+  labels:
+    app: cost-analysis
+    component: reporting
+spec:
+  schedule: "0 8 * * *"  # Daily at 8 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cost-analyzer
+              image: curlimages/curl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "🔍 DAILY COST ANALYSIS - $(date)"
+                  
+                  # Get node counts by type
+                  SPOT_NODES=$(kubectl get nodes -l node-type=spot --no-headers | wc -l)
+                  ONDEMAND_NODES=$(kubectl get nodes -l node-type=on-demand --no-headers | wc -l)
+                  TOTAL_NODES=$((SPOT_NODES + ONDEMAND_NODES))
+                  
+                  # Calculate estimated costs (example rates)
+                  SPOT_COST=$(echo "$SPOT_NODES * 24 * 0.05" | bc -l)  # $0.05/hour
+                  ONDEMAND_COST=$(echo "$ONDEMAND_NODES * 24 * 0.20" | bc -l)  # $0.20/hour
+                  TOTAL_DAILY_COST=$(echo "$SPOT_COST + $ONDEMAND_COST" | bc -l)
+                  
+                  # Calculate savings vs all on-demand
+                  ALL_ONDEMAND_COST=$(echo "$TOTAL_NODES * 24 * 0.20" | bc -l)
+                  SAVINGS=$(echo "$ALL_ONDEMAND_COST - $TOTAL_DAILY_COST" | bc -l)
+                  SAVINGS_PERCENT=$(echo "scale=1; $SAVINGS / $ALL_ONDEMAND_COST * 100" | bc -l)
+                  
+                  # Create report
+                  cat > /tmp/cost-report.json <<EOF
+                  {
+                    "date": "$(date -I)",
+                    "nodes": {
+                      "spot": $SPOT_NODES,
+                      "on_demand": $ONDEMAND_NODES,
+                      "total": $TOTAL_NODES
+                    },
+                    "daily_cost": {
+                      "spot": $SPOT_COST,
+                      "on_demand": $ONDEMAND_COST,
+                      "total": $TOTAL_DAILY_COST
+                    },
+                    "savings": {
+                      "amount": $SAVINGS,
+                      "percentage": $SAVINGS_PERCENT
+                    }
+                  }
+                  EOF
+                  
+                  echo "📊 Cost Analysis Results:"
+                  echo "Spot Nodes: $SPOT_NODES | On-Demand: $ONDEMAND_NODES"
+                  echo "Daily Cost: \$$TOTAL_DAILY_COST | Savings: \$$SAVINGS ($SAVINGS_PERCENT%)"
+                  
+                  # Optional: Send to monitoring system or Slack
+                  # curl -X POST $WEBHOOK_URL -d @/tmp/cost-report.json
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+---
+# Network Policy for Cost Optimization Namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cost-optimization-network-policy
+  namespace: cost-optimization
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9092  # Metrics port
+  egress:
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443   # HTTPS
+        - protocol: TCP
+          port: 6443  # Kubernetes API
+---
+# Resource Quotas for Cost Control
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cost-control-quota
+  namespace: suuupra-dev  # Apply to development namespace
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "20"      # Total CPU requests limited
+    requests.memory: 40Gi   # Total memory requests limited
+    limits.cpu: "40"        # Total CPU limits
+    limits.memory: 80Gi     # Total memory limits
+    
+    # Storage resources
+    requests.storage: 500Gi # Total storage requests
+    persistentvolumeclaims: "20"
+    
+    # Object counts
+    pods: "100"
+    services: "20"
+    configmaps: "50"
+    secrets: "20"
+    
+    # Compute resource by priority
+    count/low-priority.pods: "50"
+    count/medium-priority.pods: "30"
+    count/high-priority.pods: "10"

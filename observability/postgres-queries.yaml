@@ -1,0 +1,331 @@
+# ===================================================================
+# POSTGRESQL EXPORTER CUSTOM QUERIES - Per TODO-009/010
+# Performance and Business Metrics Collection
+# ===================================================================
+
+# Database statistics
+pg_database:
+  query: |
+    SELECT 
+      datname as database,
+      numbackends as active_connections,
+      tup_returned as tuples_returned,
+      tup_fetched as tuples_fetched,
+      tup_inserted as tuples_inserted,
+      tup_updated as tuples_updated,
+      tup_deleted as tuples_deleted,
+      conflicts as conflicts,
+      temp_files as temp_files,
+      temp_bytes as temp_bytes,
+      deadlocks as deadlocks,
+      blk_read_time as block_read_time_ms,
+      blk_write_time as block_write_time_ms
+    FROM pg_stat_database
+    WHERE datname NOT IN ('template0', 'template1', 'postgres')
+  master: true
+  metrics:
+    - database:
+        usage: "LABEL"
+        description: "Database name"
+    - active_connections:
+        usage: "GAUGE"
+        description: "Number of active connections"
+    - tuples_returned:
+        usage: "COUNTER"
+        description: "Number of rows returned by queries"
+    - tuples_fetched:
+        usage: "COUNTER" 
+        description: "Number of rows fetched by queries"
+    - tuples_inserted:
+        usage: "COUNTER"
+        description: "Number of rows inserted"
+    - tuples_updated:
+        usage: "COUNTER"
+        description: "Number of rows updated"
+    - tuples_deleted:
+        usage: "COUNTER"
+        description: "Number of rows deleted"
+    - conflicts:
+        usage: "COUNTER"
+        description: "Number of queries canceled due to conflicts"
+    - temp_files:
+        usage: "COUNTER"
+        description: "Number of temporary files created"
+    - temp_bytes:
+        usage: "COUNTER"
+        description: "Total bytes of temporary files"
+    - deadlocks:
+        usage: "COUNTER"
+        description: "Number of deadlocks detected"
+    - block_read_time_ms:
+        usage: "COUNTER"
+        description: "Time spent reading data file blocks (ms)"
+    - block_write_time_ms:
+        usage: "COUNTER"
+        description: "Time spent writing data file blocks (ms)"
+
+# Connection pool metrics
+pg_connections:
+  query: |
+    SELECT 
+      state,
+      COUNT(*) as connections
+    FROM pg_stat_activity
+    GROUP BY state
+  master: true
+  metrics:
+    - state:
+        usage: "LABEL"
+        description: "Connection state"
+    - connections:
+        usage: "GAUGE"
+        description: "Number of connections by state"
+
+# Slow queries from pg_stat_statements
+pg_slow_queries:
+  query: |
+    SELECT 
+      queryid,
+      query,
+      calls,
+      total_time,
+      mean_time,
+      rows,
+      100.0 * shared_blks_hit / nullif(shared_blks_hit + shared_blks_read, 0) AS hit_percent
+    FROM pg_stat_statements 
+    WHERE mean_time > 100  -- Queries slower than 100ms
+    ORDER BY mean_time DESC 
+    LIMIT 10
+  master: true
+  metrics:
+    - queryid:
+        usage: "LABEL"
+        description: "Query ID"
+    - query:
+        usage: "LABEL"
+        description: "Query text (truncated)"
+    - calls:
+        usage: "COUNTER"
+        description: "Number of times executed"
+    - total_time:
+        usage: "COUNTER"
+        description: "Total time spent in the statement (ms)"
+    - mean_time:
+        usage: "GAUGE"
+        description: "Mean time per execution (ms)"
+    - rows:
+        usage: "COUNTER"
+        description: "Total number of rows retrieved or affected"
+    - hit_percent:
+        usage: "GAUGE"
+        description: "Buffer cache hit percentage"
+
+# Table statistics
+pg_table_stats:
+  query: |
+    SELECT 
+      schemaname as schema,
+      tablename as table,
+      n_tup_ins as inserts,
+      n_tup_upd as updates,
+      n_tup_del as deletes,
+      n_live_tup as live_tuples,
+      n_dead_tup as dead_tuples,
+      last_vacuum,
+      last_autovacuum,
+      last_analyze,
+      last_autoanalyze,
+      vacuum_count,
+      autovacuum_count,
+      analyze_count,
+      autoanalyze_count
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+  master: true
+  metrics:
+    - schema:
+        usage: "LABEL"
+        description: "Schema name"
+    - table:
+        usage: "LABEL"
+        description: "Table name"
+    - inserts:
+        usage: "COUNTER"
+        description: "Number of rows inserted"
+    - updates:
+        usage: "COUNTER"
+        description: "Number of rows updated"
+    - deletes:
+        usage: "COUNTER"
+        description: "Number of rows deleted"
+    - live_tuples:
+        usage: "GAUGE"
+        description: "Estimated number of live rows"
+    - dead_tuples:
+        usage: "GAUGE"
+        description: "Estimated number of dead rows"
+    - vacuum_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been manually vacuumed"
+    - autovacuum_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been vacuumed by autovacuum"
+    - analyze_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been manually analyzed"
+    - autoanalyze_count:
+        usage: "COUNTER"
+        description: "Number of times this table has been analyzed by autoanalyze"
+
+# Index usage statistics
+pg_index_usage:
+  query: |
+    SELECT 
+      schemaname as schema,
+      tablename as table,
+      indexname as index,
+      idx_tup_read as index_tuples_read,
+      idx_tup_fetch as index_tuples_fetched
+    FROM pg_stat_user_indexes
+    WHERE schemaname = 'public'
+    ORDER BY idx_tup_read DESC
+    LIMIT 20
+  master: true
+  metrics:
+    - schema:
+        usage: "LABEL"
+        description: "Schema name"
+    - table:
+        usage: "LABEL"
+        description: "Table name"
+    - index:
+        usage: "LABEL"
+        description: "Index name"
+    - index_tuples_read:
+        usage: "COUNTER"
+        description: "Number of index entries returned by scans"
+    - index_tuples_fetched:
+        usage: "COUNTER"
+        description: "Number of live table rows fetched by index scans"
+
+# WAL statistics for backup monitoring
+pg_wal_stats:
+  query: |
+    SELECT 
+      CASE 
+        WHEN pg_is_in_recovery() THEN 'replica'
+        ELSE 'primary'
+      END as role,
+      pg_current_wal_lsn() as current_wal_lsn,
+      pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') as wal_bytes,
+      EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time())) as uptime_seconds
+  master: true
+  metrics:
+    - role:
+        usage: "LABEL"
+        description: "Database role (primary/replica)"
+    - current_wal_lsn:
+        usage: "LABEL" 
+        description: "Current WAL LSN"
+    - wal_bytes:
+        usage: "GAUGE"
+        description: "Total WAL bytes generated"
+    - uptime_seconds:
+        usage: "GAUGE"
+        description: "Database uptime in seconds"
+
+# Business metrics queries
+pg_business_users:
+  query: |
+    SELECT 
+      COUNT(*) as total_users,
+      COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 hour') as users_last_hour,
+      COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 day') as users_last_day,
+      COUNT(*) FILTER (WHERE deleted_at IS NULL) as active_users
+    FROM users
+  master: true
+  metrics:
+    - total_users:
+        usage: "GAUGE"
+        description: "Total number of registered users"
+    - users_last_hour:
+        usage: "GAUGE"
+        description: "Users registered in the last hour"
+    - users_last_day:
+        usage: "GAUGE"
+        description: "Users registered in the last day"
+    - active_users:
+        usage: "GAUGE"
+        description: "Number of active (non-deleted) users"
+
+# Payment metrics (if payments table exists)
+pg_business_payments:
+  query: |
+    SELECT 
+      status,
+      currency,
+      COUNT(*) as payment_count,
+      COALESCE(SUM(amount), 0) as total_amount
+    FROM payments 
+    WHERE created_at >= NOW() - INTERVAL '1 hour'
+    GROUP BY status, currency
+  master: true
+  metrics:
+    - status:
+        usage: "LABEL"
+        description: "Payment status"
+    - currency:
+        usage: "LABEL"
+        description: "Payment currency"
+    - payment_count:
+        usage: "GAUGE"
+        description: "Number of payments"
+    - total_amount:
+        usage: "GAUGE"
+        description: "Total payment amount (in smallest currency unit)"
+
+# Lock monitoring
+pg_locks:
+  query: |
+    SELECT 
+      mode,
+      locktype,
+      COUNT(*) as lock_count
+    FROM pg_locks 
+    WHERE NOT granted
+    GROUP BY mode, locktype
+  master: true
+  metrics:
+    - mode:
+        usage: "LABEL"
+        description: "Lock mode"
+    - locktype:
+        usage: "LABEL" 
+        description: "Lock type"
+    - lock_count:
+        usage: "GAUGE"
+        description: "Number of locks not granted"
+
+# Replication lag (for read replicas)
+pg_replication_lag:
+  query: |
+    SELECT 
+      client_addr,
+      state,
+      EXTRACT(EPOCH FROM (now() - backend_start)) as connection_duration_seconds,
+      pg_wal_lsn_diff(pg_current_wal_lsn(), flush_lsn) as replication_lag_bytes
+    FROM pg_stat_replication
+  master: true
+  metrics:
+    - client_addr:
+        usage: "LABEL"
+        description: "Replica client address"
+    - state:
+        usage: "LABEL"
+        description: "Replication state"
+    - connection_duration_seconds:
+        usage: "GAUGE"
+        description: "Duration of replication connection"
+    - replication_lag_bytes:
+        usage: "GAUGE"
+        description: "Replication lag in bytes"

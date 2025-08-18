@@ -1,12 +1,10 @@
 package com.suuupra.identity.tenant;
 
-import com.suuupra.identity.rbac.PermissionService;
 import com.suuupra.identity.user.entity.Role;
 import com.suuupra.identity.user.entity.User;
 import com.suuupra.identity.user.repository.RoleRepository;
 import com.suuupra.identity.user.repository.UserRepository;
 import com.suuupra.identity.audit.AuditLogService;
-import com.suuupra.identity.common.util.TenantContext;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.http.ResponseEntity;

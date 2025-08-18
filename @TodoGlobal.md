@@ -10,15 +10,25 @@
 ## 📌 CRITICAL: READ THIS FIRST (AVOID 90% OF MISTAKES)
 
 ### Common Pitfalls That Will Break Production
+
 1. **NEVER deploy without health checks** - Services will get killed by K8s
+
 2. **NEVER hardcode secrets** - Use HashiCorp Vault or die trying
+
 3. **NEVER skip distributed tracing** - You'll be blind during incidents
+
 4. **NEVER ignore retry logic** - Network failures are guaranteed
+
 5. **NEVER use synchronous calls for >100ms operations** - Use Kafka events
+
 6. **NEVER deploy without circuit breakers** - Cascade failures will kill you
+
 7. **NEVER skip the outbox pattern** - You'll lose events and data consistency
+
 8. **NEVER use localStorage in production** - It's not available in many environments
+
 9. **NEVER trust client input** - Validate everything server-side
+
 10. **NEVER deploy Friday afternoon** - Unless you love weekend debugging
 
 ---
@@ -26,28 +36,39 @@
 ## 🎯 PHASE 0: FOUNDATION (WEEKS 1-2) - DO THIS OR EVERYTHING FAILS
 
 ### ✅ TODO-001: Setup Development Environment Correctly
+
 **Priority**: P0 CRITICAL  
 **Owner**: All Developers  
 **Deadline**: Day 1  
 
 ```bash
+
 # Step 1: Install EXACT versions (version mismatch = pain)
+
 brew install node@20.11.0  # NOT 21, it breaks some packages
+
 brew install go@1.22       # NOT 1.23, compatibility issues
+
 brew install rust@1.75     # For high-performance services
+
 brew install python@3.11   # NOT 3.12, some libs incompatible
+
 brew install kubectl@1.29  # Match your cluster version!
+
 brew install helm@3.14
 brew install docker
 brew install docker-compose
 brew install minikube      # For local K8s testing
 
 # Step 2: Setup Node correctly (AVOID npm hell)
+
 npm install -g pnpm@8.15.1  # Use pnpm, NOT npm (30% faster)
+
 echo 'auto-install-peers=true' >> ~/.npmrc
 echo 'shamefully-hoist=true' >> ~/.npmrc
 
 # Step 3: Configure Git properly (AVOID merge disasters)
+
 git config --global pull.rebase true
 git config --global fetch.prune true
 git config --global diff.colorMoved zebra
@@ -55,27 +76,40 @@ git config --global merge.conflictstyle diff3
 git config --global commit.gpgsign true  # Sign your commits!
 
 # Step 4: Install development tools
+
 brew install --cask visual-studio-code
 brew install --cask postman
 brew install --cask lens  # K8s IDE
+
 brew install jq yq        # JSON/YAML processors
+
 brew install httpie       # Better than curl
+
 brew install dive          # Docker image analyzer
+
 brew install k9s           # Terminal K8s UI
-```
+
+```bash
 
 **Common Mistakes to Avoid:**
+
 - ❌ Using different Node versions across team = dependency hell
+
 - ❌ Not using pnpm = slower builds and larger node_modules
+
 - ❌ Skipping GPG signing = security audit failures
+
 - ✅ Solution: Use `.nvmrc` file in every service root
 
 ### ✅ TODO-002: Setup Local Kubernetes Correctly
+
 **Priority**: P0 CRITICAL  
 **Time Required**: 2 hours  
 
 ```bash
+
 # Step 1: Start Minikube with proper resources
+
 minikube start \
   --cpus=4 \
   --memory=8192 \
@@ -84,6 +118,7 @@ minikube start \
   --kubernetes-version=v1.29.0
 
 # Step 2: Enable CRITICAL addons
+
 minikube addons enable ingress
 minikube addons enable ingress-dns
 minikube addons enable metrics-server
@@ -91,6 +126,7 @@ minikube addons enable dashboard
 minikube addons enable registry
 
 # Step 3: Install Linkerd (NOT Istio - 40% faster)
+
 curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install | sh
 linkerd check --pre
 linkerd install --crds | kubectl apply -f -
@@ -98,24 +134,32 @@ linkerd install | kubectl apply -f -
 linkerd check
 
 # Step 4: Setup namespaces properly
+
 kubectl create namespace suuupra-dev
 kubectl create namespace suuupra-staging  
 kubectl create namespace suuupra-prod
 kubectl label namespace suuupra-dev linkerd.io/inject=enabled
 kubectl label namespace suuupra-staging linkerd.io/inject=enabled
-```
+
+```bash
 
 **Gotchas:**
+
 - ⚠️ Minikube needs Docker Desktop running first
+
 - ⚠️ Linkerd injection must be namespace-level, not pod-level
+
 - ⚠️ Always use `--dry-run=client` first for any kubectl apply
 
 ### ✅ TODO-003: Setup Kafka 4.0 with KRaft (NO More ZooKeeper!)
+
 **Priority**: P0 CRITICAL  
 **Complexity**: HIGH  
 
 ```yaml
+
 # kafka-kraft-config.yaml - USE THIS EXACT CONFIG
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -124,16 +168,19 @@ metadata:
 data:
   server.properties: |
     # KRaft Mode Configuration (Kafka 4.0)
+
     process.roles=broker,controller
     node.id=1
     controller.quorum.voters=1@kafka-0:9093,2@kafka-1:9093,3@kafka-2:9093
     
     # Listeners - CRITICAL: Get these wrong = nothing works
+
     listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
     advertised.listeners=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
     listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
     
     # Performance Tuning for 1M+ events/sec
+
     num.network.threads=8
     num.io.threads=8
     socket.send.buffer.bytes=102400
@@ -141,26 +188,34 @@ data:
     socket.request.max.bytes=104857600
     
     # Replication for zero data loss
+
     min.insync.replicas=2
     default.replication.factor=3
     
     # Enable exactly-once semantics
+
     transaction.state.log.replication.factor=3
     transaction.state.log.min.isr=2
     
     # Log retention (7 days default)
+
     log.retention.hours=168
     log.segment.bytes=1073741824
     
     # Compression (70% reduction!)
+
     compression.type=zstd
-```
 
 ```bash
+
+```bash
+
 # Deploy Kafka cluster
+
 kubectl apply -f kafka-kraft-config.yaml
 
 # Create topics with proper partitioning
+
 kubectl exec -it kafka-0 -- kafka-topics.sh \
   --create \
   --topic user.events \
@@ -171,23 +226,31 @@ kubectl exec -it kafka-0 -- kafka-topics.sh \
   --bootstrap-server kafka:9092
 
 # CRITICAL: Test Kafka is working
+
 kubectl exec -it kafka-0 -- kafka-console-producer.sh \
   --topic test \
   --bootstrap-server kafka:9092
   
+
 # Type: "Hello Kafka 4.0" then Ctrl+C
 
 kubectl exec -it kafka-0 -- kafka-console-consumer.sh \
   --topic test \
   --from-beginning \
   --bootstrap-server kafka:9092
-```
+
+```bash
 
 **Production Checklist:**
+
 - [ ] Enable SASL/SCRAM authentication
+
 - [ ] Setup ACLs for topic access control  
+
 - [ ] Configure log.dirs on separate disks
+
 - [ ] Monitor lag with Burrow or Kafka Manager
+
 - [ ] Setup Confluent Schema Registry
 
 ---
@@ -195,11 +258,14 @@ kubectl exec -it kafka-0 -- kafka-console-consumer.sh \
 ## 🔐 PHASE 1: SECURITY FOUNDATION (WEEKS 3-4)
 
 ### ✅ TODO-004: Implement Zero-Trust Service Mesh Security
+
 **Priority**: P0 CRITICAL  
 **Security Level**: MILITARY GRADE  
 
 ```yaml
+
 # linkerd-security-policy.yaml
+
 apiVersion: policy.linkerd.io/v1beta1
 kind: ServerAuthorization
 metadata:
@@ -210,6 +276,7 @@ spec:
     name: all-services
   client:
     # ONLY API Gateway can call backend services
+
     meshTLS:
       serviceAccounts:
         - name: api-gateway
@@ -222,12 +289,16 @@ metadata:
   namespace: suuupra-prod
 spec:
   # Force mTLS for ALL service communication
+
   meshTLS:
     mode: required
-```
 
 ```bash
+
+```bash
+
 # Step 1: Generate certificates (DON'T use self-signed in prod!)
+
 step certificate create root.linkerd.cluster.local ca.crt ca.key \
   --profile root-ca --no-password --insecure
 
@@ -236,6 +307,7 @@ step certificate create identity.linkerd.cluster.local issuer.crt issuer.key \
   --ca ca.crt --ca-key ca.key
 
 # Step 2: Install with custom certificates
+
 linkerd install \
   --identity-trust-domain=cluster.local \
   --identity-trust-anchors-file ca.crt \
@@ -244,18 +316,26 @@ linkerd install \
   | kubectl apply -f -
 
 # Step 3: Verify mTLS is working
+
 linkerd viz edges deployment
 linkerd viz tap deploy/api-gateway
-```
+
+```bash
 
 **Security Hardening Checklist:**
+
 - [ ] Rotate certificates every 90 days maximum
+
 - [ ] Use cert-manager for automatic rotation
+
 - [ ] Enable PodSecurityPolicies
+
 - [ ] Implement NetworkPolicies for defense in depth
+
 - [ ] Audit all service account permissions
 
 ### ✅ TODO-005: JWT Implementation That Actually Works
+
 **Priority**: P0 CRITICAL  
 **Common Failures**: 80% of implementations are vulnerable  
 
@@ -353,9 +433,11 @@ function extractToken(req: Request): string | null {
   
   return null;
 }
-```
+
+```bash
 
 **Token Refresh Implementation (CRITICAL for UX):**
+
 ```typescript
 // MISTAKE: No refresh token = users login every hour
 // CORRECT: Implement refresh token rotation
@@ -407,14 +489,18 @@ export async function refreshToken(req: Request, res: Response) {
     return res.status(401).json({ error: 'Invalid refresh token' });
   }
 }
-```
+
+```bash
 
 ### ✅ TODO-006: Implement Vault for Secrets (Stop Hardcoding!)
+
 **Priority**: P0 CRITICAL  
 **Time Required**: 4 hours  
 
 ```bash
+
 # Step 1: Deploy Vault in K8s
+
 helm repo add hashicorp https://helm.releases.hashicorp.com
 helm install vault hashicorp/vault \
   --set server.ha.enabled=true \
@@ -423,22 +509,27 @@ helm install vault hashicorp/vault \
   --create-namespace
 
 # Step 2: Initialize Vault (SAVE THESE KEYS!)
+
 kubectl exec -it vault-0 -n vault -- vault operator init \
   -key-shares=5 \
   -key-threshold=3
 
 # Step 3: Unseal Vault (need 3 of 5 keys)
+
 kubectl exec -it vault-0 -n vault -- vault operator unseal <KEY_1>
 kubectl exec -it vault-0 -n vault -- vault operator unseal <KEY_2>
 kubectl exec -it vault-0 -n vault -- vault operator unseal <KEY_3>
 
 # Step 4: Configure Kubernetes auth
+
 kubectl exec -it vault-0 -n vault -- vault auth enable kubernetes
 kubectl exec -it vault-0 -n vault -- vault write auth/kubernetes/config \
   kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443"
-```
+
+```bash
 
 **Application Integration:**
+
 ```javascript
 // vault-client.js - Auto-rotating secrets
 const vault = require('node-vault')({
@@ -508,18 +599,22 @@ class SecretManager {
 const secrets = new SecretManager();
 const dbCreds = await secrets.getSecret('database/creds/postgres');
 const apiKey = await secrets.getSecret('external/stripe/api-key');
-```
+
+```bash
 
 ---
 
 ## 🚀 PHASE 2: SERVICE IMPLEMENTATION (WEEKS 5-8)
 
 ### ✅ TODO-007: API Gateway That Won't Fall Over
+
 **Priority**: P0 CRITICAL  
 **Technology**: Kong Gateway (NOT nginx!)  
 
 ```yaml
+
 # kong-config.yaml - Production configuration
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -529,17 +624,21 @@ data:
     _format_version: "3.0"
     
     # Rate limiting by user tier
+
     plugins:
     - name: rate-limiting
       config:
         minute: 100    # Free tier
+
         policy: redis  # Use Redis for distributed rate limiting
+
         redis_host: redis-master
         redis_port: 6379
         redis_database: 0
         hide_client_headers: false
     
     # Circuit breaker to prevent cascade failures  
+
     - name: circuit-breaker
       config:
         error_threshold: 50
@@ -548,17 +647,21 @@ data:
         half_open_timeout: 60
     
     # Request size limiting (prevent DoS)
+
     - name: request-size-limiting
       config:
         allowed_payload_size: 10  # 10MB max
+
         size_unit: megabytes
     
     # CORS configuration
+
     - name: cors
       config:
         origins:
         - https://app.suuupra.com
         - http://localhost:3000  # Dev only
+
         methods:
         - GET
         - POST
@@ -579,6 +682,7 @@ data:
     
     services:
     # Identity Service
+
     - name: identity-service
       url: http://identity.suuupra-prod:8080
       routes:
@@ -590,8 +694,10 @@ data:
       - name: rate-limiting
         config:
           minute: 20  # Stricter for auth endpoints
+
       
     # Payment Service with extra security
+
     - name: payment-service
       url: http://payments.suuupra-prod:8080
       routes:
@@ -609,11 +715,15 @@ data:
           remove:
             headers:
             - X-Internal-Service-Version  # Don't leak internals
-```
+
+```bash
 
 **Kong Deployment with Postgres:**
+
 ```bash
+
 # Deploy Postgres for Kong
+
 helm install kong-db bitnami/postgresql \
   --set postgresqlUsername=kong \
   --set postgresqlPassword=kong \
@@ -622,6 +732,7 @@ helm install kong-db bitnami/postgresql \
   --create-namespace
 
 # Deploy Kong
+
 helm install kong kong/kong \
   --namespace kong \
   --set env.database=postgres \
@@ -634,10 +745,13 @@ helm install kong kong/kong \
   --set admin.http.enabled=true
 
 # Configure Kong
+
 kubectl apply -f kong-config.yaml
-```
+
+```bash
 
 **Critical Performance Tuning:**
+
 ```lua
 -- custom-nginx.conf for Kong
 worker_processes auto;
@@ -646,21 +760,25 @@ worker_rlimit_nofile 65536;
 events {
     worker_connections 16384;
     use epoll;  # Linux only
+
     multi_accept on;
 }
 
 http {
     # Keep-alive connections
+
     keepalive_timeout 65;
     keepalive_requests 100;
     
     # Buffers optimization
+
     client_body_buffer_size 10K;
     client_header_buffer_size 1k;
     client_max_body_size 10m;
     large_client_header_buffers 2 1k;
     
     # Gzip compression
+
     gzip on;
     gzip_vary on;
     gzip_proxied any;
@@ -673,17 +791,21 @@ http {
                image/x-icon;
     
     # Cache
+
     proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=api_cache:10m 
                      max_size=1g inactive=60m use_temp_path=off;
     
     # Rate limiting zones
+
     limit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;
     limit_req_zone $binary_remote_addr zone=auth:10m rate=3r/s;
     limit_req_zone $binary_remote_addr zone=payment:10m rate=5r/s;
 }
-```
+
+```bash
 
 ### ✅ TODO-008: Event-Driven Microservices with Kafka
+
 **Priority**: P0 CRITICAL  
 **Pattern**: Event Sourcing + CQRS  
 
@@ -855,9 +977,11 @@ class IdempotentEventConsumer {
     });
   }
 }
-```
+
+```bash
 
 ### ✅ TODO-009: Database Schema That Scales
+
 **Priority**: P0 CRITICAL  
 **Mistakes to Avoid**: No indexes = death at scale  
 
@@ -961,9 +1085,11 @@ $$ LANGUAGE plpgsql;
 -- Schedule partition creation
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 SELECT cron.schedule('create-partition', '0 0 1 * *', 'SELECT create_monthly_partition()');
-```
+
+```bash
 
 **Query Optimization Rules:**
+
 ```sql
 -- BAD: No index scan
 SELECT * FROM users WHERE LOWER(email) = 'user@example.com';
@@ -987,18 +1113,22 @@ SELECT query, calls, mean_exec_time, max_exec_time
 FROM pg_stat_statements
 WHERE mean_exec_time > 100  -- queries slower than 100ms
 ORDER BY mean_exec_time DESC;
-```
+
+```bash
 
 ---
 
 ## 📊 PHASE 3: OBSERVABILITY & MONITORING (WEEKS 9-10)
 
 ### ✅ TODO-010: OpenTelemetry Setup (See EVERYTHING)
+
 **Priority**: P0 CRITICAL  
 **Stack**: OpenTelemetry + Prometheus + Grafana + Tempo  
 
 ```yaml
+
 # otel-collector-config.yaml
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -1014,6 +1144,7 @@ data:
             endpoint: 0.0.0.0:4318
       
       # Collect metrics from Kubernetes
+
       prometheus:
         config:
           scrape_configs:
@@ -1030,6 +1161,7 @@ data:
               regex: (.+)
       
       # Collect logs from containers
+
       filelog:
         include: [ /var/log/pods/*/*/*.log ]
         start_at: end
@@ -1046,6 +1178,7 @@ data:
         timeout: 10s
       
       # Add resource attributes
+
       resource:
         attributes:
         - key: environment
@@ -1056,12 +1189,14 @@ data:
           action: insert
       
       # Memory limiter to prevent OOM
+
       memory_limiter:
         check_interval: 1s
         limit_percentage: 75
         spike_limit_percentage: 25
       
       # Tail sampling for traces (keep interesting ones)
+
       tail_sampling:
         decision_wait: 10s
         policies:
@@ -1077,6 +1212,7 @@ data:
     
     exporters:
       # Metrics to Prometheus
+
       prometheus:
         endpoint: "0.0.0.0:8889"
         namespace: suuupra
@@ -1084,6 +1220,7 @@ data:
         enable_open_metrics: true
       
       # Traces to Tempo
+
       otlp/tempo:
         endpoint: tempo:4317
         tls:
@@ -1091,6 +1228,7 @@ data:
           ca_file: /etc/ssl/certs/ca.crt
       
       # Logs to Loki
+
       loki:
         endpoint: http://loki:3100/loki/api/v1/push
         labels:
@@ -1117,9 +1255,11 @@ data:
           receivers: [otlp, filelog]
           processors: [memory_limiter, batch, resource]
           exporters: [loki]
-```
+
+```bash
 
 **Application Instrumentation:**
+
 ```typescript
 // telemetry.ts - Auto-instrument EVERYTHING
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -1200,9 +1340,11 @@ export function processPayment(amount: number, currency: string) {
     throw error;
   }
 }
-```
+
+```bash
 
 ### ✅ TODO-011: Grafana Dashboards That Actually Help
+
 **Priority**: P1 HIGH  
 **Goal**: Find problems in <30 seconds  
 
@@ -1259,16 +1401,22 @@ export function processPayment(amount: number, currency: string) {
     ]
   }
 }
-```
+
+```bash
 
 **Alert Rules That Don't Wake You at 3am:**
+
 ```yaml
+
 # prometheus-alerts.yaml
+
 groups:
+
 - name: critical
   interval: 30s
   rules:
   # Only alert on USER-FACING issues
+
   - alert: HighErrorRate
     expr: |
       (
@@ -1277,6 +1425,7 @@ groups:
         sum(rate(http_requests_total{job="api-gateway"}[5m]))
       ) > 0.05
     for: 5m  # Wait 5 minutes to avoid flapping
+
     labels:
       severity: critical
       team: platform
@@ -1286,6 +1435,7 @@ groups:
       runbook_url: "https://wiki.suuupra.com/runbooks/high-error-rate"
   
   # Don't alert on internal service errors, only gateway
+
   - alert: ServiceDown
     expr: up{job="api-gateway"} == 0
     for: 1m
@@ -1295,28 +1445,34 @@ groups:
       summary: "API Gateway is down"
       
   # Smart alerting for Kafka lag
+
   - alert: KafkaConsumerLag
     expr: |
       kafka_consumer_lag > 10000
       AND
       rate(kafka_consumer_lag[5m]) > 0  # Only if lag is growing
+
     for: 10m
     labels:
       severity: warning
     annotations:
       summary: "Kafka consumer lag is growing"
-```
+
+```bash
 
 ---
 
 ## 🔥 PHASE 4: PRODUCTION HARDENING (WEEKS 11-12)
 
 ### ✅ TODO-012: Chaos Engineering (Break It Before Users Do)
+
 **Priority**: P1 HIGH  
 **Tools**: Litmus Chaos  
 
 ```yaml
+
 # chaos-experiments.yaml
+
 apiVersion: litmuschaos.io/v1alpha1
 kind: ChaosEngine
 metadata:
@@ -1328,6 +1484,7 @@ spec:
   chaosServiceAccount: litmus-admin
   experiments:
   # Kill pods randomly
+
   - name: pod-delete
     spec:
       components:
@@ -1340,6 +1497,7 @@ spec:
           value: 'false'
   
   # Network latency injection
+
   - name: pod-network-latency
     spec:
       components:
@@ -1348,10 +1506,12 @@ spec:
           value: 'eth0'
         - name: NETWORK_LATENCY
           value: '2000'  # 2 second latency
+
         - name: TOTAL_CHAOS_DURATION
           value: '60'
   
   # CPU stress
+
   - name: pod-cpu-hog
     spec:
       components:
@@ -1360,25 +1520,31 @@ spec:
           value: '2'
         - name: TOTAL_CHAOS_DURATION
           value: '60'
-```
+
+```bash
 
 **Automated Chaos Testing:**
+
 ```bash
 #!/bin/bash
+
 # chaos-test.sh - Run every Friday at 2pm (when you can fix it)
 
 # Check if it's production
+
 if [[ "$ENVIRONMENT" != "production" ]]; then
   echo "Chaos testing in staging first!"
   exit 1
 fi
 
 # Notify team
+
 curl -X POST $SLACK_WEBHOOK -d '{
   "text": "Starting chaos engineering tests in production"
 }'
 
 # Run experiments gradually
+
 echo "Phase 1: Network latency test"
 kubectl apply -f chaos/network-latency.yaml
 sleep 300
@@ -1392,23 +1558,29 @@ kubectl apply -f chaos/db-connection-limit.yaml
 sleep 300
 
 # Check if services recovered
+
 HEALTH_CHECK=$(curl -s https://api.suuupra.com/health)
 if [[ "$HEALTH_CHECK" != *"ok"* ]]; then
   echo "FAILED: Services did not recover!"
   # Rollback
+
   kubectl rollout undo deployment --all -n suuupra-prod
   exit 1
 fi
 
 echo "SUCCESS: All chaos tests passed!"
-```
+
+```bash
 
 ### ✅ TODO-013: Multi-Region Deployment
+
 **Priority**: P1 HIGH  
 **Regions**: US-East, EU-West, AP-Southeast  
 
 ```yaml
+
 # multi-region-deployment.yaml
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -1431,11 +1603,13 @@ metadata:
   name: api-gateway
 spec:
   replicas: 10  # Per region
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 2
       maxUnavailable: 0  # Zero downtime
+
   template:
     spec:
       topologySpreadConstraints:
@@ -1455,9 +1629,11 @@ spec:
                 values:
                 - api-gateway
             topologyKey: kubernetes.io/hostname
-```
+
+```bash
 
 **Database Replication Across Regions:**
+
 ```sql
 -- Setup streaming replication
 -- On PRIMARY (us-east-1)
@@ -1488,9 +1664,11 @@ EOF
 
 -- Start replica
 systemctl start postgresql
-```
+
+```bash
 
 ### ✅ TODO-014: Load Testing That Simulates Real Users
+
 **Priority**: P1 HIGH  
 **Tool**: K6 (NOT JMeter!)  
 
@@ -1606,19 +1784,24 @@ export default function() {
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
-```
+
+```bash
 
 **Run load test with monitoring:**
+
 ```bash
 #!/bin/bash
+
 # run-load-test.sh
 
 # Start monitoring
+
 echo "Starting monitoring..."
 kubectl port-forward svc/grafana 3000:3000 &
 GRAFANA_PID=$!
 
 # Run load test
+
 echo "Starting load test..."
 k6 run \
   --out influxdb=http://localhost:8086/k6 \
@@ -1626,10 +1809,12 @@ k6 run \
   load-test.js
 
 # Analyze results
+
 echo "Analyzing results..."
 cat results.json | jq '.metrics.http_req_duration.p95'
 
 # Check for errors
+
 ERROR_RATE=$(cat results.json | jq '.metrics.errors.rate')
 if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
   echo "ERROR: Error rate too high: $ERROR_RATE"
@@ -1637,20 +1822,25 @@ if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
 fi
 
 # Cleanup
+
 kill $GRAFANA_PID
 echo "Load test complete!"
-```
+
+```bash
 
 ---
 
 ## 🚨 PHASE 5: DISASTER RECOVERY (WEEKS 13-14)
 
 ### ✅ TODO-015: Backup Strategy That Actually Works
+
 **Priority**: P0 CRITICAL  
 **RPO**: 1 hour, **RTO**: 4 hours  
 
 ```yaml
+
 # velero-backup-schedule.yaml
+
 apiVersion: velero.io/v1
 kind: Schedule
 metadata:
@@ -1658,8 +1848,10 @@ metadata:
   namespace: velero
 spec:
   schedule: "0 2 * * *"  # 2 AM daily
+
   template:
     ttl: 720h0m0s  # Keep for 30 days
+
     includedNamespaces:
     - suuupra-prod
     excludedResources:
@@ -1668,21 +1860,27 @@ spec:
     storageLocation: aws-s3-backup
     volumeSnapshotLocations:
     - aws-ebs-snapshots
-```
+
+```bash
 
 **Database Backup with Point-in-Time Recovery:**
+
 ```bash
 #!/bin/bash
+
 # backup-database.sh
 
 # Continuous WAL archiving to S3
+
 cat >> /etc/postgresql/14/main/postgresql.conf <<EOF
 archive_mode = on
 archive_command = 'aws s3 cp %p s3://suuupra-backups/wal/%f'
 archive_timeout = 300  # Force archive every 5 minutes
+
 EOF
 
 # Daily base backup
+
 pg_basebackup \
   -D /tmp/backup_$(date +%Y%m%d) \
   -Ft -z -P \
@@ -1691,6 +1889,7 @@ pg_basebackup \
   -U postgres
 
 # Upload to S3 with encryption
+
 aws s3 cp \
   /tmp/backup_$(date +%Y%m%d).tar.gz \
   s3://suuupra-backups/base/backup_$(date +%Y%m%d).tar.gz \
@@ -1698,6 +1897,7 @@ aws s3 cp \
   --sse-kms-key-id $KMS_KEY_ID
 
 # Test restore (CRITICAL - untested backups = no backups)
+
 echo "Testing restore..."
 createdb test_restore
 pg_restore -d test_restore /tmp/backup_$(date +%Y%m%d).tar.gz
@@ -1708,18 +1908,24 @@ else
   echo "BACKUP TEST FAILED!"
   exit 1
 fi
-```
+
+```bash
 
 ### ✅ TODO-016: Incident Response Playbook
+
 **Priority**: P0 CRITICAL  
 **First Rule**: Don't Panic  
 
 ```markdown
+
 # INCIDENT RESPONSE PLAYBOOK
 
 ## 1. IMMEDIATE ACTIONS (First 5 Minutes)
+
 1. **Acknowledge alert** in PagerDuty
+
 2. **Join incident channel** in Slack: #incident-YYYYMMDD-HHMM
+
 3. **Assign roles**:
    - Incident Commander (IC)
    - Technical Lead
@@ -1727,32 +1933,44 @@ fi
    - Scribe
 
 ## 2. ASSESSMENT (5-15 Minutes)
+
 ```bash
+
 # Quick health check
+
 kubectl get pods -n suuupra-prod | grep -v Running
 kubectl top nodes
 kubectl top pods -n suuupra-prod
 
 # Check recent deployments
+
 kubectl rollout history deployment -n suuupra-prod
 
 # Check error rates
+
 curl -s http://prometheus:9090/api/v1/query?query=rate(http_requests_total{status=~"5.."}[5m])
-```
+
+```bash
 
 ## 3. MITIGATION STRATEGIES
 
-### If API Gateway is down:
+### If API Gateway is down
+
 ```bash
+
 # Immediate: Switch to backup gateway
+
 kubectl patch service api-gateway -p '{"spec":{"selector":{"version":"backup"}}}'
 
 # Root cause investigation
+
 kubectl logs -n suuupra-prod deployment/api-gateway --tail=100
 kubectl describe pod -n suuupra-prod -l app=api-gateway
-```
 
-### If Database is slow:
+```bash
+
+### If Database is slow
+
 ```sql
 -- Kill long-running queries
 SELECT pg_terminate_backend(pid)
@@ -1766,24 +1984,32 @@ SELECT * FROM pg_locks WHERE NOT granted;
 -- Emergency connection limit increase
 ALTER SYSTEM SET max_connections = 500;
 SELECT pg_reload_conf();
-```
 
-### If Kafka is lagging:
 ```bash
+
+### If Kafka is lagging
+
+```bash
+
 # Increase consumer instances
+
 kubectl scale deployment payment-consumer --replicas=10
 
 # Reset consumer group offset (LAST RESORT)
+
 kafka-consumer-groups.sh \
   --bootstrap-server kafka:9092 \
   --group payment-processor \
   --reset-offsets \
   --to-latest \
   --execute
-```
+
+```bash
 
 ## 4. COMMUNICATION TEMPLATE
-```
+
+```bash
+
 **Status**: [Investigating/Identified/Monitoring/Resolved]
 **Impact**: [User-facing description]
 **Started**: [Time]
@@ -1793,19 +2019,24 @@ We are currently experiencing [issue description].
 Impact: [Specific user impact]
 We are [current action].
 Next update in 30 minutes.
-```
-```
+
+```bash
+
+```bash
 
 ---
 
 ## 💡 PHASE 6: OPTIMIZATION & EXCELLENCE (WEEKS 15-16)
 
 ### ✅ TODO-017: Cost Optimization Without Breaking Things
+
 **Priority**: P2 MEDIUM  
 **Target**: 40% cost reduction  
 
 ```yaml
+
 # spot-instances.yaml - Save 70% on compute
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -1823,6 +2054,7 @@ spec:
     spec:
       nodeSelector:
         lifecycle: Ec2Spot  # Only on spot instances
+
       containers:
       - name: handler
         image: amazon/aws-node-termination-handler:v1.19.0
@@ -1831,11 +2063,15 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-```
+
+```bash
 
 **Autoscaling Configuration:**
+
 ```yaml
+
 # hpa-config.yaml - Scale based on REAL metrics
+
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -1849,6 +2085,7 @@ spec:
   maxReplicas: 100
   metrics:
   # CPU (basic)
+
   - type: Resource
     resource:
       name: cpu
@@ -1857,6 +2094,7 @@ spec:
         averageUtilization: 70
   
   # Memory (important!)
+
   - type: Resource
     resource:
       name: memory
@@ -1865,6 +2103,7 @@ spec:
         averageUtilization: 80
   
   # Custom metrics (BEST)
+
   - type: Pods
     pods:
       metric:
@@ -1874,22 +2113,28 @@ spec:
         averageValue: "1000"
   
   # Scale up fast, scale down slow
+
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 60
       policies:
       - type: Percent
         value: 100  # Double pods
+
         periodSeconds: 60
     scaleDown:
       stabilizationWindowSeconds: 300  # Wait 5 minutes
+
       policies:
       - type: Percent
         value: 10  # Remove 10% of pods
+
         periodSeconds: 60
-```
+
+```bash
 
 ### ✅ TODO-018: Performance Optimization Checklist
+
 **Priority**: P2 MEDIUM  
 **Target**: <100ms p99 latency  
 
@@ -2008,65 +2253,90 @@ async function getUsersWithPosts(userIds: string[]) {
   const users = await userLoader.loadMany(userIds);
   // ...
 }
-```
+
+```bash
 
 ---
 
 ## 📝 CRITICAL PRODUCTION CHECKLIST
 
-### Before EVERY Deployment:
+### Before EVERY Deployment
+
 ```bash
 #!/bin/bash
+
 # pre-deployment-checklist.sh
 
 echo "🔍 Pre-Deployment Checklist"
 
 # 1. Run ALL tests
+
 echo "Running tests..."
 npm test || exit 1
 npm run test:integration || exit 1
 npm run test:e2e || exit 1
 
 # 2. Security scan
+
 echo "Security scanning..."
 npm audit || exit 1
 trivy image $IMAGE_NAME || exit 1
 
 # 3. Check resource limits
+
 echo "Checking resource limits..."
 kubectl get resourcequota -n suuupra-prod
 
 # 4. Verify backups
+
 echo "Verifying backups..."
 aws s3 ls s3://suuupra-backups/ | head -1 || exit 1
 
 # 5. Check monitoring
+
 echo "Checking monitoring..."
 curl -f http://prometheus:9090/-/healthy || exit 1
 curl -f http://grafana:3000/api/health || exit 1
 
 # 6. Verify rollback plan
+
 echo "Testing rollback..."
 kubectl rollout history deployment/api-gateway || exit 1
 
 echo "✅ All checks passed! Safe to deploy."
-```
 
-### Production Readiness Score:
+```bash
+
+### Production Readiness Score
+
 - [ ] Zero hardcoded secrets
+
 - [ ] All services have health checks
+
 - [ ] Distributed tracing enabled
+
 - [ ] Circuit breakers configured
+
 - [ ] Rate limiting enabled
+
 - [ ] Backups tested
+
 - [ ] Chaos testing passed
+
 - [ ] Load testing passed
+
 - [ ] Security scanning clean
+
 - [ ] Monitoring dashboards ready
+
 - [ ] Alerts configured
+
 - [ ] Runbooks written
+
 - [ ] Incident response tested
+
 - [ ] Multi-region deployed
+
 - [ ] Cost optimization applied
 
 ---
@@ -2074,14 +2344,23 @@ echo "✅ All checks passed! Safe to deploy."
 ## 🎯 FINAL WORDS OF WISDOM
 
 1. **Always use structured logging** - You'll thank yourself at 3am
+
 2. **Never trust the network** - It WILL fail
+
 3. **Cache everything** - But invalidate correctly
+
 4. **Monitor business metrics** - Not just technical ones
+
 5. **Practice incident response** - Before you need it
+
 6. **Automate everything** - Humans make mistakes
+
 7. **Document decisions** - Future you will forget
+
 8. **Test in production** - But safely with feature flags
+
 9. **Keep it simple** - Complex systems fail in complex ways
+
 10. **Sleep is important** - Tired developers write bugs
 
 **Remember**: Every line of code is a liability. Every service is a potential point of failure. Every dependency is a risk. Build accordingly.

@@ -12,7 +12,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 @Service

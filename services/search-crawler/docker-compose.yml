@@ -1,112 +1,95 @@
-version: '3.8'
+version: '4'
 
 services:
+  # search-crawler Service - Production Ready
   search-crawler:
-    build: .
-    ports:
-      - "8090:8090"
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgres://crawler:crawlerpass@postgres:5432/search_crawler?sslmode=disable
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - REDIS_URL=redis://redis:6379/0
-      - LOG_LEVEL=debug
-      - MAX_CRAWLERS=5
-      - CRAWL_DELAY=2
-    depends_on:
-      - postgres
-      - elasticsearch
-      - redis
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - search-network
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-search-crawler
     restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
+    ports:
+      - "8094:8094"   # Main service port (aligned with main compose)
+      - "9105:9105"   # Metrics port (aligned with main compose)
     environment:
-      - POSTGRES_DB=search_crawler
-      - POSTGRES_USER=crawler
-      - POSTGRES_PASSWORD=crawlerpass
-    ports:
-      - "5435:5432"
+      # Core configuration (aligned with main docker-compose.yml)
+      NODE_ENV: production
+      PORT: 8094
+      METRICS_PORT: 9105
+      
+      # Database - Using main infrastructure PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DATABASE: search_crawler
+      
+      # Redis - Using main infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Event streaming - Using main infrastructure Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: search-crawler-service
+      KAFKA_GROUP_ID: search-crawler-consumers
+      
+      # Security & Vault - Using main infrastructure
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:-myroot}
+      VAULT_MOUNT_PATH: search-crawler
+      
+      # Observability - Using main infrastructure
+      OTEL_SERVICE_NAME: search-crawler-service
+      OTEL_SERVICE_VERSION: 1.0.0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=suuupra,deployment.environment=docker-compose
+      
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - app_logs:/app/logs
+    
+    # Use main infrastructure services (no separate dependencies)
+    external_links:
+      - postgres:postgres
+      - redis:redis
+      - kafka:kafka
+      - vault:vault
+      - otel-collector:otel-collector
+    
     networks:
-      - search-network
+      - suuupra-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8094/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9105"
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - search-network
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - search-network
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-    networks:
-      - search-network
-
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9093:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    networks:
-      - search-network
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3004:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-    networks:
-      - search-network
-
+# ===================================================================
+# VOLUMES - Aligned with main infrastructure
+# ===================================================================
 volumes:
-  postgres_data:
-  elasticsearch_data:
-  redis_data:
-  prometheus_data:
-  grafana_data:
+  app_logs:
+    external: true
+    name: suuupra_app_logs
 
+# ===================================================================
+# NETWORKS - Using main infrastructure network
+# ===================================================================
 networks:
-  search-network:
-    driver: bridge
+  suuupra-network:
+    external: true
+    name: suuupra-network
+
+# ===================================================================
+# NOTES:
+# - All infrastructure services (PostgreSQL, Redis, Kafka, Vault, 
+#   Prometheus, Grafana, Jaeger) are provided by main infrastructure
+# - Use: docker-compose -f ../../docker-compose.infrastructure.yml up -d
+# - Then: docker-compose -f docker-compose.yml up -d
+# ===================================================================
