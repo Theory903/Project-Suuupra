@@ -3,7 +3,16 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+canary:
+  enabled: false
+  weight: 0 # Percentage of traffic to send to canary (0-100)
+
+deployment:
+  strategy: rollingUpdate # Options: rollingUpdate, recreate, canary
+
 service:
+  replicas: 1 # Default number of replicas
+
   port: 8082
   metricsPort: 9090
   type: ClusterIP

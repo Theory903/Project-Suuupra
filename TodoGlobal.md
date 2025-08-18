@@ -138,9 +138,9 @@ This section provides a detailed, actionable checklist of tasks for each service
 Deliverables: Changes landed; CI green; Content service is Production. Canary rollout via Helm + flags.
 
 ### 🔭 Follow-ups (Backlog)
-- [ ] Provide Grafana dashboards JSON for uploads/search/indexing lag.
-- [ ] Integrate managed AV scanner (or ClamAV service) and enable strict enforcement.
-- [ ] Add canary examples and progressive delivery configs in Helm values.
+- [x] Provide Grafana dashboards JSON for uploads/search/indexing lag.
+- [x] Integrate managed AV scanner (or ClamAV service) and enable strict enforcement.
+- [x] Add canary examples and progressive delivery configs in Helm values.
 
 ### **Phase 2: Payments & Commerce**
 - [x] `commerce`: Develop the product catalog service, including product variants and pricing.

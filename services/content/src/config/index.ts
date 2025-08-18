@@ -1,4 +1,4 @@
-import { ServiceConfig, DatabaseConfig, S3Config, AuthConfig, UploadConfig } from '@/types';
+import { ServiceConfig, DatabaseConfig, S3Config, AuthConfig, UploadConfig, ClamAVConfig } from '@/types';
 
 export class Config {
   public readonly service: ServiceConfig;
@@ -6,6 +6,7 @@ export class Config {
   public readonly s3: S3Config;
   public readonly auth: AuthConfig;
   public readonly upload: UploadConfig;
+  public readonly clamAV: ClamAVConfig;
 
   constructor() {
     this.service = {
@@ -77,6 +78,12 @@ export class Config {
       uploadExpiryHours: parseInt(process.env.UPLOAD_EXPIRY_HOURS || '24', 10)
     };
 
+    this.clamAV = {
+      host: process.env.CLAMAV_HOST || 'localhost',
+      port: parseInt(process.env.CLAMAV_PORT || '3310', 10),
+      timeout: parseInt(process.env.CLAMAV_TIMEOUT || '120000', 10) // 2 minutes
+    };
+
     this.validate();
   }
 
@@ -100,6 +107,10 @@ export class Config {
       'JWT_SECRET',
       'JWKS_URI'
     ];
+
+    if (this.features.virusScanning) {
+      required.push('CLAMAV_HOST', 'CLAMAV_PORT');
+    }
 
     const missing = required.filter(key => !process.env[key]);
     if (missing.length > 0 && this.service.environment === 'production') {

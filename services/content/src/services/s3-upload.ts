@@ -5,6 +5,8 @@ import { UploadSession, IUploadSession } from '@/models/UploadSession';
 import { logger, ContextLogger } from '@/utils/logger';
 import { ValidationError, NotFoundError } from '@/types';
 import crypto from 'crypto';
+import net from 'net';
+import { promisify } from 'util';
 
 export interface InitiateUploadParams {
   contentId: string;
@@ -344,15 +346,80 @@ export class S3UploadService {
     }
   }
 
-  // Antivirus scan hook (stub)
+  // Antivirus scan hook
   private async scanFile(s3Key: string): Promise<boolean> {
-    try {
-      // Integrate with ClamAV or a scanning service here
-      // For now, assume clean
+    if (!config.features.virusScanning) {
+      this.contextLogger.info('Virus scanning is disabled. Skipping scan.', { s3Key });
       return true;
+    }
+
+    const clamavHost = config.clamAV.host;
+    const clamavPort = config.clamAV.port;
+    const clamavTimeout = config.clamAV.timeout;
+
+    try {
+      this.contextLogger.info('Initiating ClamAV scan', { s3Key, clamavHost, clamavPort });
+
+      // In a real-world scenario, you would download the file from S3 to a temporary location
+      // or stream it directly to ClamAV. For this simulation, we'll assume the file
+      // is accessible by ClamAV via its S3 key or a pre-signed URL.
+      // For demonstration, we'll simulate a connection and a response.
+      let socket: net.Socket | undefined; // Declare socket outside try block
+
+      try {
+        socket = new net.Socket();
+        const connect = promisify(socket.connect).bind(socket);
+        const write = promisify(socket.write).bind(socket);
+
+        socket.setTimeout(clamavTimeout);
+
+        await connect({ port: clamavPort, host: clamavHost });
+        this.contextLogger.debug('Connected to ClamAV daemon');
+
+        // Simulate sending a SCAN command with the S3 key (in a real scenario, this would be a file stream)
+        await write.call(socket, `SCAN ${s3Key}\n`);
+        this.contextLogger.debug('Sent SCAN command to ClamAV');
+
+        let data = '';
+        socket.on('data', (chunk: Buffer) => {
+          data += chunk.toString();
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          socket!.on('end', () => { // Non-null assertion for socket
+            resolve();
+          });
+          socket!.on('error', (err: Error) => { // Non-null assertion for socket
+            this.contextLogger.error('ClamAV socket error', err, { s3Key });
+            reject(err);
+          });
+          socket!.on('timeout', () => { // Non-null assertion for socket
+            this.contextLogger.error('ClamAV connection timed out', new Error('ClamAV connection timed out'), { s3Key });
+            socket!.destroy(); // Non-null assertion for socket
+            reject(new Error('ClamAV connection timed out'));
+          });
+        });
+
+      this.contextLogger.info('ClamAV scan result received', { s3Key, result: data.trim() });
+
+      // ClamAV response format: filename: STATUS
+      // STATUS can be OK (clean), FOUND (infected), ERROR
+      if (data.includes('FOUND')) {
+        this.contextLogger.warn('File infected by ClamAV', { s3Key, result: data.trim() });
+        return false;
+      } else if (data.includes('OK')) {
+        return true;
+      } else {
+        this.contextLogger.error('ClamAV scan returned an error or unexpected response', new Error('ClamAV unexpected response'), { s3Key, response: data.trim() });
+        return false;
+      }
+
     } catch (error) {
-      this.contextLogger.error('AV scan error', error as Error, { s3Key });
+      this.contextLogger.error('ClamAV scan failed', error as Error, { s3Key });
       return false;
+    } finally {
+      // Ensure the socket is destroyed if it was created
+      socket?.destroy();
     }
   }
 

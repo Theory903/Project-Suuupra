@@ -1,12 +1,39 @@
+{{- if eq .Values.deployment.strategy "canary" }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+{{- else }}
 apiVersion: apps/v1
 kind: Deployment
+{{- end }}
 metadata:
   name: {{ include "content-service.fullname" . }}
   labels:
     app: {{ include "content-service.name" . }}
     chart: {{ include "content-service.chart" . }}
 spec:
-  replicas: 1
+  {{- if eq .Values.deployment.strategy "canary" }}
+  replicas: {{ .Values.replicas }}
+  strategy:
+    canary:
+      steps:
+        - setWeight: {{ .Values.canary.weight }}
+        - pause: {}
+        - setWeight: 100
+      trafficRouting:
+        # Assuming Istio is used for traffic management
+        # You might need to configure this based on your service mesh setup
+        # For a simple canary without a service mesh, you might need a separate service
+        # and handle traffic splitting at the ingress level.
+        istio:
+          virtualService:
+            name: {{ include "content-service.fullname" . }}
+            routes:
+              - primary
+  {{- else }}
+  replicas: {{ .Values.replicas }}
+  strategy:
+    type: {{ .Values.deployment.strategy }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ include "content-service.name" . }}
@@ -35,6 +62,12 @@ spec:
               value: "{{ .Values.env.NODE_ENV }}"
             - name: LOG_LEVEL
               value: "{{ .Values.env.LOG_LEVEL }}"
+            - name: ENABLE_VIRUS_SCANNING
+              value: "{{ .Values.env.ENABLE_VIRUS_SCANNING }}"
+            - name: CLAMAV_HOST
+              value: "{{ .Values.env.CLAMAV_HOST }}"
+            - name: CLAMAV_PORT
+              value: "{{ .Values.env.CLAMAV_PORT }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:

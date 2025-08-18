@@ -139,6 +139,12 @@ export interface UploadConfig {
   uploadExpiryHours: number;
 }
 
+export interface ClamAVConfig {
+  host: string;
+  port: number;
+  timeout: number;
+}
+
 // Content-related types
 export type ContentType = 'video' | 'article' | 'quiz' | 'document' | 'course' | 'lesson';
 export type ContentStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'archived';
