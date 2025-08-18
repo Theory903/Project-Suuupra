@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+  labels:
+    name: identity
+    app.kubernetes.io/name: identity-service
+    app.kubernetes.io/component: identity
+    app.kubernetes.io/part-of: suuupra-platform
+    app.kubernetes.io/managed-by: kubernetes
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity-staging
+  labels:
+    name: identity-staging
+    app.kubernetes.io/name: identity-service
+    app.kubernetes.io/component: identity
+    app.kubernetes.io/part-of: suuupra-platform
+    app.kubernetes.io/managed-by: kubernetes
+    environment: staging

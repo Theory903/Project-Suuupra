@@ -1,0 +1,74 @@
+# Notifications Service Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.23
+alembic==1.13.0
+
+# Cache and Message Queue
+redis[hiredis]==4.6.0
+aioredis==2.0.1
+celery[redis]==5.3.4
+
+# Email providers
+sendgrid==6.10.0
+boto3==1.34.0  # AWS SES
+mailgun2==1.1.1
+
+# SMS providers
+twilio==6.63.1
+boto3==1.34.0  # AWS SNS
+
+# Push notifications
+pyfcm==1.5.4  # Firebase Cloud Messaging
+# apns2==0.7.2  # Apple Push Notifications (commenting out due to PyJWT conflict)
+
+# Webhooks
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Template engines
+jinja2==3.1.2
+markdown==3.5.1
+
+# Authentication and Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Monitoring and Observability
+prometheus-client==0.19.0
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-instrumentation-fastapi==0.42b0
+opentelemetry-instrumentation-sqlalchemy==0.42b0
+opentelemetry-instrumentation-redis==0.42b0
+opentelemetry-exporter-jaeger==1.21.0
+
+# Logging
+structlog==23.2.0
+rich==13.7.0
+python-json-logger==2.0.7
+
+# Utilities
+croniter==2.0.1
+pytz==2023.3
+qrcode==7.4.2
+pillow==10.1.0
+bleach==6.1.0  # HTML sanitization
+
+# Development and Testing (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Security
+cryptography==43.0.3
+bcrypt==4.1.2

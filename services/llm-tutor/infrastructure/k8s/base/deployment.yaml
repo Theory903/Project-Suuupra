@@ -5,32 +5,160 @@ metadata:
   namespace: llm-tutor
   labels:
     app: llm-tutor
+    version: v1
+    tier: backend
+    component: ai-service
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: llm-tutor
+      version: v1
   template:
     metadata:
       labels:
         app: llm-tutor
+        version: v1
+        tier: backend
+        component: ai-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
     spec:
+      serviceAccountName: llm-tutor
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
       - name: llm-tutor
-        image: <IMAGE_REGISTRY>/llm-tutor:<IMAGE_TAG>
+        image: suuupra/llm-tutor:latest
+        imagePullPolicy: Always
         ports:
-        - containerPort: 8092
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1024Mi"
-            cpu: "500m"
+        - name: http
+          containerPort: 8092
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
         env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: PORT
+          value: "8092"
+        - name: LOG_LEVEL
+          value: "INFO"
         - name: VLLM_HOST
           value: "http://vllm.llm-tutor.svc.cluster.local:8000"
         - name: MILVUS_HOST
           value: "milvus.llm-tutor.svc.cluster.local"
         - name: ELASTICSEARCH_HOST
           value: "elasticsearch.llm-tutor.svc.cluster.local"
+        envFrom:
+        - configMapRef:
+            name: llm-tutor-config
+        - secretRef:
+            name: llm-tutor-secrets
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+            ephemeral-storage: "5Gi"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+            ephemeral-storage: "10Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 120
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+        - name: models
+          mountPath: /app/models
+        - name: data
+          mountPath: /app/data
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      - name: models
+        persistentVolumeClaim:
+          claimName: llm-tutor-models-pvc
+      - name: data
+        persistentVolumeClaim:
+          claimName: llm-tutor-data-pvc
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        node-type: gpu-optimized
+      tolerations:
+      - key: "ai.suuupra.com/gpu"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      - key: "ai.suuupra.com/dedicated"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - llm-tutor
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: accelerator
+                operator: In
+                values:
+                - nvidia-tesla-v100
+                - nvidia-tesla-t4
+                - nvidia-a100

@@ -1,0 +1,82 @@
+# Simplified Docker Compose for Testing - Apple Silicon Compatible
+version: '3.8'
+
+services:
+  # Simple test services that work reliably
+  mock-api-gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./tools/testing/mock-configs/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - test-network
+
+  mock-identity:
+    image: nginx:alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./tools/testing/mock-configs/identity.conf:/etc/nginx/nginx.conf
+    networks:
+      - test-network
+
+  mock-llm-tutor:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./tools/testing/mock-configs/llm-tutor.conf:/etc/nginx/nginx.conf
+    networks:
+      - test-network
+
+  mock-payments:
+    image: nginx:alpine
+    ports:
+      - "8084:80"
+    volumes:
+      - ./tools/testing/mock-configs/payments.conf:/etc/nginx/nginx.conf
+    networks:
+      - test-network
+
+  mock-live-classes:
+    image: nginx:alpine
+    ports:
+      - "8086:80"
+    volumes:
+      - ./tools/testing/mock-configs/live-classes.conf:/etc/nginx/nginx.conf
+    networks:
+      - test-network
+
+  # Simple database for testing
+  test-postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=test_db
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_pass
+    networks:
+      - test-network
+
+  test-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - test-network
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./tools/testing/mock-configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge

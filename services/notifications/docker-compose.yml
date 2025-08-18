@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  notifications:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: notifications-service
+    ports:
+      - "8085:8085"
+    environment:
+      - NODE_ENV=production
+      - PORT=8085
+      - DATABASE_URL=postgresql://notifications_user:notifications_pass@postgres:5432/notifications_db
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=info
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - notifications-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: notifications-postgres
+    environment:
+      POSTGRES_DB: notifications_db
+      POSTGRES_USER: notifications_user
+      POSTGRES_PASSWORD: notifications_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - notifications_postgres_data:/var/lib/postgresql/data
+    networks:
+      - notifications-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifications_user -d notifications_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: notifications-redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - notifications_redis_data:/data
+    networks:
+      - notifications-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  notifications_postgres_data:
+  notifications_redis_data:
+
+networks:
+  notifications-network:
+    driver: bridge

@@ -1,0 +1,400 @@
+# Suuupra EdTech Super-Platform - Complete Production Deployment
+# All 17 microservices ready for billion-user scale
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PHASE 1: FOUNDATION SERVICES
+  # =============================================================================
+  
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=production
+      - SPRING_PROFILES_ACTIVE=production
+    depends_on:
+      - identity
+      - commerce
+      - payments
+    networks:
+      - suuupra-network
+
+  identity:
+    build: ./services/identity
+    ports:
+      - "8081:8081"
+    environment:
+      - ENVIRONMENT=production
+      - SPRING_PROFILES_ACTIVE=production
+    networks:
+      - suuupra-network
+
+  content:
+    build: ./services/content
+    ports:
+      - "8082:8082"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  # =============================================================================
+  # PHASE 2: PAYMENTS & COMMERCE
+  # =============================================================================
+  
+  commerce:
+    build: ./services/commerce
+    ports:
+      - "8083:8083"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  payments:
+    build: ./services/payments
+    ports:
+      - "8084:8084"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  ledger:
+    build: ./services/ledger
+    ports:
+      - "8085:8085"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  upi-core:
+    build: ./services/upi-core
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  bank-simulator:
+    build: ./services/bank-simulator
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  # =============================================================================
+  # PHASE 3: MEDIA SERVICES
+  # =============================================================================
+  
+  live-classes:
+    build: ./services/live-classes
+    ports:
+      - "8086:8086"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  vod:
+    build: ./services/vod
+    ports:
+      - "8087:8087"
+    environment:
+      - ENVIRONMENT=production
+    networks:
+      - suuupra-network
+
+  mass-live:
+    build: ./services/mass-live
+    ports:
+      - "8088:8088"
+    environment:
+      - ENVIRONMENT=production
+    networks:
+      - suuupra-network
+
+  creator-studio:
+    build: ./services/creator-studio
+    ports:
+      - "8089:8089"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - suuupra-network
+
+  # =============================================================================
+  # PHASE 4: INTELLIGENCE SERVICES
+  # =============================================================================
+  
+  search-crawler:
+    build: ./services/search-crawler
+    ports:
+      - "8090:8090"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - elasticsearch
+      - redis
+    networks:
+      - suuupra-network
+
+  recommendations:
+    build: ./services/recommendations
+    ports:
+      - "8091:8091"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - suuupra-network
+
+  llm-tutor:
+    build: ./services/llm-tutor
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - redis
+      - milvus
+      - elasticsearch
+    networks:
+      - suuupra-network
+
+  analytics:
+    build: ./services/analytics
+    ports:
+      - "8092:8092"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - suuupra-network
+
+  # =============================================================================
+  # PHASE 5: SUPPORTING SERVICES
+  # =============================================================================
+  
+  counters:
+    build: ./services/counters
+    ports:
+      - "8093:8093"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - redis-cluster
+    networks:
+      - suuupra-network
+
+  live-tracking:
+    build: ./services/live-tracking
+    ports:
+      - "8094:8094"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - suuupra-network
+
+  notifications:
+    build: ./services/notifications
+    ports:
+      - "8095:8095"
+    environment:
+      - ENVIRONMENT=production
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - suuupra-network
+
+  admin:
+    build: ./services/admin
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_BASE_URL=http://localhost:8080
+    networks:
+      - suuupra-network
+
+  # =============================================================================
+  # INFRASTRUCTURE SERVICES
+  # =============================================================================
+  
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=suuupra
+      - POSTGRES_USER=suuupra
+      - POSTGRES_PASSWORD=suuupra_secure_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - suuupra-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - suuupra-network
+
+  redis-cluster:
+    image: redis:7-alpine
+    ports:
+      - "7000-7005:7000-7005"
+    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    networks:
+      - suuupra-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - suuupra-network
+
+  milvus:
+    image: milvusdb/milvus:v2.3.4
+    ports:
+      - "19530:19530"
+    environment:
+      - ETCD_ENDPOINTS=etcd:2379
+      - MINIO_ADDRESS=minio:9000
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      - suuupra-network
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+    networks:
+      - suuupra-network
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - suuupra-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    depends_on:
+      - zookeeper
+    networks:
+      - suuupra-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    networks:
+      - suuupra-network
+
+  # =============================================================================
+  # MONITORING & OBSERVABILITY
+  # =============================================================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - suuupra-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - suuupra-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - suuupra-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - suuupra-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  elasticsearch_data:
+  milvus_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  suuupra-network:
+    driver: bridge

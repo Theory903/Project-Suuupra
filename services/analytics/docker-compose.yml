@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: analytics-service
+    ports:
+      - "8087:8087"
+    environment:
+      - NODE_ENV=production
+      - PORT=8087
+      - DATABASE_URL=postgresql://analytics_user:analytics_pass@postgres:5432/analytics_db
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=info
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - analytics-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: analytics-postgres
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - analytics_postgres_data:/var/lib/postgresql/data
+    networks:
+      - analytics-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: analytics-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - analytics_redis_data:/data
+    networks:
+      - analytics-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  analytics_postgres_data:
+  analytics_redis_data:
+
+networks:
+  analytics-network:
+    driver: bridge

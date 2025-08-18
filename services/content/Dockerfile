@@ -1,5 +1,5 @@
 # Multi-stage build for production optimization
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install security updates and required packages
 RUN apk update && apk upgrade && \
@@ -30,13 +30,13 @@ CMD ["npm", "run", "dev"]
 # Build stage
 FROM base AS build
 ENV NODE_ENV=production
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 COPY . .
 RUN npm run build && \
     npm prune --production
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Install security updates and runtime dependencies
 RUN apk update && apk upgrade && \

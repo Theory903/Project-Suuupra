@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: identity-service
+  namespace: identity
+  labels:
+    app: identity-service
+    component: rbac
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: identity-service-staging
+  namespace: identity-staging
+  labels:
+    app: identity-service
+    component: rbac
+    environment: staging
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-service-role
+  namespace: identity
+  labels:
+    app: identity-service
+    component: rbac
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-service-staging-role
+  namespace: identity-staging
+  labels:
+    app: identity-service
+    component: rbac
+    environment: staging
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-service-rolebinding
+  namespace: identity
+  labels:
+    app: identity-service
+    component: rbac
+subjects:
+- kind: ServiceAccount
+  name: identity-service
+  namespace: identity
+roleRef:
+  kind: Role
+  name: identity-service-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-service-staging-rolebinding
+  namespace: identity-staging
+  labels:
+    app: identity-service
+    component: rbac
+    environment: staging
+subjects:
+- kind: ServiceAccount
+  name: identity-service-staging
+  namespace: identity-staging
+roleRef:
+  kind: Role
+  name: identity-service-staging-role
+  apiGroup: rbac.authorization.k8s.io

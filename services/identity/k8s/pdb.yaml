@@ -1,0 +1,32 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: identity-service-pdb
+  namespace: identity
+  labels:
+    app: identity-service
+    component: availability
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: identity-service
+      version: v1
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: identity-service-staging-pdb
+  namespace: identity-staging
+  labels:
+    app: identity-service
+    component: availability
+    environment: staging
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: identity-service
+      version: v1
+      environment: staging

@@ -1,0 +1,329 @@
+{
+  "platform": {
+    "name": "Suuupra EdTech Super-Platform",
+    "version": "1.0.0",
+    "total_services": 17,
+    "test_suite_version": "1.0.0"
+  },
+  "services": {
+    "phase1_foundation": {
+      "api-gateway": {
+        "port": 8080,
+        "health_endpoint": "/actuator/health",
+        "critical": true,
+        "sla": {
+          "latency_p95": 150,
+          "throughput_rps": 50000,
+          "availability": 99.9
+        }
+      },
+      "identity": {
+        "port": 8081,
+        "health_endpoint": "/actuator/health", 
+        "critical": true,
+        "sla": {
+          "latency_p95": 300,
+          "throughput_rps": 10000,
+          "availability": 99.9
+        }
+      },
+      "content": {
+        "port": 8082,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 400,
+          "throughput_rps": 5000,
+          "availability": 99.5
+        }
+      }
+    },
+    "phase2_payments": {
+      "commerce": {
+        "port": 8083,
+        "health_endpoint": "/health",
+        "critical": true,
+        "sla": {
+          "latency_p95": 300,
+          "throughput_rps": 8000,
+          "availability": 99.9
+        }
+      },
+      "payments": {
+        "port": 8084,
+        "health_endpoint": "/health",
+        "critical": true,
+        "sla": {
+          "latency_p95": 500,
+          "throughput_tps": 10000,
+          "availability": 99.99
+        }
+      },
+      "ledger": {
+        "port": 8085,
+        "health_endpoint": "/health",
+        "critical": true,
+        "sla": {
+          "latency_p95": 200,
+          "throughput_rps": 15000,
+          "availability": 99.99
+        }
+      },
+      "upi-core": {
+        "port": 3001,
+        "health_endpoint": "/health",
+        "critical": true,
+        "sla": {
+          "latency_p95": 300,
+          "throughput_tps": 5000,
+          "availability": 99.9
+        }
+      },
+      "bank-simulator": {
+        "port": 3000,
+        "health_endpoint": "/health",
+        "critical": true,
+        "sla": {
+          "latency_p95": 400,
+          "throughput_tps": 3000,
+          "availability": 99.9
+        }
+      }
+    },
+    "phase3_media": {
+      "live-classes": {
+        "port": 8086,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 200,
+          "concurrent_users": 5000,
+          "availability": 99.9
+        }
+      },
+      "vod": {
+        "port": 8087,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 500,
+          "throughput_rps": 10000,
+          "availability": 99.9
+        }
+      },
+      "mass-live": {
+        "port": 8088,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_rtt": 100,
+          "concurrent_viewers": 1000000,
+          "availability": 99.9
+        }
+      },
+      "creator-studio": {
+        "port": 8089,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 300,
+          "throughput_rps": 2000,
+          "availability": 99.5
+        }
+      }
+    },
+    "phase4_intelligence": {
+      "search-crawler": {
+        "port": 8090,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 300,
+          "throughput_qps": 15000,
+          "availability": 99.5
+        }
+      },
+      "recommendations": {
+        "port": 8091,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 400,
+          "throughput_rps": 25000,
+          "availability": 99.0
+        }
+      },
+      "llm-tutor": {
+        "port": 8000,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 2000,
+          "throughput_rps": 1000,
+          "availability": 99.9
+        }
+      },
+      "analytics": {
+        "port": 8092,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 200,
+          "throughput_events_per_sec": 50000,
+          "availability": 99.9
+        }
+      }
+    },
+    "phase5_supporting": {
+      "counters": {
+        "port": 8093,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 50,
+          "throughput_ops_per_sec": 100000,
+          "availability": 99.99
+        }
+      },
+      "live-tracking": {
+        "port": 8094,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 100,
+          "throughput_updates_per_sec": 10000,
+          "availability": 99.9
+        }
+      },
+      "notifications": {
+        "port": 8095,
+        "health_endpoint": "/health",
+        "critical": false,
+        "sla": {
+          "latency_p95": 500,
+          "throughput_msgs_per_sec": 20000,
+          "availability": 99.9
+        }
+      },
+      "admin": {
+        "port": 3002,
+        "health_endpoint": "/",
+        "critical": false,
+        "sla": {
+          "latency_p95": 300,
+          "throughput_rps": 1000,
+          "availability": 99.5
+        }
+      }
+    }
+  },
+  "infrastructure": {
+    "postgresql": {
+      "port": 5432,
+      "health_check": "pg_isready"
+    },
+    "redis": {
+      "port": 6379,
+      "health_check": "ping"
+    },
+    "elasticsearch": {
+      "port": 9200,
+      "health_endpoint": "/_cluster/health"
+    },
+    "prometheus": {
+      "port": 9090,
+      "health_endpoint": "/-/ready"
+    },
+    "grafana": {
+      "port": 3000,
+      "health_endpoint": "/api/health"
+    }
+  },
+  "test_scenarios": {
+    "smoke_test": {
+      "duration": "30s",
+      "virtual_users": 1,
+      "description": "Basic functionality test"
+    },
+    "load_test": {
+      "duration": "5m",
+      "virtual_users": 10,
+      "description": "Normal traffic simulation"
+    },
+    "stress_test": {
+      "duration": "15m",
+      "virtual_users": 40,
+      "ramp_up": "2m",
+      "description": "High traffic stress test"
+    },
+    "spike_test": {
+      "duration": "2m",
+      "virtual_users": 100,
+      "spike_duration": "1m",
+      "description": "Sudden traffic spike test"
+    },
+    "volume_test": {
+      "duration": "30m",
+      "virtual_users": 50,
+      "description": "Sustained high load test"
+    }
+  },
+  "monitoring": {
+    "health_check_interval": 60,
+    "alert_thresholds": {
+      "consecutive_failures": 3,
+      "response_time_multiplier": 2.0,
+      "error_rate_threshold": 0.05,
+      "uptime_threshold": 99.0
+    },
+    "retention": {
+      "health_check_history": 1000,
+      "alert_history_days": 30,
+      "metrics_history_days": 7
+    }
+  },
+  "integration_tests": [
+    {
+      "name": "user_registration_flow",
+      "description": "Complete user registration through Identity service",
+      "services": ["identity", "notifications", "analytics"],
+      "critical": true
+    },
+    {
+      "name": "payment_processing_flow", 
+      "description": "Complete payment flow from cart to settlement",
+      "services": ["commerce", "payments", "upi-core", "bank-simulator", "ledger"],
+      "critical": true
+    },
+    {
+      "name": "live_class_session",
+      "description": "Create and manage live class session",
+      "services": ["live-classes", "notifications", "analytics", "counters"],
+      "critical": false
+    },
+    {
+      "name": "ai_tutoring_session",
+      "description": "Complete AI tutoring interaction",
+      "services": ["llm-tutor", "analytics", "counters"],
+      "critical": false
+    },
+    {
+      "name": "search_and_discovery",
+      "description": "Search content and track interactions", 
+      "services": ["search-crawler", "analytics", "counters"],
+      "critical": false
+    },
+    {
+      "name": "notification_delivery_chain",
+      "description": "Multi-channel notification delivery",
+      "services": ["notifications", "identity", "analytics"],
+      "critical": false
+    }
+  ],
+  "reports": {
+    "output_directory": "test-reports",
+    "log_directory": "logs",
+    "formats": ["json", "html", "text"],
+    "retention_days": 30
+  }
+}

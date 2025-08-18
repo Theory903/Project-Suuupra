@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: identity-config
+  namespace: identity
+  labels:
+    app: identity-service
+    component: config
+data:
+  SPRING_PROFILES_ACTIVE: "production"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service.database:5432/identity_db"
+  SPRING_DATASOURCE_USERNAME: "identity_user"
+  SPRING_REDIS_HOST: "redis-service.cache"
+  SPRING_REDIS_PORT: "6379"
+  SPRING_REDIS_DATABASE: "0"
+  JWT_EXPIRATION_TIME: "3600"
+  JWT_REFRESH_EXPIRATION_TIME: "86400"
+  LOGGING_LEVEL_COM_SUUUPRA_IDENTITY: "INFO"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "when_authorized"
+  CORS_ALLOWED_ORIGINS: "https://app.suuupra.com,https://admin.suuupra.com"
+  SERVER_PORT: "8081"
+  MANAGEMENT_SERVER_PORT: "9090"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: identity-config-staging
+  namespace: identity-staging
+  labels:
+    app: identity-service
+    component: config
+    environment: staging
+data:
+  SPRING_PROFILES_ACTIVE: "staging"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service.database:5432/identity_staging_db"
+  SPRING_DATASOURCE_USERNAME: "identity_user"
+  SPRING_REDIS_HOST: "redis-service.cache"
+  SPRING_REDIS_PORT: "6379"
+  SPRING_REDIS_DATABASE: "1"
+  JWT_EXPIRATION_TIME: "1800"
+  JWT_REFRESH_EXPIRATION_TIME: "43200"
+  LOGGING_LEVEL_COM_SUUUPRA_IDENTITY: "DEBUG"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "always"
+  CORS_ALLOWED_ORIGINS: "https://staging.suuupra.com,http://localhost:3000"
+  SERVER_PORT: "8081"
+  MANAGEMENT_SERVER_PORT: "9090"

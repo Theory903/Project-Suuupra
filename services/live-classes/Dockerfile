@@ -1,5 +1,5 @@
 # Production-ready Dockerfile for Live Classes Service
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -16,7 +16,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 
 # Development stage
 FROM base AS development
@@ -33,7 +33,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Install runtime dependencies
 RUN apk add --no-cache ffmpeg && rm -rf /var/cache/apk/*
