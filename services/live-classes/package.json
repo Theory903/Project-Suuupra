@@ -1,16 +1,24 @@
 {
-  "name": "live-classes",
+  "name": "live-classes-service",
   "version": "1.0.0",
-  "main": "src/server.ts",
+  "description": "Real-time interactive live classes service",
+  "main": "src/index.js",
   "scripts": {
-    "start": "ts-node src/server.ts"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "fastify": "^4.x.x"
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "webrtc-adapter": "^8.2.3"
   },
   "devDependencies": {
-    "@types/node": "^20.x.x",
-    "ts-node": "^10.x.x",
-    "typescript": "^5.x.x"
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0"
   }
 }

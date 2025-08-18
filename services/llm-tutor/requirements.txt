@@ -1,67 +1,89 @@
-# Core FastAPI framework
+# Core FastAPI and async dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.4.2
-pydantic-settings==2.0.3
+pydantic==2.5.0
+pydantic-settings==2.1.0
 
-# AI/ML Libraries
-langchain==0.0.336
-langchain-community==0.0.6
-openai==1.3.5
-huggingface-hub==0.17.3
-transformers==4.35.2
-sentence-transformers==2.2.2
-torch==2.1.1
-accelerate==0.24.1
-unstructured[md]==0.10.30
+# Database
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+alembic==1.13.1
 
-# Vector Database & Search
-pymilvus==2.3.4
-elasticsearch==8.11.0
+# Redis and caching
 redis==5.0.1
 hiredis==2.2.3
 
-# Audio Processing
+# Vector database and search
+pymilvus==2.3.4
+elasticsearch==8.11.1
+
+# AI/ML dependencies
+torch==2.1.1
+transformers==4.36.2
+sentence-transformers==2.2.2
+langchain==0.0.350
+langchain-community==0.0.1
+langchain-experimental==0.0.47
+openai==1.3.7
+huggingface-hub==0.19.4
+
+# RAG and retrieval
+faiss-cpu==1.7.4
+rank-bm25==0.2.2
+chromadb==0.4.18
+
+# Voice processing
 openai-whisper==20231117
-TTS==0.20.6
-soundfile==0.12.1
+TTS==0.22.0
 librosa==0.10.1
+soundfile==1.0.1
 
-# Database & ORM
-asyncpg==0.29.0
-sqlalchemy==2.0.23
-alembic==1.12.1
+# Safety and content moderation
+detoxify==0.5.2
+presidio-analyzer==2.2.33
+presidio-anonymizer==2.2.33
 
-# HTTP Client
+# HTTP clients and networking
 httpx==0.25.2
-aiofiles==23.2.1
+aiohttp==3.9.1
 
-# Monitoring & Observability
-prometheus-client==0.19.0
+# Observability and monitoring
 opentelemetry-api==1.21.0
 opentelemetry-sdk==1.21.0
+opentelemetry-exporter-jaeger==1.21.0
 opentelemetry-instrumentation-fastapi==0.42b0
 opentelemetry-instrumentation-sqlalchemy==0.42b0
 opentelemetry-instrumentation-redis==0.42b0
+prometheus-client==0.19.0
+structlog==23.2.0
 
-# Security & Privacy
-cryptography==41.0.7
+# Security
+cryptography==41.0.8
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
-# Development & Testing
+# Utilities
+click==8.1.7
+python-dotenv==1.0.0
+pyyaml==6.0.1
+jinja2==3.1.2
+pandas==2.1.4
+numpy==1.24.4
+
+# Development and testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
+pytest-cov==4.1.0
 pytest-mock==3.12.0
-httpx==0.25.2
 black==23.11.0
-isort==5.12.0
+isort==5.13.2
 flake8==6.1.0
 mypy==1.7.1
-click==8.1.7
 
-# Production
+# Production WSGI/ASGI
 gunicorn==21.2.0
-structlog==23.2.0
-python-dotenv==1.0.0
+
+# Additional utilities
+tenacity==8.2.3
+schedule==1.2.1

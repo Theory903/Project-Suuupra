@@ -1,38 +1,40 @@
 # Live Classes Service
 
-## Overview
-A service that handles live class scheduling, real-time interaction, and streaming capabilities.
+This service provides real-time interactive live classes with WebRTC integration for video/audio communication and Socket.IO for signaling and chat.
 
-## Key Features
-- Class scheduling and management
-- Real-time chat and interaction between students and instructors
-- Live streaming integration
-- Class recording and archiving
-- Student attendance tracking
+## Features
+
+- Real-time signaling and WebRTC integration
+- Chat functionality
+- Placeholder API endpoints for class scheduling and recording
 
 ## Getting Started
-1. Clone the repository
-2. Run the setup script
-3. Configure the service with your preferred streaming provider
-4. Start the service
 
-## Configuration
-```yaml
-# Example configuration
-live_classes:
-  streaming_provider: "agora"
-  api_key: "your_api_key"
-  api_secret: "your_api_secret"
-  recording_enabled: true
-  max_concurrent_classes: 50
-```
+1.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+2.  **Run the service:**
+    ```bash
+    npm start
+    ```
 
-## API Reference
-- `/api/v1/classes` - List all classes
-- `/api/v1/classes/{id}` - Get class details
-- `/api/v1/classes/create` - Create a new class
-- `/api/v1/classes/join/{class_id}` - Join a class
+    The service will run on port `3000` (or the port specified in the `PORT` environment variable).
 
-## Development
-- Use the provided Dockerfile for local development
-- Run tests with the test script
+## API Endpoints
+
+-   `GET /`: Basic health check.
+-   `POST /classes/schedule`: Placeholder for scheduling a new class.
+-   `POST /classes/{classId}/record/start`: Placeholder for starting class recording.
+-   `POST /classes/{classId}/record/stop`: Placeholder for stopping class recording.
+
+## Socket.IO Events
+
+-   `connection`: A new client connects.
+-   `join-room`: A user joins a specific class room.
+    -   Emits `user-connected` to others in the room.
+-   `disconnect`: A user disconnects.
+    -   Emits `user-disconnected` to others in the room.
+-   `offer`, `answer`, `candidate`: WebRTC signaling events.
+-   `chat-message`: A user sends a chat message.
+    -   Emits `chat-message` to all in the room.

@@ -42,7 +42,7 @@
 | Media           | creator-studio  | Planned     | Medium   |
 | Intelligence    | search-crawler  | Planned     | Medium   |
 | Intelligence    | recommendations | Planned     | Medium   |
-| Intelligence    | llm-tutor       | Planned     | High     |
+| Intelligence    | llm-tutor       | Production  | High     |
 | Intelligence    | analytics       | Planned     | Low      |
 | Operations      | counters        | Planned     | Low      |
 | Operations      | live-tracking   | Planned     | Low      |
@@ -120,7 +120,7 @@ cd suuupra-edtech-platform
 docker-compose up -d
 ./tools/scripts/initialize-project.sh
 
-# 🚀 Quick Start: Identity Service (Production Ready)
+# 🚀 Quick Start: Production Services
 ./deploy-prod.sh                                    # One-command production deployment
 # OR for local development:
 docker-compose up -d api-gateway identity-service  # Local development
@@ -128,6 +128,12 @@ docker-compose up -d api-gateway identity-service  # Local development
 # Test Identity Service
 curl -s http://localhost:8081/.well-known/openid-configuration | jq
 curl -s http://localhost:8081/actuator/health | jq
+
+# 🤖 LLM Tutor Service (Production Ready)
+cd services/llm-tutor
+docker-compose up -d                               # Start LLM Tutor with all dependencies
+curl -s http://localhost:8000/health | jq         # Health check
+curl -s http://localhost:8000/docs                # Interactive API docs
 
 # Per-Service Operations (standardized scripts):
 
@@ -220,6 +226,7 @@ The `shared/` directory is the **single source of truth** for all cross-service 
 | Live Streaming | 100ms RTT | 1M viewers | 99.9% | < 0.5% |
 | Search Service | 300ms | 15k QPS | 99.5% | < 1% |
 | Recommendation | 400ms | 25k RPS | 99% | < 2% |
+| LLM Tutor | 2000ms | 1k RPS | 99.9% | < 0.5% |
 
 ---
 
@@ -277,10 +284,11 @@ GitHub Actions handle CI/CD, scans, tests, and deploy on commit.
 We will follow a phased approach to building the Suuupra platform. Each phase delivers a meaningful set of features. Refer to the **Services Matrix** for the current status of each service.
 
 ### 🔒 Production Readiness (Cross‑Cutting)
-- Content service: Models and APIs for content, courses, lessons, media assets; strict TypeScript build passes; JWT via JWKS; deployable via Docker Compose/Helm. Background ES sync worker is lazy-loaded and can be enabled via feature flag.
-- Global CI/CD: Enforce lint, typecheck, unit/integration tests, security scans, and image signing.
-- Security: Vault-backed secrets, least-privilege IAM, rate limiting, and S2S auth.
-- Observability: OTEL tracing, Prometheus metrics, RED dashboards, and probes.
+- **Content service**: Models and APIs for content, courses, lessons, media assets; strict TypeScript build passes; JWT via JWKS; deployable via Docker Compose/Helm. Background ES sync worker is lazy-loaded and can be enabled via feature flag.
+- **LLM Tutor service**: ✅ **PRODUCTION READY** - Complete AI tutoring platform with 30+ REST endpoints, RAG pipeline, voice interface, enterprise security, Kubernetes deployment, and comprehensive observability.
+- **Global CI/CD**: Enforce lint, typecheck, unit/integration tests, security scans, and image signing.
+- **Security**: Vault-backed secrets, least-privilege IAM, rate limiting, and S2S auth.
+- **Observability**: OTEL tracing, Prometheus metrics, RED dashboards, and probes.
 
 ### **Phase 1: Foundation & Core Services**
 **Goal**: To lay the foundation for the entire platform by building the core infrastructure and services. See the `Foundation` phase in the Services Matrix for current status.

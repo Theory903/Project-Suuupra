@@ -1,8 +1,85 @@
-"""
-Example Terraform variables
-"""
+# LLM Tutor Service - Terraform Variables Example
+# Copy this file to terraform.tfvars and customize for your environment
 
-aws_region = "us-east-1"
-cluster_name = "llm-tutor-cluster"
-vpc_id = "vpc-12345678"
-subnet_ids = ["subnet-12345678", "subnet-87654321"]
+# Basic Configuration
+aws_region   = "us-west-2"
+project_name = "llm-tutor"
+environment  = "development"  # development, staging, production
+
+# Network Configuration
+vpc_cidr        = "10.0.0.0/16"
+private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+# EKS Configuration
+kubernetes_version = "1.28"
+cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Restrict this in production
+
+# General Node Group (for API services, databases, etc.)
+general_instance_types = ["t3.medium", "t3.large"]
+general_min_size      = 1
+general_max_size      = 10
+general_desired_size  = 3
+
+# GPU Node Group (for ML inference)
+gpu_instance_types = ["g4dn.xlarge", "g4dn.2xlarge"]
+gpu_min_size      = 0
+gpu_max_size      = 5
+gpu_desired_size  = 1
+
+# Database Configuration
+postgres_version                  = "15.4"
+postgres_instance_class          = "db.t3.micro"  # Use larger instances in production
+postgres_allocated_storage       = 20
+postgres_max_allocated_storage   = 100
+postgres_database               = "llm_tutor"
+postgres_username               = "llm_tutor"
+postgres_password               = "change-this-password"  # Use AWS Secrets Manager in production
+postgres_backup_retention_period = 7
+
+# Redis Configuration
+redis_node_type        = "cache.t3.micro"  # Use larger instances in production
+redis_num_cache_nodes = 2
+
+# Logging Configuration
+log_retention_days = 14
+
+# AWS Auth Configuration (optional)
+# Add IAM users who should have access to the cluster
+aws_auth_users = [
+  # {
+  #   userarn  = "arn:aws:iam::123456789012:user/developer1"
+  #   username = "developer1"
+  #   groups   = ["system:masters"]
+  # }
+]
+
+# Add IAM roles that should have access to the cluster
+aws_auth_roles = [
+  # {
+  #   rolearn  = "arn:aws:iam::123456789012:role/AdminRole"
+  #   username = "admin"
+  #   groups   = ["system:masters"]
+  # }
+]
+
+# Environment-specific overrides
+# The configuration will automatically adjust based on the environment variable
+# 
+# Development:
+#   - Smaller instances
+#   - Shorter backup retention
+#   - Minimal logging retention
+#   - Single availability zone
+#
+# Staging:
+#   - Medium instances
+#   - Moderate backup retention
+#   - Standard logging retention
+#   - Multi-AZ for testing
+#
+# Production:
+#   - Large, optimized instances
+#   - Extended backup retention
+#   - Long-term logging retention
+#   - Full high availability setup
