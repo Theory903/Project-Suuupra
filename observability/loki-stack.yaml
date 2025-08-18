@@ -1,0 +1,434 @@
+# Loki Log Aggregation Stack
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    linkerd.io/inject: enabled
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: monitoring
+data:
+  loki.yaml: |
+    auth_enabled: false
+    
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9096
+    
+    common:
+      path_prefix: /tmp/loki
+      storage:
+        filesystem:
+          chunks_directory: /tmp/loki/chunks
+          rules_directory: /tmp/loki/rules
+      replication_factor: 1
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: inmemory
+    
+    query_range:
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100
+    
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    
+    ruler:
+      alertmanager_url: http://alertmanager.monitoring.svc.cluster.local:9093
+    
+    # Frontend worker configuration
+    frontend_worker:
+      match_max_concurrent: true
+    
+    # Limits configuration
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      max_cache_freshness_per_query: 10m
+      split_queries_by_interval: 15m
+      
+    # Compactor configuration
+    compactor:
+      working_directory: /tmp/loki/boltdb-shipper-compactor
+      shared_store: filesystem
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+      
+    # Analytics configuration
+    analytics:
+      reporting_enabled: false
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: monitoring
+  labels:
+    app: loki
+spec:
+  serviceName: loki
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+      annotations:
+        linkerd.io/inject: enabled
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3100"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: loki
+        image: grafana/loki:2.9.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - -config.file=/etc/loki/local-config.yaml
+        ports:
+        - name: http-metrics
+          containerPort: 3100
+          protocol: TCP
+        - name: grpc
+          containerPort: 9096
+          protocol: TCP
+        env:
+        - name: JAEGER_AGENT_HOST
+          value: jaeger-agent.monitoring.svc.cluster.local
+        - name: JAEGER_ENDPOINT
+          value: http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces
+        - name: JAEGER_SAMPLER_TYPE
+          value: ratelimiting
+        - name: JAEGER_SAMPLER_PARAM
+          value: "2.0"
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 45
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 45
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: config
+          mountPath: /etc/loki
+        - name: storage
+          mountPath: /tmp/loki
+      volumes:
+      - name: config
+        configMap:
+          name: loki-config
+  volumeClaimTemplates:
+  - metadata:
+      name: storage
+      labels:
+        app: loki
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: monitoring
+  labels:
+    app: loki
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3100"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http-metrics
+    port: 3100
+    protocol: TCP
+    targetPort: http-metrics
+  - name: grpc
+    port: 9096
+    protocol: TCP
+    targetPort: grpc
+  selector:
+    app: loki
+---
+# Promtail DaemonSet for log collection
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: monitoring
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+    
+    positions:
+      filename: /tmp/positions.yaml
+    
+    clients:
+    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    
+    scrape_configs:
+    - job_name: kubernetes-pods-name
+      kubernetes_sd_configs:
+      - role: pod
+      pipeline_stages:
+      - docker: {}
+      relabel_configs:
+      - source_labels:
+        - __meta_kubernetes_pod_label_name
+        target_label: __service__
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: drop
+        regex: ''
+        source_labels:
+        - __service__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - __service__
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+    
+    - job_name: kubernetes-pods-app
+      kubernetes_sd_configs:
+      - role: pod
+      pipeline_stages:
+      - docker: {}
+      relabel_configs:
+      - action: drop
+        regex: .+
+        source_labels:
+        - __meta_kubernetes_pod_label_name
+      - source_labels:
+        - __meta_kubernetes_pod_label_app
+        target_label: __service__
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: drop
+        regex: ''
+        source_labels:
+        - __service__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - __service__
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: monitoring
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+      annotations:
+        linkerd.io/inject: enabled
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccount: promtail
+      containers:
+      - name: promtail
+        image: grafana/promtail:2.9.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - -config.file=/etc/promtail/config.yml
+        - -client.url=http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+        env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        ports:
+        - name: http-metrics
+          containerPort: 9080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: config
+          mountPath: /etc/promtail
+        - name: run
+          mountPath: /run/promtail
+        - name: containers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: pods
+          mountPath: /var/log/pods
+          readOnly: true
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      volumes:
+      - name: config
+        configMap:
+          name: promtail-config
+      - name: run
+        hostPath:
+          path: /run/promtail
+      - name: containers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: pods
+        hostPath:
+          path: /var/log/pods
+  updateStrategy:
+    type: RollingUpdate
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/proxy
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promtail
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: promtail
+subjects:
+- kind: ServiceAccount
+  name: promtail
+  namespace: monitoring

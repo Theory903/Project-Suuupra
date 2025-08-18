@@ -1,0 +1,835 @@
+# ===================================================================
+# MULTI-REGION DEPLOYMENT ARCHITECTURE - PHASE 4
+# Global Scale Kubernetes Deployment with Cross-Region Resilience
+# ===================================================================
+
+# ===================================================================
+# GLOBAL REGION CONFIGURATION
+# ===================================================================
+
+# Primary Region: US-East (Virginia)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: region-config-us-east
+  namespace: suuupra-platform
+data:
+  region: "us-east-1"
+  zone: "us-east-1a,us-east-1b,us-east-1c"
+  is_primary: "true"
+  database_role: "primary"
+  kafka_role: "primary"
+  backup_retention: "30d"
+  traffic_weight: "40"
+  failover_priority: "1"
+---
+# Secondary Region: US-West (Oregon)  
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: region-config-us-west
+  namespace: suuupra-platform
+data:
+  region: "us-west-2"
+  zone: "us-west-2a,us-west-2b,us-west-2c"
+  is_primary: "false"
+  database_role: "read-replica"
+  kafka_role: "mirror"
+  backup_retention: "30d"
+  traffic_weight: "25"
+  failover_priority: "2"
+---
+# European Region: EU-West (Ireland)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: region-config-eu-west
+  namespace: suuupra-platform
+data:
+  region: "eu-west-1"
+  zone: "eu-west-1a,eu-west-1b,eu-west-1c"
+  is_primary: "false"
+  database_role: "read-replica"
+  kafka_role: "mirror"
+  backup_retention: "90d"  # GDPR compliance
+  traffic_weight: "25"
+  failover_priority: "3"
+---
+# Asia-Pacific Region: AP-Southeast (Singapore)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: region-config-ap-southeast
+  namespace: suuupra-platform
+data:
+  region: "ap-southeast-1"
+  zone: "ap-southeast-1a,ap-southeast-1b,ap-southeast-1c"
+  is_primary: "false"
+  database_role: "read-replica"
+  kafka_role: "mirror"
+  backup_retention: "30d"
+  traffic_weight: "10"
+  failover_priority: "4"
+
+---
+# ===================================================================
+# GLOBAL LOAD BALANCER CONFIGURATION
+# ===================================================================
+
+# Global Load Balancer using Ingress-nginx with GeoDNS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: suuupra-global-ingress
+  namespace: suuupra-services
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$geolocation_country_code"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      set $region "us-east-1";
+      if ($geolocation_country_code ~* "^(GB|FR|DE|IT|ES|NL|BE|PL|CZ|SK|HU|AT|CH|IE|PT|DK|SE|NO|FI)$") {
+        set $region "eu-west-1";
+      }
+      if ($geolocation_country_code ~* "^(SG|MY|TH|ID|PH|VN|IN|JP|KR|AU|NZ|CN|HK|TW)$") {
+        set $region "ap-southeast-1";
+      }
+      if ($geolocation_country_code ~* "^(CA|MX|BR|AR|CL|CO|PE|VE)$") {
+        set $region "us-west-2";
+      }
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Served-By-Region: $region";
+      more_set_headers "X-Geolocation-Country: $geolocation_country_code";
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - api.suuupra.io
+    - suuupra.io
+    - app.suuupra.io
+    secretName: suuupra-tls-global
+  rules:
+  - host: api.suuupra.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-gateway-global-service
+            port:
+              number: 80
+  - host: suuupra.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-global-service
+            port:
+              number: 80
+  - host: app.suuupra.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app-global-service
+            port:
+              number: 80
+---
+# Global API Gateway Service with Region-Aware Routing
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-global-service
+  namespace: suuupra-services
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    external-dns.alpha.kubernetes.io/hostname: api.suuupra.io
+    external-dns.alpha.kubernetes.io/ttl: "60"
+spec:
+  type: LoadBalancer
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600  # 1 hour session stickiness
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3001
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 3001
+    protocol: TCP
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: api-gateway
+    tier: production
+
+---
+# ===================================================================
+# REGION-SPECIFIC SERVICE DEPLOYMENTS
+# ===================================================================
+
+# US-East-1 (Primary) Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-us-east
+  namespace: suuupra-services
+  labels:
+    app: api-gateway
+    region: us-east-1
+    tier: production
+    role: primary
+spec:
+  replicas: 6  # Higher replica count for primary region
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+      region: us-east-1
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        region: us-east-1
+        tier: production
+        role: primary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        linkerd.io/inject: enabled
+    spec:
+      nodeSelector:
+        kubernetes.io/region: us-east-1
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - api-gateway
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/region
+                operator: In
+                values:
+                - us-east-1
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: api-gateway
+      containers:
+      - name: api-gateway
+        image: suuupra/api-gateway:1.0.0
+        ports:
+        - containerPort: 3001
+          name: http
+        - containerPort: 9090
+          name: metrics
+        - containerPort: 8080
+          name: websocket
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: REGION
+          value: "us-east-1"
+        - name: INSTANCE_ROLE
+          value: "primary"
+        - name: DATABASE_PRIMARY_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-primary
+              key: connection-url
+        - name: DATABASE_REPLICA_URLS
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-replicas
+              key: connection-urls
+        - name: KAFKA_BROKERS
+          value: "kafka-us-east:9092"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials-us-east
+              key: connection-url
+        - name: CROSS_REGION_REPLICATION
+          value: "enabled"
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/region
+          readOnly: true
+        - name: tls-certs
+          mountPath: /app/certs
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: region-config-us-east
+      - name: tls-certs
+        secret:
+          secretName: api-gateway-tls-us-east
+---
+# EU-West-1 (Secondary) Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-eu-west
+  namespace: suuupra-services
+  labels:
+    app: api-gateway
+    region: eu-west-1
+    tier: production
+    role: secondary
+spec:
+  replicas: 4  # Moderate replica count for secondary region
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+      region: eu-west-1
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        region: eu-west-1
+        tier: production
+        role: secondary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        linkerd.io/inject: enabled
+    spec:
+      nodeSelector:
+        kubernetes.io/region: eu-west-1
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - api-gateway
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/region
+                operator: In
+                values:
+                - eu-west-1
+      containers:
+      - name: api-gateway
+        image: suuupra/api-gateway:1.0.0
+        ports:
+        - containerPort: 3001
+        - containerPort: 9090
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: REGION
+          value: "eu-west-1"
+        - name: INSTANCE_ROLE
+          value: "secondary"
+        - name: DATABASE_PRIMARY_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-primary
+              key: connection-url
+        - name: DATABASE_REPLICA_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials-eu-west
+              key: connection-url
+        - name: KAFKA_BROKERS
+          value: "kafka-eu-west:9092"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials-eu-west
+              key: connection-url
+        - name: GDPR_COMPLIANCE
+          value: "enabled"
+        - name: DATA_RESIDENCY
+          value: "eu"
+        resources:
+          requests:
+            cpu: 800m
+            memory: 1.5Gi
+          limits:
+            cpu: 1500m
+            memory: 3Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/region
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: region-config-eu-west
+
+---
+# ===================================================================
+# CROSS-REGION DATABASE REPLICATION
+# ===================================================================
+
+# PostgreSQL Primary in US-East-1
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-primary-us-east
+  namespace: suuupra-services
+spec:
+  instances: 3
+  primaryUpdateStrategy: unsupervised
+  
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      maintenance_work_mem: "64MB"
+      checkpoint_completion_target: "0.7"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+      max_worker_processes: "8"
+      max_parallel_workers_per_gather: "2"
+      max_parallel_workers: "8"
+      max_parallel_maintenance_workers: "2"
+      # Replication settings
+      wal_level: "replica"
+      max_wal_senders: "10"
+      max_replication_slots: "10"
+      hot_standby: "on"
+      archive_mode: "on"
+      archive_command: "aws s3 cp %p s3://suuupra-db-backups-us-east/%f"
+
+  bootstrap:
+    initdb:
+      database: suuupra_platform
+      owner: suuupra_user
+      secret:
+        name: postgres-credentials-primary
+
+  storage:
+    size: 1Ti
+    storageClass: gp3-encrypted
+
+  monitoring:
+    enabled: true
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/region
+            operator: In
+            values:
+            - us-east-1
+
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2"
+    limits:
+      memory: "8Gi" 
+      cpu: "4"
+---
+# PostgreSQL Read Replica in EU-West-1
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-replica-eu-west
+  namespace: suuupra-services
+spec:
+  instances: 2
+  
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "128MB"
+      effective_cache_size: "512MB"
+      hot_standby: "on"
+      max_standby_streaming_delay: "30s"
+      hot_standby_feedback: "on"
+
+  bootstrap:
+    pg_basebackup:
+      source: postgres-primary-us-east
+      
+  externalClusters:
+  - name: postgres-primary-us-east
+    connectionParameters:
+      host: postgres-primary-us-east-rw.suuupra-services.svc.cluster.local
+      user: streaming_replica
+      dbname: postgres
+      sslmode: require
+    password:
+      name: postgres-replica-credentials
+      key: password
+
+  storage:
+    size: 1Ti
+    storageClass: gp3-encrypted
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/region
+            operator: In
+            values:
+            - eu-west-1
+
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "4Gi"
+      cpu: "2"
+
+---
+# ===================================================================
+# CROSS-REGION KAFKA MIRRORING
+# ===================================================================
+
+# Kafka Mirror Maker 2.0 Configuration
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: kafka-cross-region-mirror
+  namespace: suuupra-services
+spec:
+  version: 3.4.0
+  replicas: 3
+  connectCluster: "target"
+  
+  clusters:
+  - alias: "source"
+    bootstrapServers: kafka-us-east:9092
+    config:
+      config.storage.replication.factor: 3
+      offset.storage.replication.factor: 3
+      status.storage.replication.factor: 3
+      
+  - alias: "target"  
+    bootstrapServers: kafka-eu-west:9092,kafka-ap-southeast:9092
+    config:
+      config.storage.replication.factor: 3
+      offset.storage.replication.factor: 3
+      status.storage.replication.factor: 3
+      config.storage.topic: mirrormaker2-cluster-configs
+      offset.storage.topic: mirrormaker2-cluster-offsets
+      status.storage.topic: mirrormaker2-cluster-status
+
+  mirrors:
+  - sourceCluster: "source"
+    targetCluster: "target"
+    sourceConnector:
+      config:
+        replication.factor: 3
+        offset-syncs.topic.replication.factor: 3
+        sync.topic.acls.enabled: "false"
+        refresh.topics.enabled: "true"
+        refresh.topics.interval.seconds: 600
+    heartbeatConnector:
+      config:
+        heartbeats.topic.replication.factor: 3
+    checkpointConnector:
+      config:
+        checkpoints.topic.replication.factor: 3
+        refresh.groups.enabled: "true"
+        refresh.groups.interval.seconds: 600
+        sync.group.offsets.enabled: "true"
+    topicsPattern: "user-events|course-events|commerce-events|payment-events|gateway-events|analytics-events"
+    groupsPattern: ".*"
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+  jvmOptions:
+    "-Xmx": "1g"
+    "-Xms": "1g"
+
+  template:
+    pod:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/region
+                operator: In
+                values:
+                - us-east-1
+                - eu-west-1
+                - ap-southeast-1
+
+---
+# ===================================================================
+# CROSS-REGION REDIS REPLICATION
+# ===================================================================
+
+# Redis Sentinel for High Availability
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redis-sentinel-us-east
+  namespace: suuupra-services
+spec:
+  sentinel:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/region
+              operator: In
+              values:
+              - us-east-1
+              
+  redis:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+    storage:
+      persistentVolumeClaim:
+        metadata:
+          name: redis-data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 50Gi
+          storageClassName: gp3-encrypted
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/region
+              operator: In
+              values:
+              - us-east-1
+    
+  auth:
+    secretPath: redis-auth
+
+---
+# ===================================================================
+# CROSS-REGION SERVICE MESH (LINKERD)  
+# ===================================================================
+
+# Multi-cluster Linkerd setup for cross-region communication
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-credentials-us-east
+  namespace: linkerd-multicluster
+  labels:
+    mirror.linkerd.io/cluster-name: us-east-1
+  annotations:
+    mirror.linkerd.io/cluster-domain: cluster.local
+type: Opaque
+data:
+  kubeconfig: # Base64 encoded kubeconfig for us-east-1 cluster
+---
+apiVersion: v1
+kind: Secret  
+metadata:
+  name: cluster-credentials-eu-west
+  namespace: linkerd-multicluster
+  labels:
+    mirror.linkerd.io/cluster-name: eu-west-1
+  annotations:
+    mirror.linkerd.io/cluster-domain: cluster.local
+type: Opaque
+data:
+  kubeconfig: # Base64 encoded kubeconfig for eu-west-1 cluster
+---
+# Cross-region service mirroring
+apiVersion: linkerd.io/v1alpha2
+kind: Link
+metadata:
+  name: us-east-to-eu-west
+  namespace: linkerd-multicluster
+spec:
+  clusterCredentialsSecret: cluster-credentials-eu-west
+  targetClusterName: eu-west-1
+  targetClusterDomain: cluster.local
+  serviceSelector:
+    matchLabels:
+      mirror.linkerd.io/exported: "true"
+
+---
+# ===================================================================
+# DISASTER RECOVERY AUTOMATION
+# ===================================================================
+
+# Automated Failover Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: disaster-recovery-controller
+  namespace: suuupra-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: disaster-recovery-controller
+  template:
+    metadata:
+      labels:
+        app: disaster-recovery-controller
+    spec:
+      containers:
+      - name: controller
+        image: suuupra/disaster-recovery-controller:1.0.0
+        env:
+        - name: PRIMARY_REGION
+          value: "us-east-1"
+        - name: SECONDARY_REGIONS
+          value: "us-west-2,eu-west-1,ap-southeast-1"
+        - name: FAILOVER_THRESHOLD_SECONDS
+          value: "300"  # 5 minutes
+        - name: HEALTH_CHECK_INTERVAL
+          value: "30"   # 30 seconds
+        - name: RECOVERY_CHECK_INTERVAL  
+          value: "60"   # 1 minute
+        - name: NOTIFICATION_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: webhook-url
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: kubeconfigs
+          mountPath: /etc/kubeconfig
+          readOnly: true
+      volumes:
+      - name: kubeconfigs
+        secret:
+          secretName: multi-region-kubeconfigs
+---
+# Health Check Service for Cross-Region Monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: cross-region-health-check
+  namespace: suuupra-platform
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  selector:
+    app: disaster-recovery-controller
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  - name: webhooks
+    port: 9090
+    targetPort: 9090

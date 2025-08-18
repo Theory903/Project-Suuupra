@@ -1,0 +1,420 @@
+# Advanced Grafana Dashboards Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-config
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  suuupra-platform-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Suuupra Platform - Golden Signals Overview",
+        "tags": ["suuupra", "platform", "overview"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate (RED) - Requests/sec",
+            "type": "stat",
+            "targets": [{
+              "expr": "sum(rate(http_requests_total{job=~\".*suuupra.*\"}[5m]))",
+              "legendFormat": "Total RPS"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps",
+                "min": 0
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"],
+                "fields": ""
+              },
+              "orientation": "auto",
+              "text": {},
+              "textMode": "auto",
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "auto"
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Error Rate (RED) - % Errors",
+            "type": "stat",
+            "targets": [{
+              "expr": "sum(rate(http_requests_total{job=~\".*suuupra.*\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=~\".*suuupra.*\"}[5m])) * 100",
+              "legendFormat": "Error %"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Response Time P95 (RED) - Duration",
+            "type": "stat",
+            "targets": [{
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\".*suuupra.*\"}[5m])) by (le))",
+              "legendFormat": "P95 Latency"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "min": 0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.5},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Saturation - CPU Usage",
+            "type": "stat",
+            "targets": [{
+              "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
+              "legendFormat": "CPU %"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Service Health Status",
+            "type": "table",
+            "targets": [{
+              "expr": "up{job=~\".*suuupra.*\"}",
+              "legendFormat": "{{instance}}",
+              "format": "table"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "displayMode": "color-background"
+                },
+                "mappings": [
+                  {"options": {"0": {"color": "red", "index": 0, "text": "DOWN"}}, "type": "value"},
+                  {"options": {"1": {"color": "green", "index": 1, "text": "UP"}}, "type": "value"}
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Business Metrics - Active Users",
+            "type": "graph",
+            "targets": [{
+              "expr": "active_users_gauge{tier=\"premium\"}",
+              "legendFormat": "Premium Users"
+            }, {
+              "expr": "active_users_gauge{tier=\"free\"}",
+              "legendFormat": "Free Users"
+            }],
+            "yAxes": [{
+              "label": "Users",
+              "min": 0
+            }],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "timepicker": {},
+        "templating": {
+          "list": []
+        },
+        "annotations": {
+          "list": []
+        },
+        "refresh": "30s",
+        "schemaVersion": 16,
+        "version": 0,
+        "links": []
+      }
+    }
+  
+  kafka-monitoring.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Kafka Event Streaming Monitoring",
+        "tags": ["kafka", "streaming", "events"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Message Throughput",
+            "type": "graph",
+            "targets": [{
+              "expr": "sum(rate(kafka_server_brokertopicmetrics_messagesin_total[5m])) by (topic)",
+              "legendFormat": "{{topic}} - Messages/sec"
+            }],
+            "yAxes": [{
+              "label": "Messages/sec",
+              "min": 0
+            }],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Consumer Lag",
+            "type": "graph",
+            "targets": [{
+              "expr": "kafka_consumer_lag_sum",
+              "legendFormat": "{{consumergroup}} - {{topic}}"
+            }],
+            "yAxes": [{
+              "label": "Lag (messages)",
+              "min": 0
+            }],
+            "alert": {
+              "conditions": [{
+                "evaluator": {"params": [10000], "type": "gt"},
+                "operator": {"type": "and"},
+                "query": {"params": ["A", "5m", "now"]},
+                "reducer": {"params": [], "type": "avg"},
+                "type": "query"
+              }],
+              "executionErrorState": "alerting",
+              "for": "5m",
+              "frequency": "10s",
+              "handler": 1,
+              "name": "High Kafka Consumer Lag",
+              "noDataState": "no_data",
+              "notifications": []
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Topic Partition Distribution",
+            "type": "table",
+            "targets": [{
+              "expr": "kafka_topic_partitions",
+              "format": "table"
+            }],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s",
+        "schemaVersion": 16,
+        "version": 0
+      }
+    }
+  
+  database-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Database Performance Monitoring",
+        "tags": ["postgresql", "database", "performance"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Database Connections",
+            "type": "graph",
+            "targets": [{
+              "expr": "pg_stat_database_numbackends / pg_settings_max_connections * 100",
+              "legendFormat": "Connection Usage %"
+            }],
+            "yAxes": [{
+              "label": "Percentage",
+              "min": 0,
+              "max": 100
+            }],
+            "alert": {
+              "conditions": [{
+                "evaluator": {"params": [80], "type": "gt"},
+                "operator": {"type": "and"},
+                "query": {"params": ["A", "5m", "now"]},
+                "reducer": {"params": [], "type": "avg"},
+                "type": "query"
+              }],
+              "executionErrorState": "alerting",
+              "for": "5m",
+              "frequency": "10s",
+              "handler": 1,
+              "name": "High Database Connection Usage",
+              "noDataState": "no_data",
+              "notifications": []
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Slow Queries",
+            "type": "table",
+            "targets": [{
+              "expr": "pg_stat_statements_mean_time_seconds > 0.1",
+              "format": "table"
+            }],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Database Size Growth",
+            "type": "graph",
+            "targets": [{
+              "expr": "pg_database_size_bytes",
+              "legendFormat": "{{datname}}"
+            }],
+            "yAxes": [{
+              "label": "Bytes",
+              "min": 0
+            }],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          }
+        ],
+        "time": {"from": "now-24h", "to": "now"},
+        "refresh": "1m",
+        "schemaVersion": 16,
+        "version": 0
+      }
+    }
+
+  business-metrics.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Business Metrics Dashboard",
+        "tags": ["business", "revenue", "users", "kpi"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Revenue (Real-time)",
+            "type": "stat",
+            "targets": [{
+              "expr": "sum(revenue_total) / 100",
+              "legendFormat": "Total Revenue"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD",
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Payment Success Rate",
+            "type": "gauge",
+            "targets": [{
+              "expr": "sum(rate(payments_completed_total[5m])) / sum(rate(payments_attempted_total[5m])) * 100",
+              "legendFormat": "Success Rate"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Course Enrollments Today",
+            "type": "stat",
+            "targets": [{
+              "expr": "increase(course_enrollments_total[1d])",
+              "legendFormat": "Enrollments"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short",
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Live Class Viewers",
+            "type": "stat",
+            "targets": [{
+              "expr": "sum(live_class_viewers_current)",
+              "legendFormat": "Current Viewers"
+            }],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short",
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "User Activity Heatmap",
+            "type": "heatmap",
+            "targets": [{
+              "expr": "sum(rate(user_activity_events_total[1h])) by (hour)",
+              "legendFormat": "Activity"
+            }],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          }
+        ],
+        "time": {"from": "now-24h", "to": "now"},
+        "refresh": "10s",
+        "schemaVersion": 16,
+        "version": 0
+      }
+    }

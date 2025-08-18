@@ -1,0 +1,125 @@
+{
+  "scenarios": {
+    "smoke_test": {
+      "description": "Smoke test to verify basic functionality",
+      "executor": "constant-vus",
+      "vus": 5,
+      "duration": "1m",
+      "env": {
+        "TEST_PROFILE": "smoke"
+      },
+      "tags": {
+        "test_type": "smoke",
+        "environment": "development"
+      }
+    },
+    "baseline_performance": {
+      "description": "Baseline performance test under normal load",
+      "executor": "ramping-vus",
+      "startVUs": 0,
+      "stages": [
+        { "duration": "2m", "target": 50 },
+        { "duration": "8m", "target": 100 },
+        { "duration": "5m", "target": 200 },
+        { "duration": "10m", "target": 200 },
+        { "duration": "3m", "target": 0 }
+      ],
+      "env": {
+        "TEST_PROFILE": "baseline"
+      },
+      "tags": {
+        "test_type": "baseline",
+        "environment": "staging"
+      }
+    },
+    "stress_test": {
+      "description": "Stress test to find system breaking point",
+      "executor": "ramping-vus",
+      "startVUs": 0,
+      "stages": [
+        { "duration": "5m", "target": 500 },
+        { "duration": "10m", "target": 500 },
+        { "duration": "5m", "target": 1000 },
+        { "duration": "10m", "target": 1000 },
+        { "duration": "5m", "target": 1500 },
+        { "duration": "10m", "target": 1500 },
+        { "duration": "10m", "target": 0 }
+      ],
+      "env": {
+        "TEST_PROFILE": "stress"
+      },
+      "tags": {
+        "test_type": "stress",
+        "environment": "staging"
+      }
+    },
+    "spike_test": {
+      "description": "Spike test for sudden traffic increases",
+      "executor": "ramping-vus",
+      "startVUs": 100,
+      "stages": [
+        { "duration": "2m", "target": 100 },
+        { "duration": "1m", "target": 2000 },
+        { "duration": "3m", "target": 2000 },
+        { "duration": "1m", "target": 100 },
+        { "duration": "5m", "target": 100 },
+        { "duration": "1m", "target": 0 }
+      ],
+      "env": {
+        "TEST_PROFILE": "spike"
+      },
+      "tags": {
+        "test_type": "spike",
+        "environment": "staging"
+      }
+    },
+    "soak_test": {
+      "description": "Soak test for extended duration stability",
+      "executor": "constant-vus",
+      "vus": 300,
+      "duration": "60m",
+      "env": {
+        "TEST_PROFILE": "soak"
+      },
+      "tags": {
+        "test_type": "soak",
+        "environment": "staging"
+      }
+    },
+    "peak_load": {
+      "description": "Peak load test simulating Black Friday scenarios",
+      "executor": "ramping-vus",
+      "startVUs": 0,
+      "stages": [
+        { "duration": "10m", "target": 1000 },
+        { "duration": "30m", "target": 1000 },
+        { "duration": "10m", "target": 2000 },
+        { "duration": "20m", "target": 2000 },
+        { "duration": "10m", "target": 500 },
+        { "duration": "10m", "target": 0 }
+      ],
+      "env": {
+        "TEST_PROFILE": "peak"
+      },
+      "tags": {
+        "test_type": "peak",
+        "environment": "production"
+      }
+    }
+  },
+  "thresholds": {
+    "http_req_duration": ["p(95)<500", "p(99)<1000"],
+    "http_req_failed": ["rate<0.01"],
+    "http_reqs": ["rate>100"],
+    "ws_connect_duration": ["p(95)<1000"],
+    "ws_msg_duration": ["p(95)<100"]
+  },
+  "summaryTrendStats": ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)"],
+  "summaryTimeUnit": "ms",
+  "noConnectionReuse": false,
+  "userAgent": "Suuupra-LoadTest/1.0.0",
+  "insecureSkipTLS": true,
+  "batch": 20,
+  "batchPerHost": 6,
+  "httpDebug": "full"
+}

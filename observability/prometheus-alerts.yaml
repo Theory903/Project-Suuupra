@@ -1,0 +1,322 @@
+# Intelligent Prometheus Alerting Rules - No False Alarms
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: suuupra-platform-alerts
+  namespace: monitoring
+  labels:
+    app: prometheus
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: suuupra.critical
+    interval: 30s
+    rules:
+    # CRITICAL: Only alert on USER-FACING issues
+    - alert: HighErrorRate
+      expr: |
+        (
+          sum(rate(http_requests_total{status=~"5..",job="kong-proxy"}[5m]))
+          /
+          sum(rate(http_requests_total{job="kong-proxy"}[5m]))
+        ) > 0.05
+      for: 5m  # Wait 5 minutes to avoid flapping
+      labels:
+        severity: critical
+        team: platform
+        impact: user-facing
+      annotations:
+        summary: "High error rate on API Gateway"
+        description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+        runbook_url: "https://wiki.suuupra.com/runbooks/high-error-rate"
+        dashboard_url: "http://grafana.monitoring.svc.cluster.local:3000/d/platform-overview"
+    
+    # CRITICAL: Service completely down
+    - alert: ServiceDown
+      expr: up{job="kong-proxy"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+        impact: user-facing
+      annotations:
+        summary: "API Gateway is down"
+        description: "API Gateway has been down for more than 1 minute"
+        runbook_url: "https://wiki.suuupra.com/runbooks/service-down"
+    
+    # CRITICAL: Database connection exhaustion
+    - alert: DatabaseConnectionsHigh
+      expr: |
+        (
+          pg_stat_database_numbackends{datname!="template0",datname!="template1",datname!="postgres"}
+          /
+          pg_settings_max_connections
+        ) > 0.9
+      for: 2m
+      labels:
+        severity: critical
+        team: platform
+        impact: user-facing
+      annotations:
+        summary: "Database connection pool near exhaustion"
+        description: "Database {{ $labels.datname }} is using {{ $value | humanizePercentage }} of available connections"
+        runbook_url: "https://wiki.suuupra.com/runbooks/database-connections"
+    
+    # CRITICAL: Payment system failure
+    - alert: PaymentSystemDown
+      expr: |
+        (
+          sum(rate(http_requests_total{status=~"5..",job="payment-service"}[5m]))
+          /
+          sum(rate(http_requests_total{job="payment-service"}[5m]))
+        ) > 0.01
+      for: 2m  # Faster alert for payments
+      labels:
+        severity: critical
+        team: payments
+        impact: revenue
+      annotations:
+        summary: "Payment system experiencing failures"
+        description: "Payment error rate is {{ $value | humanizePercentage }} - potential revenue impact"
+        runbook_url: "https://wiki.suuupra.com/runbooks/payment-failures"
+        escalation: "immediate"
+
+  - name: suuupra.warning
+    interval: 60s
+    rules:
+    # WARNING: Smart alerting for Kafka lag (only if growing)
+    - alert: KafkaConsumerLag
+      expr: |
+        kafka_consumer_lag > 10000
+        AND
+        rate(kafka_consumer_lag[5m]) > 0  # Only if lag is growing
+      for: 10m
+      labels:
+        severity: warning
+        team: platform
+        impact: performance
+      annotations:
+        summary: "Kafka consumer lag is growing"
+        description: "Consumer {{ $labels.consumergroup }} lag is {{ $value }} messages and growing"
+        runbook_url: "https://wiki.suuupra.com/runbooks/kafka-lag"
+    
+    # WARNING: High response time (only P99, not P95)
+    - alert: HighResponseTime
+      expr: |
+        histogram_quantile(0.99, 
+          sum(rate(http_request_duration_seconds_bucket{job="kong-proxy"}[5m])) by (le)
+        ) > 2
+      for: 10m  # Long wait time to avoid noise
+      labels:
+        severity: warning
+        team: platform
+        impact: performance
+      annotations:
+        summary: "High response time detected"
+        description: "P99 response time is {{ $value }}s for the last 10 minutes"
+        runbook_url: "https://wiki.suuupra.com/runbooks/high-latency"
+    
+    # WARNING: Resource saturation
+    - alert: HighCPUUsage
+      expr: |
+        100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+      for: 15m  # Only alert after sustained high usage
+      labels:
+        severity: warning
+        team: infrastructure
+        impact: performance
+      annotations:
+        summary: "High CPU usage on {{ $labels.instance }}"
+        description: "CPU usage is {{ $value }}% for 15 minutes"
+        runbook_url: "https://wiki.suuupra.com/runbooks/high-cpu"
+    
+    # WARNING: Memory pressure
+    - alert: HighMemoryUsage
+      expr: |
+        (
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) 
+          / 
+          node_memory_MemTotal_bytes
+        ) > 0.9
+      for: 10m
+      labels:
+        severity: warning
+        team: infrastructure
+        impact: performance
+      annotations:
+        summary: "High memory usage on {{ $labels.instance }}"
+        description: "Memory usage is {{ $value | humanizePercentage }}"
+        runbook_url: "https://wiki.suuupra.com/runbooks/high-memory"
+    
+    # WARNING: Disk space (with trend analysis)
+    - alert: DiskSpaceLow
+      expr: |
+        (
+          (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_free_bytes{mountpoint="/"})
+          /
+          node_filesystem_size_bytes{mountpoint="/"}
+        ) > 0.8
+        AND
+        predict_linear(node_filesystem_free_bytes{mountpoint="/"}[6h], 4*3600) < 0
+      for: 5m
+      labels:
+        severity: warning
+        team: infrastructure
+        impact: stability
+      annotations:
+        summary: "Disk space running low on {{ $labels.instance }}"
+        description: "Disk usage is {{ $value | humanizePercentage }} and trending full"
+        runbook_url: "https://wiki.suuupra.com/runbooks/disk-space"
+
+  - name: suuupra.business
+    interval: 300s  # Check business metrics less frequently
+    rules:
+    # BUSINESS: Revenue drop (only during business hours)
+    - alert: RevenueDropSignificant
+      expr: |
+        (
+          rate(revenue_total[1h] offset 1h) - rate(revenue_total[1h])
+        ) / rate(revenue_total[1h] offset 1h) > 0.3
+        AND
+        hour() >= 9 AND hour() <= 17  # Only during business hours
+      for: 30m
+      labels:
+        severity: warning
+        team: business
+        impact: revenue
+      annotations:
+        summary: "Significant revenue drop detected"
+        description: "Revenue dropped by {{ $value | humanizePercentage }} compared to previous hour"
+        runbook_url: "https://wiki.suuupra.com/runbooks/revenue-drop"
+    
+    # BUSINESS: Payment success rate drop
+    - alert: PaymentSuccessRateDown
+      expr: |
+        (
+          sum(rate(payments_completed_total[10m]))
+          /
+          sum(rate(payments_attempted_total[10m]))
+        ) < 0.95
+      for: 15m
+      labels:
+        severity: warning
+        team: payments
+        impact: revenue
+      annotations:
+        summary: "Payment success rate below threshold"
+        description: "Payment success rate is {{ $value | humanizePercentage }} (target: 95%+)"
+        runbook_url: "https://wiki.suuupra.com/runbooks/payment-success-rate"
+    
+    # BUSINESS: Unusual user activity drop
+    - alert: UserActivityDropped
+      expr: |
+        (
+          sum(rate(user_activity_events_total[1h]))
+          <
+          sum(rate(user_activity_events_total[1h] offset 24h)) * 0.5
+        )
+        AND
+        hour() >= 10 AND hour() <= 20  # During active hours
+      for: 1h
+      labels:
+        severity: info
+        team: product
+        impact: engagement
+      annotations:
+        summary: "User activity significantly lower than expected"
+        description: "Current activity is 50% lower than same time yesterday"
+        runbook_url: "https://wiki.suuupra.com/runbooks/user-activity"
+
+  - name: suuupra.security
+    interval: 60s
+    rules:
+    # SECURITY: Unusual authentication failures
+    - alert: HighAuthenticationFailures
+      expr: |
+        sum(rate(authentication_failures_total[5m])) > 50
+      for: 5m
+      labels:
+        severity: warning
+        team: security
+        impact: security
+      annotations:
+        summary: "High authentication failure rate"
+        description: "{{ $value }} authentication failures per second - potential attack"
+        runbook_url: "https://wiki.suuupra.com/runbooks/auth-failures"
+    
+    # SECURITY: mTLS failures
+    - alert: mTLSHandshakeFailures
+      expr: |
+        increase(linkerd_proxy_inbound_tls_connections_total{error!=""}[5m]) > 10
+      for: 2m
+      labels:
+        severity: warning
+        team: security
+        impact: security
+      annotations:
+        summary: "mTLS handshake failures detected"
+        description: "Service {{ $labels.service }} has {{ $value }} TLS failures"
+        runbook_url: "https://wiki.suuupra.com/runbooks/mtls-failures"
+    
+    # SECURITY: Certificate expiry warning
+    - alert: CertificateExpiringSoon
+      expr: |
+        (cert_manager_certificate_expiration_timestamp_seconds - time()) / 86400 < 30
+      for: 1h
+      labels:
+        severity: warning
+        team: security
+        impact: availability
+      annotations:
+        summary: "Certificate expiring soon"
+        description: "Certificate {{ $labels.name }} expires in {{ $value }} days"
+        runbook_url: "https://wiki.suuupra.com/runbooks/certificate-renewal"
+
+  - name: suuupra.infrastructure
+    interval: 120s
+    rules:
+    # INFRASTRUCTURE: Kubernetes pod restart loops
+    - alert: PodRestartLoop
+      expr: |
+        increase(kube_pod_container_status_restarts_total[15m]) > 3
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+        impact: stability
+      annotations:
+        summary: "Pod {{ $labels.pod }} restarting frequently"
+        description: "Pod has restarted {{ $value }} times in the last 15 minutes"
+        runbook_url: "https://wiki.suuupra.com/runbooks/pod-restarts"
+    
+    # INFRASTRUCTURE: Node not ready
+    - alert: NodeNotReady
+      expr: |
+        kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        team: infrastructure
+        impact: availability
+      annotations:
+        summary: "Node {{ $labels.node }} is not ready"
+        description: "Node has been not ready for more than 5 minutes"
+        runbook_url: "https://wiki.suuupra.com/runbooks/node-not-ready"
+    
+    # INFRASTRUCTURE: Persistent Volume issues
+    - alert: PersistentVolumeUsageHigh
+      expr: |
+        (
+          kubelet_volume_stats_used_bytes
+          /
+          kubelet_volume_stats_capacity_bytes
+        ) > 0.9
+      for: 10m
+      labels:
+        severity: warning
+        team: infrastructure
+        impact: stability
+      annotations:
+        summary: "Persistent Volume {{ $labels.persistentvolumeclaim }} usage high"
+        description: "Volume usage is {{ $value | humanizePercentage }}"
+        runbook_url: "https://wiki.suuupra.com/runbooks/pv-full"

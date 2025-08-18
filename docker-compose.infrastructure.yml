@@ -137,6 +137,7 @@ services:
       ETCD_ENDPOINTS: etcd:2379
     volumes:
       - milvus_data:/var/lib/milvus
+    command: ["milvus", "run", "standalone"]
     networks:
       - suuupra-network
 

@@ -1,0 +1,669 @@
+# ===================================================================
+# VELERO BACKUP & DISASTER RECOVERY - PHASE 5
+# Comprehensive Kubernetes Backup and Point-in-Time Recovery
+# ===================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: suuupra-platform
+---
+# Velero Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app: velero
+    component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: velero
+      component: server
+  template:
+    metadata:
+      labels:
+        app: velero
+        component: server
+      annotations:
+        linkerd.io/inject: enabled
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8085"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: velero
+      containers:
+        - name: velero
+          image: velero/velero:v1.12.1
+          command:
+            - /velero
+          args:
+            - server
+            - --uploader-type=restic
+            - --default-backup-storage-location=default
+            - --default-volume-snapshot-locations=default
+            - --metrics-address=0.0.0.0:8085
+            - --log-level=info
+            - --log-format=json
+            - --features=EnableCSI
+          volumeMounts:
+            - name: plugins
+              mountPath: /plugins
+            - name: scratch
+              mountPath: /scratch
+            - name: aws-credentials
+              mountPath: /credentials
+              readOnly: true
+          env:
+            - name: VELERO_SCRATCH_DIR
+              value: /scratch
+            - name: VELERO_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: LD_LIBRARY_PATH
+              value: /plugins
+            - name: AWS_SHARED_CREDENTIALS_FILE
+              value: /credentials/cloud
+          ports:
+            - name: metrics
+              containerPort: 8085
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 128Mi
+        - name: aws-plugin
+          image: velero/velero-plugin-for-aws:v1.8.1
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /target
+              name: plugins
+      volumes:
+        - name: plugins
+          emptyDir: {}
+        - name: scratch
+          emptyDir: {}
+        - name: aws-credentials
+          secret:
+            secretName: cloud-credentials
+      restartPolicy: Always
+---
+# Velero Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app: velero
+    component: server
+---
+# Velero ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: velero
+  labels:
+    app: velero
+    component: server
+rules:
+  - apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - nonResourceURLs:
+      - "*"
+    verbs:
+      - "*"
+---
+# Velero ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: velero
+  labels:
+    app: velero
+    component: server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: velero
+subjects:
+  - kind: ServiceAccount
+    name: velero
+    namespace: velero
+---
+# Velero Service (for metrics)
+apiVersion: v1
+kind: Service
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app: velero
+    component: server
+spec:
+  selector:
+    app: velero
+    component: server
+  ports:
+    - name: metrics
+      port: 8085
+      targetPort: metrics
+      protocol: TCP
+---
+# AWS S3 Backup Storage Location
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: default
+  namespace: velero
+  labels:
+    app: velero
+    component: storage-location
+spec:
+  provider: aws
+  objectStorage:
+    bucket: suuupra-velero-backups-us-east-1
+    prefix: kubernetes/cluster-backups
+  config:
+    region: us-east-1
+    serverSideEncryption: AES256
+    storageClass: STANDARD_IA
+    checksumAlgorithm: CRC32C
+    enableSharedConfig: "true"
+---
+# AWS EBS Volume Snapshot Location
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: default
+  namespace: velero
+  labels:
+    app: velero
+    component: volume-location
+spec:
+  provider: aws
+  config:
+    region: us-east-1
+    enableSharedConfig: "true"
+---
+# Restic Daemon Set (for file-level backup)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: restic
+  namespace: velero
+  labels:
+    app: restic
+    component: node-agent
+spec:
+  selector:
+    matchLabels:
+      app: restic
+      component: node-agent
+  template:
+    metadata:
+      labels:
+        app: restic
+        component: node-agent
+    spec:
+      serviceAccountName: velero
+      containers:
+        - name: restic
+          image: velero/velero:v1.12.1
+          command:
+            - /velero
+          args:
+            - restic
+            - server
+            - --log-level=info
+            - --log-format=json
+            - --metrics-address=0.0.0.0:8080
+          volumeMounts:
+            - name: host-pods
+              mountPath: /host_pods
+              mountPropagation: HostToContainer
+            - name: scratch
+              mountPath: /scratch
+            - name: aws-credentials
+              mountPath: /credentials
+              readOnly: true
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: VELERO_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: VELERO_SCRATCH_DIR
+              value: /scratch
+            - name: AWS_SHARED_CREDENTIALS_FILE
+              value: /credentials/cloud
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            privileged: false
+            runAsUser: 0
+      volumes:
+        - name: host-pods
+          hostPath:
+            path: /var/lib/kubelet/pods
+        - name: scratch
+          emptyDir: {}
+        - name: aws-credentials
+          secret:
+            secretName: cloud-credentials
+      hostNetwork: false
+---
+# Daily Backup Schedule
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: velero
+  labels:
+    app: velero
+    component: schedule
+    backup-type: daily
+spec:
+  schedule: "0 2 * * *" # Daily at 2 AM UTC
+  useOwnerReferencesInBackup: false
+  template:
+    metadata:
+      labels:
+        backup-type: daily
+        retention: "30d"
+    spec:
+      includeClusterResources: true
+      includedNamespaces:
+        - suuupra-dev
+        - suuupra-staging
+        - suuupra-prod
+        - monitoring
+        - velero
+        - vault
+        - linkerd
+        - cert-manager
+      excludedResources:
+        - events
+        - events.events.k8s.io
+        - endpoints
+        - endpointslices.discovery.k8s.io
+      storageLocation: default
+      volumeSnapshotLocations:
+        - default
+      ttl: 720h # 30 days
+      hooks:
+        resources:
+          - name: postgres-backup-hook
+            includedNamespaces:
+              - suuupra-dev
+              - suuupra-staging
+              - suuupra-prod
+            labelSelector:
+              matchLabels:
+                app: postgres
+            pre:
+              - exec:
+                  command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      echo "Starting PostgreSQL backup preparation..."
+                      pg_dumpall -U postgres > /backup/postgres_backup_$(date +%Y%m%d_%H%M%S).sql
+                      echo "PostgreSQL backup preparation complete"
+                  container: postgres
+                  timeout: 10m
+            post:
+              - exec:
+                  command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      echo "PostgreSQL backup post-processing complete"
+                  container: postgres
+          - name: redis-backup-hook
+            includedNamespaces:
+              - suuupra-dev
+              - suuupra-staging
+              - suuupra-prod
+            labelSelector:
+              matchLabels:
+                app: redis
+            pre:
+              - exec:
+                  command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      echo "Starting Redis backup preparation..."
+                      redis-cli BGSAVE
+                      echo "Redis backup preparation complete"
+                  container: redis
+                  timeout: 5m
+---
+# Weekly Backup Schedule (longer retention)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-backup
+  namespace: velero
+  labels:
+    app: velero
+    component: schedule
+    backup-type: weekly
+spec:
+  schedule: "0 3 * * 0" # Weekly on Sunday at 3 AM UTC
+  useOwnerReferencesInBackup: false
+  template:
+    metadata:
+      labels:
+        backup-type: weekly
+        retention: "90d"
+    spec:
+      includeClusterResources: true
+      includedNamespaces:
+        - suuupra-dev
+        - suuupra-staging
+        - suuupra-prod
+        - monitoring
+        - velero
+        - vault
+        - linkerd
+        - cert-manager
+      storageLocation: default
+      volumeSnapshotLocations:
+        - default
+      ttl: 2160h # 90 days
+---
+# Monthly Backup Schedule (long-term archival)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: monthly-backup
+  namespace: velero
+  labels:
+    app: velero
+    component: schedule
+    backup-type: monthly
+spec:
+  schedule: "0 4 1 * *" # Monthly on 1st day at 4 AM UTC
+  useOwnerReferencesInBackup: false
+  template:
+    metadata:
+      labels:
+        backup-type: monthly
+        retention: "365d"
+    spec:
+      includeClusterResources: true
+      includedNamespaces:
+        - suuupra-dev
+        - suuupra-staging
+        - suuupra-prod
+        - monitoring
+        - velero
+        - vault
+        - linkerd
+        - cert-manager
+      storageLocation: default
+      volumeSnapshotLocations:
+        - default
+      ttl: 8760h # 365 days (1 year)
+---
+# Production Critical Backup (every 6 hours)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: critical-backup-prod
+  namespace: velero
+  labels:
+    app: velero
+    component: schedule
+    backup-type: critical
+    environment: production
+spec:
+  schedule: "0 */6 * * *" # Every 6 hours
+  useOwnerReferencesInBackup: false
+  template:
+    metadata:
+      labels:
+        backup-type: critical
+        environment: production
+        retention: "7d"
+    spec:
+      includeClusterResources: false
+      includedNamespaces:
+        - suuupra-prod
+      includedResources:
+        - persistentvolumeclaims
+        - persistentvolumes
+        - secrets
+        - configmaps
+        - deployments
+        - statefulsets
+        - services
+      storageLocation: default
+      volumeSnapshotLocations:
+        - default
+      ttl: 168h # 7 days
+---
+# Backup Monitoring - ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: velero-metrics
+  namespace: monitoring
+  labels:
+    app: velero
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: velero
+      component: server
+  namespaceSelector:
+    matchNames:
+      - velero
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scrapeTimeout: 10s
+---
+# Backup Alerts - PrometheusRule
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: velero-backup-alerts
+  namespace: monitoring
+  labels:
+    app: velero
+    component: alerts
+spec:
+  groups:
+    - name: velero-backup
+      rules:
+        - alert: VeleroBackupFailed
+          expr: increase(velero_backup_failure_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            impact: "Data loss risk, backup system failure"
+          annotations:
+            summary: "Velero backup has failed"
+            description: "Velero backup has failed in the last hour. This poses a risk to our disaster recovery capabilities. Check Velero logs immediately."
+            runbook_url: "https://suuupra.io/runbooks/velero-backup-failure"
+        
+        - alert: VeleroBackupPartiallyFailed
+          expr: increase(velero_backup_partial_failure_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: warning
+            impact: "Partial data backup, investigate immediately"
+          annotations:
+            summary: "Velero backup partially failed"
+            description: "Velero backup partially failed in the last hour. Some resources may not be backed up properly."
+            runbook_url: "https://suuupra.io/runbooks/velero-partial-failure"
+        
+        - alert: VeleroBackupTooOld
+          expr: time() - velero_backup_last_successful_timestamp > 86400  # 24 hours
+          for: 5m
+          labels:
+            severity: warning
+            impact: "Stale backups, RTO/RPO risk"
+          annotations:
+            summary: "Velero backup is too old"
+            description: "The last successful Velero backup was more than 24 hours ago. This increases recovery time and data loss risk."
+            runbook_url: "https://suuupra.io/runbooks/velero-backup-stale"
+        
+        - alert: VeleroRestoreInProgress
+          expr: velero_restore_attempt_total - velero_restore_success_total - velero_restore_failed_total > 0
+          for: 30m
+          labels:
+            severity: info
+            impact: "Restore operation in progress"
+          annotations:
+            summary: "Velero restore in progress"
+            description: "A Velero restore operation has been running for more than 30 minutes. Monitor progress and check for issues."
+        
+        - alert: VeleroRestoreFailed
+          expr: increase(velero_restore_failed_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            impact: "Restore operation failed, disaster recovery compromised"
+          annotations:
+            summary: "Velero restore has failed"
+            description: "A Velero restore operation has failed in the last hour. Immediate investigation required for disaster recovery."
+            runbook_url: "https://suuupra.io/runbooks/velero-restore-failure"
+---
+# Network Policy for Velero (Zero-Trust)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: velero-network-policy
+  namespace: velero
+spec:
+  podSelector:
+    matchLabels:
+      app: velero
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - namespaceSelector:
+            matchLabels:
+              name: linkerd
+      ports:
+        - protocol: TCP
+          port: 8085  # Metrics port
+  egress:
+    - {} # Allow all outbound (needed for AWS S3 access)
+---
+# AWS Credentials Secret (template - replace with actual credentials)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloud-credentials
+  namespace: velero
+type: Opaque
+data:
+  cloud: |
+    W2RlZmF1bHRdCmF3c19hY2Nlc3Nfa2V5X2lkID0gWU9VUl9BV1NfQUNDRVNTX0tFWV9JRAphhc19zZWNyZXRfYWNjZXNzX2tleSA9IEFPVVJFQV9TRUNSRVRfQUNDRVNTX0tFWQ==
+    # Base64 encoded AWS credentials file:
+    # [default]
+    # aws_access_key_id = YOUR_AWS_ACCESS_KEY_ID
+    # aws_secret_access_key = YOUR_AWS_SECRET_ACCESS_KEY
+---
+# Velero Configuration ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: velero-config
+  namespace: velero
+  labels:
+    app: velero
+    component: config
+data:
+  # Backup retention configuration
+  backup.retention.daily: "30d"
+  backup.retention.weekly: "90d"
+  backup.retention.monthly: "365d"
+  backup.retention.critical: "7d"
+  
+  # Restore configuration
+  restore.resourcePriorities: |
+    - namespaces
+    - storageclasses
+    - persistentvolumes
+    - persistentvolumeclaims
+    - secrets
+    - configmaps
+    - serviceaccounts
+    - services
+    - deployments
+    - statefulsets
+    - daemonsets
+    - jobs
+    - cronjobs
+    - ingresses
+  
+  # S3 backup configuration
+  s3.bucket: "suuupra-velero-backups-us-east-1"
+  s3.region: "us-east-1"
+  s3.storageClass: "STANDARD_IA"
+  s3.serverSideEncryption: "AES256"
+  
+  # Restic configuration
+  restic.timeout: "4h"
+  restic.pruneFrequency: "168h" # Weekly
+  
+  # Features
+  features: "EnableCSI,EnableAPIGroupVersions"
+  
+  # Logging
+  log.level: "info"
+  log.format: "json"

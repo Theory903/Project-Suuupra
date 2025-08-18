@@ -1,0 +1,294 @@
+# Tempo Distributed Tracing Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: monitoring
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9095
+    
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+        jaeger:
+          protocols:
+            thrift_http:
+              endpoint: 0.0.0.0:14268
+            grpc:
+              endpoint: 0.0.0.0:14250
+            thrift_binary:
+              endpoint: 0.0.0.0:6832
+            thrift_compact:
+              endpoint: 0.0.0.0:6831
+    
+    ingester:
+      lifecycler:
+        address: 127.0.0.1
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+        final_sleep: 0s
+      trace_idle_period: 10s
+      max_block_bytes: 1_000_000
+      max_block_duration: 5m
+    
+    compactor:
+      compaction:
+        compaction_window: 1h
+        max_block_bytes: 100_000_000
+        block_retention: 1h
+        compacted_block_retention: 10m
+    
+    storage:
+      trace:
+        backend: local
+        block:
+          bloom_filter_false_positive: .05
+          index_downsample_bytes: 1000
+          encoding: zstd
+        local:
+          path: /tmp/tempo/blocks
+        pool:
+          max_workers: 100
+          queue_depth: 10000
+    
+    querier:
+      query_timeout: 30s
+    
+    query_frontend:
+      search:
+        duration_slo: 5s
+        throughput_bytes_slo: 1.073741824e+09
+      trace_by_id:
+        duration_slo: 5s
+    
+    overrides:
+      defaults:
+        # Global limits
+        max_traces_per_user: 50000
+        max_bytes_per_trace: 5000000
+        
+        # Per tenant limits  
+        ingestion_rate_strategy: local
+        ingestion_rate_limit_bytes: 20000000
+        ingestion_burst_size_bytes: 40000000
+        
+        # Search limits
+        max_search_duration: 0s
+        max_search_bytes_per_trace: 0
+        
+        # Forwarders
+        forwarders: []
+        
+        # Metrics generator
+        metrics_generator_processors: [service-graphs, span-metrics]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: monitoring
+  labels:
+    app: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+      annotations:
+        linkerd.io/inject: enabled
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3200"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: tempo
+        image: grafana/tempo:2.3.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - -config.file=/etc/tempo/tempo.yaml
+        - -mem-ballast-size-mbs=1024
+        ports:
+        - name: tempo-prom-metrics
+          containerPort: 3200
+        - name: tempo-jaeger-thrift-http
+          containerPort: 14268
+        - name: tempo-jaeger-grpc
+          containerPort: 14250
+        - name: tempo-jaeger-thrift-binary
+          containerPort: 6832
+          protocol: UDP
+        - name: tempo-jaeger-thrift-compact
+          containerPort: 6831
+          protocol: UDP
+        - name: tempo-otlp-legacy
+          containerPort: 55680
+        - name: tempo-otlp-http-legacy
+          containerPort: 55681
+        - name: tempo-otlp-grpc
+          containerPort: 4317
+        - name: tempo-otlp-http
+          containerPort: 4318
+        - name: tempo-opencensus
+          containerPort: 55678
+        env:
+        - name: JAEGER_DISABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 2
+            memory: 6Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tempo-conf
+          mountPath: /etc/tempo
+        - name: tempo-data
+          mountPath: /tmp/tempo
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: tempo-prom-metrics
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
+      volumes:
+      - name: tempo-conf
+        configMap:
+          name: tempo-config
+      - name: tempo-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: monitoring
+  labels:
+    app: tempo
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3200"
+spec:
+  type: ClusterIP
+  ports:
+  - name: tempo-prom-metrics
+    port: 3200
+    protocol: TCP
+    targetPort: tempo-prom-metrics
+  - name: tempo-jaeger-thrift-http
+    port: 14268
+    protocol: TCP
+    targetPort: tempo-jaeger-thrift-http
+  - name: tempo-jaeger-grpc
+    port: 14250
+    protocol: TCP
+    targetPort: tempo-jaeger-grpc
+  - name: tempo-jaeger-thrift-binary
+    port: 6832
+    protocol: UDP
+    targetPort: tempo-jaeger-thrift-binary
+  - name: tempo-jaeger-thrift-compact
+    port: 6831
+    protocol: UDP
+    targetPort: tempo-jaeger-thrift-compact
+  - name: tempo-otlp-grpc
+    port: 4317
+    protocol: TCP
+    targetPort: tempo-otlp-grpc
+  - name: tempo-otlp-http
+    port: 4318
+    protocol: TCP
+    targetPort: tempo-otlp-http
+  selector:
+    app: tempo
+---
+# Query Frontend for Tempo
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo-query-frontend
+  namespace: monitoring
+  labels:
+    app: tempo-query-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo-query-frontend
+  template:
+    metadata:
+      labels:
+        app: tempo-query-frontend
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+      - name: tempo-query-frontend
+        image: grafana/tempo:2.3.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - -target=query-frontend
+        - -config.file=/etc/tempo/tempo.yaml
+        ports:
+        - name: http
+          containerPort: 3200
+        - name: grpc
+          containerPort: 9095
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: tempo-conf
+          mountPath: /etc/tempo
+      volumes:
+      - name: tempo-conf
+        configMap:
+          name: tempo-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo-query-frontend
+  namespace: monitoring
+  labels:
+    app: tempo-query-frontend
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3200
+    targetPort: http
+  - name: grpc
+    port: 9095
+    targetPort: grpc
+  selector:
+    app: tempo-query-frontend

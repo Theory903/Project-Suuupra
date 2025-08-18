@@ -1,0 +1,809 @@
+# ===================================================================
+# LITMUS CHAOS ENGINEERING - PRODUCTION HARDENING PHASE 4
+# Comprehensive Chaos Experiments for Platform Resilience Testing
+# ===================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: litmus
+  labels:
+    name: litmus
+---
+# Litmus ChaosCenter Installation
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: litmus
+rules:
+  - apiGroups: [""]
+    resources: ["pods","events","configmaps","secrets","services"]
+    verbs: ["create","delete","get","list","patch","update","deletecollection"]
+  - apiGroups: ["extensions","apps"]
+    resources: ["deployments","daemonsets","replicasets","statefulsets"]
+    verbs: ["create","delete","get","list","patch","update"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows","workflows/finalizers","workflowtemplates","workflowtemplates/finalizers","cronworkflows","cronworkflows/finalizers","clusterworkflowtemplates","clusterworkflowtemplates/finalizers"]
+    verbs: ["create","delete","get","list","patch","update","deletecollection"]
+  - apiGroups: ["batch"]
+    resources: ["jobs","cronjobs"]
+    verbs: ["create","delete","get","list","patch","update","deletecollection"]
+  - apiGroups: ["litmuschaos.io"]
+    resources: ["chaosengines","chaosengines/finalizers","chaosexperiments","chaosresults"]
+    verbs: ["create","delete","get","list","patch","update","deletecollection"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: litmus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: litmus
+subjects:
+  - kind: ServiceAccount
+    name: litmus
+    namespace: litmus
+---
+# Litmus ChaosCenter Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-center-server
+  namespace: litmus
+  labels:
+    component: chaos-center-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: chaos-center-server
+  template:
+    metadata:
+      labels:
+        component: chaos-center-server
+    spec:
+      serviceAccountName: litmus
+      containers:
+        - name: chaos-center-server
+          image: litmuschaos/litmusportal-server:3.4.0
+          resources:
+            limits:
+              cpu: 550m
+              memory: 712Mi
+            requests:
+              cpu: 250m
+              memory: 300Mi
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          env:
+            - name: DB_SERVER
+              value: "chaos-center-mongo:27017"
+            - name: JWT_SECRET
+              value: "litmus-portal@123"
+            - name: EXTERNAL_AGENT
+              value: "false"
+            - name: SUBSCRIBER_IMAGE
+              value: "litmuschaos/litmusportal-subscriber:3.4.0"
+            - name: EVENT_TRACKER_IMAGE
+              value: "litmuschaos/litmusportal-event-tracker:3.4.0"
+            - name: ARGO_WORKFLOW_CONTROLLER_IMAGE
+              value: "argoproj/workflow-controller:v3.4.4"
+            - name: ARGO_WORKFLOW_EXECUTOR_IMAGE
+              value: "argoproj/argoexec:v3.4.4"
+            - name: LITMUS_CHAOS_OPERATOR_IMAGE
+              value: "litmuschaos/chaos-operator:3.4.0"
+            - name: LITMUS_CHAOS_RUNNER_IMAGE
+              value: "litmuschaos/chaos-runner:3.4.0"
+            - name: CONTAINER_RUNTIME_EXECUTOR
+              value: "k8sapi"
+            - name: HUB_BRANCH_NAME
+              value: "v3.4.x"
+          ports:
+            - containerPort: 8080
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chaos-center-server-service
+  namespace: litmus
+spec:
+  type: NodePort
+  ports:
+    - name: graphql-server
+      port: 9002
+      targetPort: 8080
+  selector:
+    component: chaos-center-server
+---
+# MongoDB for Chaos Center
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-center-mongo
+  namespace: litmus
+  labels:
+    component: chaos-center-mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: chaos-center-mongo
+  template:
+    metadata:
+      labels:
+        component: chaos-center-mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:4.2.8
+          ports:
+            - containerPort: 27017
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: mongo-persistent-storage
+              mountPath: /data/db
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD  
+              value: "1234"
+      volumes:
+        - name: mongo-persistent-storage
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: litmus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: chaos-center-mongo
+  name: chaos-center-mongo
+  namespace: litmus
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    component: chaos-center-mongo
+---
+# Chaos Center Frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-center-frontend
+  namespace: litmus
+  labels:
+    component: chaos-center-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: chaos-center-frontend
+  template:
+    metadata:
+      labels:
+        component: chaos-center-frontend
+    spec:
+      containers:
+        - name: chaos-center-frontend
+          image: litmuschaos/litmusportal-frontend:3.4.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8185
+          env:
+            - name: AGENT_SCOPE
+              value: 'cluster'
+          resources:
+            limits:
+              cpu: 550m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 300Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chaos-center-frontend-service
+  namespace: litmus
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 9091
+      targetPort: 8185
+  selector:
+    component: chaos-center-frontend
+---
+# ===================================================================
+# SUUUPRA PLATFORM CHAOS EXPERIMENTS
+# ===================================================================
+
+# Experiment 1: API Gateway Pod Failure
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: suuupra-gateway-pod-delete
+  namespace: suuupra-services
+  labels:
+    name: suuupra-gateway-pod-delete
+    app.kubernetes.io/part-of: litmus
+    app.kubernetes.io/component: chaosexperiment
+    app.kubernetes.io/version: 3.4.0
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["apps"]
+        resources: ["deployments","statefulsets","replicasets","daemonsets"]
+        verbs: ["list","get"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:3.4.0"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-delete
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "30"
+    - name: RAMP_TIME
+      value: "10"
+    - name: FORCE
+      value: "true"
+    - name: CHAOS_INTERVAL
+      value: "5"
+    - name: PODS_AFFECTED_PERC
+      value: "50"
+    - name: DEFAULT_HEALTH_CHECK
+      value: "false"
+    - name: TARGET_PODS
+      value: ""
+    - name: NODE_LABEL
+      value: ""
+    - name: SEQUENCE
+      value: "parallel"
+    labels:
+      name: suuupra-gateway-pod-delete
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: chaosexperiment
+      app.kubernetes.io/runtime-api-usage: "true"
+      app.kubernetes.io/version: 3.4.0
+---
+# Experiment 2: Database Connection Chaos
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: suuupra-postgres-network-loss
+  namespace: suuupra-services
+  labels:
+    name: suuupra-postgres-network-loss
+    app.kubernetes.io/part-of: litmus
+    app.kubernetes.io/component: chaosexperiment
+    app.kubernetes.io/version: 3.4.0
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get","list"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:3.4.0"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-network-loss
+    command:
+    - /bin/bash
+    env:
+    - name: TARGET_CONTAINER
+      value: "postgres"
+    - name: NETWORK_INTERFACE
+      value: "eth0"
+    - name: TOTAL_CHAOS_DURATION
+      value: "60"
+    - name: NETWORK_PACKET_LOSS_PERCENTAGE
+      value: "100"
+    - name: DEFAULT_HEALTH_CHECK
+      value: "false"
+    - name: PODS_AFFECTED_PERC
+      value: "50"
+    labels:
+      name: suuupra-postgres-network-loss
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: chaosexperiment
+      app.kubernetes.io/version: 3.4.0
+---
+# Experiment 3: Kafka Broker Failure  
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: suuupra-kafka-pod-failure
+  namespace: suuupra-services
+  labels:
+    name: suuupra-kafka-pod-failure
+    app.kubernetes.io/part-of: litmus
+    app.kubernetes.io/component: chaosexperiment
+    app.kubernetes.io/version: 3.4.0
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["pods/log"]
+        verbs: ["get","list","watch"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:3.4.0"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-delete
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "120"
+    - name: CHAOS_INTERVAL
+      value: "15"
+    - name: FORCE
+      value: "false"
+    - name: PODS_AFFECTED_PERC
+      value: "33"
+    labels:
+      name: suuupra-kafka-pod-failure
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: chaosexperiment
+      app.kubernetes.io/version: 3.4.0
+---
+# Experiment 4: High Memory Usage Simulation
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: suuupra-memory-stress
+  namespace: suuupra-services
+  labels:
+    name: suuupra-memory-stress
+    app.kubernetes.io/part-of: litmus
+    app.kubernetes.io/component: chaosexperiment
+    app.kubernetes.io/version: 3.4.0
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list","patch","update","deletecollection"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create","get","list","patch","update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","list","create"]
+      - apiGroups: ["batch"]
+        resources: ["jobs"]
+        verbs: ["create","list","get","delete","deletecollection"]
+      - apiGroups: ["litmuschaos.io"]
+        resources: ["chaosengines","chaosexperiments","chaosresults"]
+        verbs: ["create","list","get","patch","update","delete"]
+    image: "litmuschaos/go-runner:3.4.0"
+    imagePullPolicy: Always
+    args:
+    - -c
+    - ./experiments -name pod-memory-hog
+    command:
+    - /bin/bash
+    env:
+    - name: TOTAL_CHAOS_DURATION
+      value: "60"
+    - name: MEMORY_CONSUMPTION
+      value: "500"
+    - name: NUMBER_OF_WORKERS
+      value: "4"
+    - name: PODS_AFFECTED_PERC
+      value: "25"
+    - name: SEQUENCE
+      value: "parallel"
+    labels:
+      name: suuupra-memory-stress
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: chaosexperiment
+      app.kubernetes.io/version: 3.4.0
+---
+# ===================================================================
+# CHAOS ENGINE FOR COORDINATED EXPERIMENTS
+# ===================================================================
+
+# Comprehensive Platform Resilience Test
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: suuupra-platform-resilience-test
+  namespace: suuupra-services
+spec:
+  engineState: 'active'
+  appinfo:
+    appns: 'suuupra-services'
+    applabel: 'app=suuupra-platform'
+    appkind: 'deployment'
+  chaosServiceAccount: litmus
+  monitoring: true
+  jobCleanUpPolicy: 'delete'
+  experiments:
+    - name: suuupra-gateway-pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '30'
+            - name: PODS_AFFECTED_PERC
+              value: '50'
+            - name: CHAOS_INTERVAL
+              value: '10'
+        probe:
+          - name: "gateway-health-check"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 10
+              retry: 3
+              interval: 2
+              probePollingInterval: 2
+            httpProbe/inputs:
+              url: "http://api-gateway-service:3001/health"
+              insecureSkipTLS: true
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+          - name: "service-discovery-check"
+            type: "k8sProbe"
+            mode: "Edge"
+            k8sProbe/inputs:
+              group: ""
+              version: "v1"
+              resource: "pods"
+              namespace: "suuupra-services"
+              fieldSelector: "status.phase=Running"
+              labelSelector: "app=api-gateway"
+              operation: "present"
+    - name: suuupra-postgres-network-loss
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '45'
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: '50'
+        probe:
+          - name: "database-connection-check"
+            type: "cmdProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 15
+              retry: 3
+              interval: 5
+            cmdProbe/inputs:
+              command: "pg_isready -h postgres-service -p 5432 -U suuupra"
+              source:
+                image: "postgres:13"
+                inheritInputs: true
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "accepting connections"
+    - name: suuupra-kafka-pod-failure
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '60'
+            - name: PODS_AFFECTED_PERC
+              value: '33'
+        probe:
+          - name: "kafka-cluster-health"
+            type: "cmdProbe"  
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 20
+              retry: 3
+              interval: 10
+            cmdProbe/inputs:
+              command: "kafka-broker-api-versions --bootstrap-server kafka:9092"
+              source:
+                image: "confluentinc/cp-kafka:latest"
+                inheritInputs: true
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "sasl_plaintext"
+    - name: suuupra-memory-stress
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '90'
+            - name: MEMORY_CONSUMPTION
+              value: '75'
+            - name: PODS_AFFECTED_PERC
+              value: '30'
+        probe:
+          - name: "service-response-time"
+            type: "httpProbe"
+            mode: "Continuous"
+            runProperties:
+              probeTimeout: 5
+              retry: 2  
+              interval: 5
+            httpProbe/inputs:
+              url: "http://api-gateway-service:3001/api/v1/health"
+              insecureSkipTLS: true
+              responseTimeout: 3000
+              method:
+                get:
+                  criteria: <=
+                  responseCode: "500"
+---
+# Chaos Experiment Scheduler
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosSchedule  
+metadata:
+  name: suuupra-chaos-schedule
+  namespace: suuupra-services
+spec:
+  schedule:
+    now: false
+    repeat:
+      timeRange:
+        startTime: "2025-01-20T09:00:00Z"   # 9 AM UTC
+        endTime: "2025-01-20T17:00:00Z"     # 5 PM UTC
+      workDays:
+        includedDays: "Mon,Tue,Wed,Thu,Fri"
+      workHours: 
+        includedHours: "9-17"
+    minChaosInterval: "2h"     # Minimum 2 hours between chaos experiments
+  engineTemplateSpec:
+    engineState: 'active'
+    appinfo:
+      appns: 'suuupra-services'
+      applabel: 'app=suuupra-platform'
+      appkind: 'deployment'
+    chaosServiceAccount: litmus
+    monitoring: true
+    experiments:
+      - name: suuupra-gateway-pod-delete
+        spec:
+          components:
+            env:
+              - name: TOTAL_CHAOS_DURATION
+                value: '15'
+              - name: PODS_AFFECTED_PERC
+                value: '25'   # Reduced impact during scheduled chaos
+      - name: suuupra-memory-stress
+        spec:
+          components:
+            env:
+              - name: TOTAL_CHAOS_DURATION
+                value: '30'
+              - name: MEMORY_CONSUMPTION
+                value: '50'   # Moderate stress during business hours
+              - name: PODS_AFFECTED_PERC
+                value: '20'
+---
+# ===================================================================
+# CHAOS MONITORING AND OBSERVABILITY
+# ===================================================================
+
+# ServiceMonitor for Chaos Experiments  
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: chaos-exporter
+  namespace: litmus
+  labels:
+    app: chaos-exporter
+spec:
+  selector:
+    matchLabels:
+      app: chaos-exporter
+  endpoints:
+  - port: tcp-8080
+    interval: 30s
+    path: /metrics
+---
+# Grafana Dashboard ConfigMap for Chaos Engineering
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-engineering-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  chaos-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Suuupra Platform - Chaos Engineering",
+        "tags": ["chaos", "resilience", "suuupra"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Chaos Experiment Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "litmuschaos_cluster_scoped_passed_experiments",
+                "legendFormat": "Passed Experiments"
+              },
+              {
+                "expr": "litmuschaos_cluster_scoped_failed_experiments", 
+                "legendFormat": "Failed Experiments"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "value"},
+                "mappings": [],
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Platform Availability During Chaos",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "avg(probe_success{job=\"gateway-health\"}) * 100",
+                "legendFormat": "Gateway Availability %"
+              },
+              {
+                "expr": "avg(up{job=\"postgres\"}) * 100",
+                "legendFormat": "Database Availability %"
+              },
+              {
+                "expr": "avg(kafka_server_replicamanager_leadercount) > 0",
+                "legendFormat": "Kafka Cluster Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Response Times During Chaos",
+            "type": "timeseries", 
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"api-gateway\"}[5m]))",
+                "legendFormat": "95th Percentile Response Time"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"api-gateway\"}[5m]))",
+                "legendFormat": "99th Percentile Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.5},
+                    {"color": "red", "value": 1.0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "10s"
+      }
+    }

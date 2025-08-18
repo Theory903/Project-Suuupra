@@ -1,0 +1,659 @@
+# ===================================================================
+# POSTGRESQL WAL ARCHIVING & POINT-IN-TIME RECOVERY - PHASE 5
+# Comprehensive Database Backup and Recovery Strategy
+# ===================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres-backup
+  labels:
+    app.kubernetes.io/name: postgres-backup
+    app.kubernetes.io/part-of: suuupra-platform
+---
+# PostgreSQL Backup Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-config
+  namespace: postgres-backup
+  labels:
+    app: postgres-backup
+    component: config
+data:
+  # PostgreSQL archiving configuration
+  postgresql.conf: |
+    # Write Ahead Log (WAL) Configuration for Point-in-Time Recovery
+    wal_level = replica
+    archive_mode = on
+    archive_command = '/usr/local/bin/wal-archive.sh %p %f'
+    archive_timeout = 300  # Force WAL file switch every 5 minutes
+    
+    # Backup and Recovery Settings
+    max_wal_senders = 10
+    wal_keep_size = 16GB
+    hot_standby = on
+    
+    # Performance Settings for Backup
+    checkpoint_timeout = 15min
+    checkpoint_completion_target = 0.9
+    max_wal_size = 4GB
+    min_wal_size = 1GB
+    
+    # Logging for backup monitoring
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_temp_files = 0
+    log_autovacuum_min_duration = 0
+    log_error_verbosity = default
+    
+  # WAL archiving script
+  wal-archive.sh: |
+    #!/bin/bash
+    # WAL Archive Script for S3 Storage
+    set -euo pipefail
+    
+    WAL_PATH="$1"
+    WAL_FILENAME="$2"
+    
+    # Configuration
+    S3_BUCKET="suuupra-postgres-wal-archive-us-east-1"
+    S3_PREFIX="postgresql/$(hostname)/wal"
+    REGION="us-east-1"
+    
+    # Logging
+    log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> /var/log/postgresql/wal-archive.log
+    }
+    
+    log "Starting WAL archive for $WAL_FILENAME"
+    
+    # Upload to S3 with compression and encryption
+    if aws s3 cp "$WAL_PATH" "s3://${S3_BUCKET}/${S3_PREFIX}/${WAL_FILENAME}" \
+        --region "$REGION" \
+        --storage-class STANDARD_IA \
+        --server-side-encryption AES256 \
+        --metadata "archived-at=$(date -Iseconds),instance=$(hostname),cluster=${POSTGRES_CLUSTER:-default}"; then
+        log "Successfully archived $WAL_FILENAME to S3"
+        exit 0
+    else
+        log "Failed to archive $WAL_FILENAME to S3"
+        exit 1
+    fi
+  
+  # WAL restore script
+  wal-restore.sh: |
+    #!/bin/bash
+    # WAL Restore Script from S3 Storage
+    set -euo pipefail
+    
+    WAL_FILENAME="$1"
+    WAL_DESTINATION="$2"
+    
+    # Configuration
+    S3_BUCKET="suuupra-postgres-wal-archive-us-east-1"
+    S3_PREFIX="postgresql/$(hostname)/wal"
+    REGION="us-east-1"
+    
+    # Logging
+    log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> /var/log/postgresql/wal-restore.log
+    }
+    
+    log "Starting WAL restore for $WAL_FILENAME"
+    
+    # Download from S3
+    if aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/${WAL_FILENAME}" "$WAL_DESTINATION" \
+        --region "$REGION"; then
+        log "Successfully restored $WAL_FILENAME from S3"
+        exit 0
+    else
+        log "Failed to restore $WAL_FILENAME from S3"
+        exit 1
+    fi
+  
+  # Base backup script
+  base-backup.sh: |
+    #!/bin/bash
+    # PostgreSQL Base Backup Script
+    set -euo pipefail
+    
+    # Configuration
+    PGHOST="${PGHOST:-localhost}"
+    PGPORT="${PGPORT:-5432}"
+    PGUSER="${PGUSER:-postgres}"
+    PGDATABASE="${PGDATABASE:-postgres}"
+    BACKUP_DIR="${BACKUP_DIR:-/backup}"
+    S3_BUCKET="suuupra-postgres-backups-us-east-1"
+    REGION="us-east-1"
+    
+    BACKUP_NAME="postgres-base-backup-$(date +%Y%m%d_%H%M%S)"
+    BACKUP_PATH="${BACKUP_DIR}/${BACKUP_NAME}"
+    
+    # Logging
+    log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a /var/log/postgresql/backup.log
+    }
+    
+    log "Starting base backup: $BACKUP_NAME"
+    
+    # Create backup directory
+    mkdir -p "$BACKUP_PATH"
+    
+    # Perform base backup with progress reporting
+    if pg_basebackup \
+        -h "$PGHOST" \
+        -p "$PGPORT" \
+        -U "$PGUSER" \
+        -D "$BACKUP_PATH" \
+        -Ft \
+        -z \
+        -P \
+        -v \
+        -w; then
+        log "Base backup completed successfully"
+    else
+        log "Base backup failed"
+        exit 1
+    fi
+    
+    # Create backup metadata
+    cat > "${BACKUP_PATH}/backup-metadata.json" << EOF
+    {
+      "backup_name": "$BACKUP_NAME",
+      "backup_type": "base_backup",
+      "start_time": "$(date -Iseconds)",
+      "postgres_version": "$(psql -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE -Atc 'SELECT version()')",
+      "database_size": "$(psql -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE -Atc 'SELECT pg_database_size(current_database())')",
+      "hostname": "$(hostname)",
+      "cluster": "${POSTGRES_CLUSTER:-default}",
+      "region": "$REGION"
+    }
+    EOF
+    
+    # Compress and upload to S3
+    log "Compressing and uploading backup to S3..."
+    if tar -czf - -C "$BACKUP_DIR" "$BACKUP_NAME" | \
+        aws s3 cp - "s3://${S3_BUCKET}/base-backups/${BACKUP_NAME}.tar.gz" \
+        --region "$REGION" \
+        --storage-class STANDARD_IA \
+        --server-side-encryption AES256 \
+        --metadata "backup-type=base,created-at=$(date -Iseconds),cluster=${POSTGRES_CLUSTER:-default}"; then
+        log "Backup successfully uploaded to S3"
+    else
+        log "Failed to upload backup to S3"
+        exit 1
+    fi
+    
+    # Clean up local backup
+    rm -rf "$BACKUP_PATH"
+    
+    # Retention cleanup (keep last 30 base backups)
+    log "Cleaning up old backups..."
+    aws s3 ls "s3://${S3_BUCKET}/base-backups/" --region "$REGION" | \
+        sort -k1,2 | \
+        head -n -30 | \
+        awk '{print $4}' | \
+        while read -r old_backup; do
+            if [[ -n "$old_backup" ]]; then
+                aws s3 rm "s3://${S3_BUCKET}/base-backups/${old_backup}" --region "$REGION"
+                log "Deleted old backup: $old_backup"
+            fi
+        done
+    
+    log "Base backup process completed: $BACKUP_NAME"
+  
+  # Point-in-time recovery script
+  pitr-restore.sh: |
+    #!/bin/bash
+    # PostgreSQL Point-in-Time Recovery Script
+    set -euo pipefail
+    
+    # Parse arguments
+    RESTORE_TARGET_TIME="$1"
+    BACKUP_NAME="${2:-latest}"
+    
+    # Configuration
+    PGDATA="${PGDATA:-/var/lib/postgresql/data}"
+    RESTORE_DIR="${RESTORE_DIR:-/restore}"
+    S3_BUCKET="suuupra-postgres-backups-us-east-1"
+    REGION="us-east-1"
+    
+    # Logging
+    log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a /var/log/postgresql/pitr-restore.log
+    }
+    
+    log "Starting Point-in-Time Recovery to: $RESTORE_TARGET_TIME"
+    log "Using backup: $BACKUP_NAME"
+    
+    # Stop PostgreSQL if running
+    log "Stopping PostgreSQL..."
+    systemctl stop postgresql || true
+    
+    # Backup current data directory
+    if [[ -d "$PGDATA" ]]; then
+        log "Backing up current data directory..."
+        mv "$PGDATA" "${PGDATA}.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    # Create restore directory
+    mkdir -p "$RESTORE_DIR"
+    
+    # Download and extract base backup
+    if [[ "$BACKUP_NAME" == "latest" ]]; then
+        BACKUP_NAME=$(aws s3 ls "s3://${S3_BUCKET}/base-backups/" --region "$REGION" | \
+            sort -k1,2 | tail -1 | awk '{print $4}' | sed 's/.tar.gz$//')
+    fi
+    
+    log "Downloading base backup: $BACKUP_NAME"
+    if aws s3 cp "s3://${S3_BUCKET}/base-backups/${BACKUP_NAME}.tar.gz" \
+        "${RESTORE_DIR}/${BACKUP_NAME}.tar.gz" --region "$REGION"; then
+        log "Base backup downloaded successfully"
+    else
+        log "Failed to download base backup"
+        exit 1
+    fi
+    
+    # Extract base backup
+    log "Extracting base backup..."
+    mkdir -p "$PGDATA"
+    tar -xzf "${RESTORE_DIR}/${BACKUP_NAME}.tar.gz" -C "$PGDATA" --strip-components=1
+    
+    # Set proper ownership
+    chown -R postgres:postgres "$PGDATA"
+    chmod 700 "$PGDATA"
+    
+    # Create recovery configuration
+    log "Creating recovery configuration..."
+    cat > "${PGDATA}/postgresql.auto.conf" << EOF
+    # Point-in-Time Recovery Configuration
+    restore_command = '/usr/local/bin/wal-restore.sh %f %p'
+    recovery_target_time = '$RESTORE_TARGET_TIME'
+    recovery_target_action = 'promote'
+    EOF
+    
+    # Create recovery signal file
+    touch "${PGDATA}/recovery.signal"
+    
+    # Start PostgreSQL
+    log "Starting PostgreSQL for recovery..."
+    systemctl start postgresql
+    
+    # Monitor recovery progress
+    log "Monitoring recovery progress..."
+    while [[ -f "${PGDATA}/recovery.signal" ]]; do
+        log "Recovery in progress..."
+        sleep 10
+    done
+    
+    log "Point-in-Time Recovery completed successfully!"
+    
+    # Verify database is accessible
+    if psql -U postgres -d postgres -c "SELECT version();" > /dev/null 2>&1; then
+        log "Database is accessible after recovery"
+    else
+        log "WARNING: Database may not be accessible after recovery"
+    fi
+    
+    # Clean up
+    rm -rf "$RESTORE_DIR"
+    
+    log "PITR restore process completed"
+---
+# PostgreSQL Backup CronJob - Base Backups
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-base-backup
+  namespace: postgres-backup
+  labels:
+    app: postgres-backup
+    component: base-backup
+spec:
+  # Weekly base backup on Sundays at 1 AM
+  schedule: "0 1 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    metadata:
+      labels:
+        app: postgres-backup
+        component: base-backup
+    spec:
+      template:
+        metadata:
+          labels:
+            app: postgres-backup
+            component: base-backup
+        spec:
+          serviceAccountName: postgres-backup
+          restartPolicy: OnFailure
+          containers:
+            - name: postgres-backup
+              image: postgres:15-alpine
+              command: ["/bin/bash", "/scripts/base-backup.sh"]
+              env:
+                - name: PGHOST
+                  value: "postgres.suuupra-prod.svc.cluster.local"
+                - name: PGPORT
+                  value: "5432"
+                - name: PGUSER
+                  value: "postgres"
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: password
+                - name: POSTGRES_CLUSTER
+                  value: "suuupra-prod"
+                - name: AWS_DEFAULT_REGION
+                  value: "us-east-1"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-backup-credentials
+                      key: aws_access_key_id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-backup-credentials
+                      key: aws_secret_access_key
+              volumeMounts:
+                - name: backup-scripts
+                  mountPath: /scripts
+                - name: backup-storage
+                  mountPath: /backup
+                - name: aws-cli
+                  mountPath: /usr/local/bin/aws
+                  subPath: aws
+              resources:
+                limits:
+                  cpu: 2000m
+                  memory: 4Gi
+                requests:
+                  cpu: 1000m
+                  memory: 2Gi
+          volumes:
+            - name: backup-scripts
+              configMap:
+                name: postgres-backup-config
+                defaultMode: 0755
+            - name: backup-storage
+              emptyDir:
+                sizeLimit: 50Gi
+            - name: aws-cli
+              configMap:
+                name: aws-cli-binary
+                defaultMode: 0755
+---
+# PostgreSQL Logical Backup CronJob - Daily Dumps
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-logical-backup
+  namespace: postgres-backup
+  labels:
+    app: postgres-backup
+    component: logical-backup
+spec:
+  # Daily logical backup at 3 AM
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app: postgres-backup
+        component: logical-backup
+    spec:
+      template:
+        metadata:
+          labels:
+            app: postgres-backup
+            component: logical-backup
+        spec:
+          serviceAccountName: postgres-backup
+          restartPolicy: OnFailure
+          containers:
+            - name: postgres-logical-backup
+              image: postgres:15-alpine
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  #!/bin/bash
+                  set -euo pipefail
+                  
+                  BACKUP_NAME="postgres-logical-backup-$(date +%Y%m%d_%H%M%S)"
+                  BACKUP_PATH="/backup/${BACKUP_NAME}"
+                  
+                  echo "Starting logical backup: $BACKUP_NAME"
+                  
+                  # Create backup directory
+                  mkdir -p "$BACKUP_PATH"
+                  
+                  # Export all databases
+                  pg_dumpall -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" \
+                    --clean --if-exists \
+                    --verbose > "${BACKUP_PATH}/all-databases.sql"
+                  
+                  # Export individual databases
+                  psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -At -c \
+                    "SELECT datname FROM pg_database WHERE datistemplate = false;" | \
+                  while read -r dbname; do
+                    if [[ "$dbname" != "postgres" ]]; then
+                      echo "Backing up database: $dbname"
+                      pg_dump -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" \
+                        --format=custom --verbose --compress=9 \
+                        --file="${BACKUP_PATH}/${dbname}.dump" "$dbname"
+                    fi
+                  done
+                  
+                  # Create metadata
+                  cat > "${BACKUP_PATH}/backup-metadata.json" << EOF
+                  {
+                    "backup_name": "$BACKUP_NAME",
+                    "backup_type": "logical_backup",
+                    "timestamp": "$(date -Iseconds)",
+                    "postgres_version": "$(psql -h $PGHOST -p $PGPORT -U $PGUSER -Atc 'SELECT version()')",
+                    "databases": $(psql -h $PGHOST -p $PGPORT -U $PGUSER -Atc "SELECT json_agg(datname) FROM pg_database WHERE datistemplate = false;"),
+                    "hostname": "$(hostname)",
+                    "cluster": "${POSTGRES_CLUSTER:-default}"
+                  }
+                  EOF
+                  
+                  # Compress and upload to S3
+                  echo "Uploading to S3..."
+                  tar -czf - -C /backup "$BACKUP_NAME" | \
+                    aws s3 cp - "s3://suuupra-postgres-backups-us-east-1/logical-backups/${BACKUP_NAME}.tar.gz" \
+                    --region us-east-1 \
+                    --storage-class STANDARD_IA \
+                    --server-side-encryption AES256
+                  
+                  echo "Logical backup completed: $BACKUP_NAME"
+              env:
+                - name: PGHOST
+                  value: "postgres.suuupra-prod.svc.cluster.local"
+                - name: PGPORT
+                  value: "5432"
+                - name: PGUSER
+                  value: "postgres"
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: password
+                - name: POSTGRES_CLUSTER
+                  value: "suuupra-prod"
+                - name: AWS_DEFAULT_REGION
+                  value: "us-east-1"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-backup-credentials
+                      key: aws_access_key_id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-backup-credentials
+                      key: aws_secret_access_key
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+              resources:
+                limits:
+                  cpu: 1000m
+                  memory: 2Gi
+                requests:
+                  cpu: 500m
+                  memory: 1Gi
+          volumes:
+            - name: backup-storage
+              emptyDir:
+                sizeLimit: 20Gi
+---
+# Service Account for PostgreSQL Backup Jobs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres-backup
+  namespace: postgres-backup
+  labels:
+    app: postgres-backup
+    component: service-account
+---
+# Role for PostgreSQL Backup Operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: postgres-backup
+  namespace: postgres-backup
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "create", "delete"]
+---
+# RoleBinding for PostgreSQL Backup Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: postgres-backup
+  namespace: postgres-backup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: postgres-backup
+subjects:
+  - kind: ServiceAccount
+    name: postgres-backup
+    namespace: postgres-backup
+---
+# PostgreSQL Backup Monitoring - ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-backup-metrics
+  namespace: monitoring
+  labels:
+    app: postgres-backup
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: postgres-backup-exporter
+  namespaceSelector:
+    matchNames:
+      - postgres-backup
+  endpoints:
+    - port: metrics
+      interval: 60s
+      path: /metrics
+---
+# PostgreSQL Backup Alerts - PrometheusRule
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres-backup-alerts
+  namespace: monitoring
+  labels:
+    app: postgres-backup
+    component: alerts
+spec:
+  groups:
+    - name: postgres-backup
+      rules:
+        - alert: PostgreSQLBaseBackupFailed
+          expr: kube_cronjob_status_failed{cronjob="postgres-base-backup"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            impact: "No recent base backup, PITR capability compromised"
+          annotations:
+            summary: "PostgreSQL base backup has failed"
+            description: "PostgreSQL base backup CronJob has failed. This compromises our ability to perform point-in-time recovery."
+            runbook_url: "https://suuupra.io/runbooks/postgres-base-backup-failure"
+        
+        - alert: PostgreSQLLogicalBackupFailed
+          expr: kube_cronjob_status_failed{cronjob="postgres-logical-backup"} > 0
+          for: 5m
+          labels:
+            severity: warning
+            impact: "No recent logical backup, data export capability reduced"
+          annotations:
+            summary: "PostgreSQL logical backup has failed"
+            description: "PostgreSQL logical backup CronJob has failed. This reduces our data export and migration capabilities."
+            runbook_url: "https://suuupra.io/runbooks/postgres-logical-backup-failure"
+        
+        - alert: PostgreSQLBackupTooOld
+          expr: time() - kube_cronjob_status_last_successful_job_time{cronjob="postgres-base-backup"} > 86400 * 8  # 8 days
+          for: 0m
+          labels:
+            severity: critical
+            impact: "Stale backups increase RTO/RPO risk"
+          annotations:
+            summary: "PostgreSQL base backup is too old"
+            description: "The last successful PostgreSQL base backup was more than 8 days ago. This significantly increases recovery time and potential data loss."
+            runbook_url: "https://suuupra.io/runbooks/postgres-backup-stale"
+        
+        - alert: PostgreSQLWALArchivingFailed
+          expr: increase(postgresql_wal_archive_failed_total[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            impact: "WAL archiving failure, PITR data loss risk"
+          annotations:
+            summary: "PostgreSQL WAL archiving has failed"
+            description: "PostgreSQL WAL archiving has failed in the last hour. This creates gaps in our point-in-time recovery capability."
+            runbook_url: "https://suuupra.io/runbooks/postgres-wal-archive-failure"
+---
+# AWS Credentials Secret for Backup Operations (template)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-backup-credentials
+  namespace: postgres-backup
+type: Opaque
+data:
+  aws_access_key_id: WU9VUl9BV1NfQUNDRVNTX0tFWV9JRA==  # YOUR_AWS_ACCESS_KEY_ID (base64)
+  aws_secret_access_key: WU9VUl9BV1NfU0VDUkVUX0FDQ0VTU19LRVk=  # YOUR_AWS_SECRET_ACCESS_KEY (base64)
+---
+# PostgreSQL Credentials Secret (template)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+  namespace: postgres-backup
+type: Opaque
+data:
+  password: c3VwZXJzZWNyZXRwYXNzd29yZA==  # supersecretpassword (base64)
