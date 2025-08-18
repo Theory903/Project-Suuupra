@@ -116,7 +116,7 @@ graph TD
 **Goal:** Implement a robust, multi-stage retrieval pipeline.
 - [x] Build content ingestion pipeline (e.g., Unstructured.io, LangChain chunkers).
 - [x] Implement hybrid retrieval (vector + BM25) and a cross-encoder reranker.
-- [ ] Integrate Parent-Document and Self-Query retrievers.
+- [x] Integrate Parent-Document and Self-Query retrievers.
 - [ ] Build initial RAG evaluation dataset (question, context, ground-truth answer).
     - **Deliverable:** End-to-end RAG pipeline returns cited answers and passes initial evaluation.
 
@@ -124,7 +124,7 @@ graph TD
 **Goal:** Enable multi-turn conversations and enforce strict safety guardrails.
 - [x] Implement Redis-backed session memory and a Postgres-backed learner profile store.
 - [x] Implement input/output content classifiers for safety (e.g., Llama Guard).
-- [ ] Create a comprehensive audit logging system for all safety-related decisions.
+- [x] Create a comprehensive audit logging system for all safety-related decisions.
     - **Deliverable:** Tutor can hold a multi-turn conversation; all unsafe content is blocked and logged.
 
 ### Phase 3: Voice Interface (Weeks 7-8) ✅ COMPLETED
@@ -138,7 +138,7 @@ graph TD
 **Goal:** Make the tutor adaptive to individual learners.
 - [x] Implement mastery tracking and learning progress analytics.
 - [x] Build a difficulty adaptation engine and a spaced practice scheduler.
-- [ ] Create an intelligent hint system with next-best-action recommendations.
+- [x] Create an intelligent hint system with next-best-action recommendations.
     - **Deliverable:** The tutor adjusts difficulty based on user performance.
 
 ### Phase 5: Production Hardening & Launch (Weeks 11-12)

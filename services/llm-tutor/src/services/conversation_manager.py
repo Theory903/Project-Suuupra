@@ -26,11 +26,21 @@ VLLM_HOST = os.environ.get("VLLM_HOST", "http://localhost:8000")
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
 
+import logging
+
+# --- Audit Logger ---
+audit_logger = logging.getLogger("audit")
+audit_logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler("audit.log")
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+audit_logger.addHandler(file_handler)
+
 class ConversationManager:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.retriever = self._init_retriever()
         self.llm_client = openai.AsyncOpenAI(base_url=VLLM_HOST)
+        self.retriever = self._init_retriever()
         self.safety_service = SafetyService()
 
     def _init_retriever(self):
@@ -42,7 +52,7 @@ class ConversationManager:
             collection_name="llm_tutor_content"
         )
         bm25_retriever = BM25Retriever.from_texts([])
-        return HybridRetriever(vector_store, bm25_retriever)
+        return HybridRetriever(vector_store, bm25_retriever, self.llm_client)
 
     async def create_conversation(self, user_id: str, subject: str = None):
         """Creates a new conversation."""
@@ -58,12 +68,14 @@ class ConversationManager:
         )
         self.db.add(new_conversation)
         await self.db.commit()
+        self._audit_log(f"Conversation created: {conversation_id}")
         return conversation_id, created_at
 
     async def post_message(self, user_id: str, conversation_id: str, message: schemas.MessageInput):
         """Posts a message to a conversation and gets a response."""
         # 1. Check input safety
         if not self.safety_service.is_input_safe(message.text):
+            self._audit_log(f"Unsafe input blocked for user {user_id}: {message.text}")
             return schemas.MessageOutput(text="I'm sorry, I can't respond to that. Let's talk about something else.")
 
         chat_history = self._get_chat_history(conversation_id)
@@ -85,6 +97,7 @@ class ConversationManager:
 
         # 5. Check output safety
         if not self.safety_service.is_output_safe(response_text):
+            self._audit_log(f"Unsafe output blocked for user {user_id}: {response_text}")
             return schemas.MessageOutput(text="I'm sorry, I can't provide a response to that. Let's talk about something else.")
 
         # 6. Update chat history
@@ -94,7 +107,51 @@ class ConversationManager:
         # 7. Update learning progress
         await self.update_learning_progress(user_id, message.text, response_text)
 
+        # 8. Generate and store conversation summary
+        await self._generate_and_store_summary(conversation_id, chat_history.messages)
+
         return schemas.MessageOutput(text=response_text)
+
+    async def _generate_and_store_summary(self, conversation_id: str, messages: list):
+        """Generates and stores a summary of the conversation."""
+        conversation_text = "\n".join([f"{msg.type}: {msg.content}" for msg in messages])
+        prompt = f"""Summarize the following conversation:
+
+{conversation_text}
+
+Summary:"""
+        
+        summary_response = await self.llm_client.completions.create(
+            model="/mnt/models/mistral-7b-instruct-v0.2",
+            prompt=prompt,
+            max_tokens=256,
+            temperature=0.5,
+        )
+        summary_text = summary_response.choices[0].text.strip()
+
+        # Check if a summary already exists for this conversation
+        existing_summary = await self.db.execute(
+            select(models.ConversationSummary).where(models.ConversationSummary.conversation_id == conversation_id)
+        )
+        existing_summary = existing_summary.scalar_one_or_none()
+
+        if existing_summary:
+            existing_summary.summary = summary_text
+            existing_summary.created_at = datetime.utcnow() # Update timestamp
+        else:
+            new_summary = models.ConversationSummary(
+                conversation_id=conversation_id,
+                summary=summary_text,
+                created_at=datetime.utcnow()
+            )
+            self.db.add(new_summary)
+        await self.db.commit()
+
+    def get_hint(self, user_id: str, conversation_id: str):
+        """Provides a hint to the user."""
+        # This is a placeholder implementation.
+        # In a real implementation, we would use a more sophisticated hint generation system.
+        return "It looks like you're stuck. Have you tried thinking about the problem from a different perspective?"
 
     async def update_learning_progress(self, user_id: str, user_message: str, bot_response: str):
         """Updates the user's learning progress."""

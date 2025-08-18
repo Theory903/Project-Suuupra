@@ -54,6 +54,17 @@ async def post_voice_message(
 
     return schemas.PostMessageResponse(message=response_message, timestamp=datetime.utcnow())
 
+@router.post("/conversations/{conversation_id}/hint", response_model=schemas.MessageOutput)
+async def get_hint(
+    conversation_id: str,
+    user_id: str = Form(...),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Gets a hint for the current conversation."""
+    conv_manager = ConversationManager(db)
+    hint = await conv_manager.get_hint(user_id, conversation_id)
+    return schemas.MessageOutput(text=hint)
+
 @router.get("/conversations/{conversation_id}/messages", response_model=schemas.ConversationHistoryResponse)
 async def get_conversation_history(
     conversation_id: str,

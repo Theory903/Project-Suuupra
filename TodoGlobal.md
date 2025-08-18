@@ -193,7 +193,7 @@ Deliverables: Changes landed; CI green; Content service is Production. Canary ro
 - [x] `llm-tutor`: Integrate Whisper for accurate speech-to-text transcription.
 - [x] `llm-tutor`: Integrate a TTS model for text-to-speech synthesis.
 - [x] `llm-tutor`: Implement a mechanism to track user learning progress.
-- [ ] `llm-tutor`: Develop a system for managing conversational state and user progress.
+- [x] `llm-tutor`: Develop a system for managing conversational state and user progress.
 - [ ] `analytics`: Implement a data pipeline to collect and process user interaction events.
 - [ ] `analytics`: Build dashboards to visualize key platform metrics.
 
