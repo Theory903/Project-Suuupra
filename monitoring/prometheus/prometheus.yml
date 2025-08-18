@@ -1,17 +1,119 @@
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
 
 rule_files:
   - /etc/prometheus/alerts.yml
 
 scrape_configs:
+  # Infrastructure services
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['prometheus:9090']
+      - targets: ['172.20.0.15:9090']
 
-  - job_name: 'gateway'
+  # Foundation services
+  - job_name: 'api-gateway'
     metrics_path: /metrics
     static_configs:
-      - targets: ['host.docker.internal:8080']
+      - targets: ['172.20.0.20:8080']
+
+  - job_name: 'identity'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['172.20.0.21:8081']
+
+  - job_name: 'content'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.22:8082']
+
+  # Payments & Commerce services
+  - job_name: 'commerce'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.30:8084']
+
+  - job_name: 'payments'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.31:8085']
+
+  - job_name: 'upi-core'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.32:9090']
+
+  - job_name: 'bank-simulator'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.33:9090']
+
+  - job_name: 'ledger'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['172.20.0.34:8086']
+
+  # Media services
+  - job_name: 'live-classes'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.40:8090']
+
+  - job_name: 'vod'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.41:8097']
+
+  - job_name: 'mass-live'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.42:8088']
+
+  - job_name: 'creator-studio'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.43:8093']
+
+  # Intelligence services
+  - job_name: 'llm-tutor'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.50:8092']
+
+  - job_name: 'search-crawler'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.53:8096']
+
+  - job_name: 'recommendations'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.54:8095']
+
+  - job_name: 'analytics'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.55:8087']
+
+  # Supporting services
+  - job_name: 'counters'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.60:8089']
+
+  - job_name: 'live-tracking'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.61:8091']
+
+  - job_name: 'notifications'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.62:8098']
+
+  - job_name: 'admin'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['172.20.0.63:8099']
 
 

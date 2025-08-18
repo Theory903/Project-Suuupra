@@ -15,7 +15,11 @@ export class AuditService {
     userAgent?: string;
   }): Promise<void> {
     try {
-      await AuditLog.create({ ...params });
+      const auditLog = new AuditLog({
+        ...params,
+        createdAt: new Date()
+      });
+      await auditLog.save();
     } catch (e) {
       this.context.error('Failed to write audit log', e as Error, { action: params.action, resourceId: params.resourceId });
     }

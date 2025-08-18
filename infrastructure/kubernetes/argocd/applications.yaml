@@ -1,0 +1,387 @@
+# ArgoCD Applications for Suuupra Platform
+---
+# Platform Infrastructure Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: suuupra-infrastructure
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: infrastructure/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+  info:
+  - name: 'Description'
+    value: 'Core infrastructure services for Suuupra platform'
+---
+# API Gateway Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-gateway
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/api-gateway/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+  info:
+  - name: 'Description'
+    value: 'API Gateway service for routing and authentication'
+---
+# Identity Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: identity-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/identity/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Content Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: content-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/content/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Commerce Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: commerce-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/commerce/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Payments Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payments-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/payments/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Analytics Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: analytics-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/analytics/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Recommendations Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: recommendations-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/recommendations/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# LLM Tutor Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: llm-tutor-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/llm-tutor/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Live Classes Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: live-classes-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/live-classes/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# VOD Service Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vod-service
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: services/vod/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Monitoring Application (Prometheus, Grafana, Jaeger)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: suuupra-monitoring
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: infrastructure/monitoring/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+# Security Application (Vault, Network Policies, Istio)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: suuupra-security
+  namespace: argocd
+spec:
+  project: suuupra-production
+  source:
+    repoURL: https://github.com/suuupra/platform-manifests
+    targetRevision: main
+    path: infrastructure/security/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: security
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3

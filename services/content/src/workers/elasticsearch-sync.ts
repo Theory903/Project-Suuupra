@@ -51,7 +51,7 @@ export class ElasticsearchSyncWorker {
 
     if (this.changeStream) {
       await this.changeStream.close();
-      this.changeStream = undefined;
+      this.changeStream = undefined as ChangeStream<Document, ChangeStreamDocument<Document>> | undefined;
     }
 
     this.contextLogger.info('Elasticsearch sync worker stopped');
@@ -87,12 +87,12 @@ export class ElasticsearchSyncWorker {
         this.contextLogger.info('Resuming change stream from token', { resumeToken });
       }
 
-      this.changeStream = Content.watch(pipeline, options);
+      this.changeStream = Content.watch(pipeline, options) as any;
 
-      this.changeStream.on('change', this.handleChange.bind(this));
-      this.changeStream.on('error', this.handleError.bind(this));
-      this.changeStream.on('close', this.handleClose.bind(this));
-      this.changeStream.on('end', this.handleEnd.bind(this));
+      this.changeStream?.on('change', this.handleChange.bind(this));
+      this.changeStream?.on('error', this.handleError.bind(this));
+      this.changeStream?.on('close', this.handleClose.bind(this));
+      this.changeStream?.on('end', this.handleEnd.bind(this));
 
       this.contextLogger.info('Change stream started successfully');
     } catch (error) {
@@ -104,7 +104,10 @@ export class ElasticsearchSyncWorker {
   // Handle change stream events
   private async handleChange(change: ChangeStreamDocument): Promise<void> {
     try {
-      const { operationType, documentKey, fullDocument, fullDocumentBeforeChange } = change;
+      const { operationType } = change;
+      const documentKey = (change as any).documentKey;
+      const fullDocument = (change as any).fullDocument;
+      const fullDocumentBeforeChange = (change as any).fullDocumentBeforeChange;
       const contentId = documentKey._id;
 
       this.contextLogger.debug('Processing change stream event', {
@@ -345,7 +348,7 @@ export class ElasticsearchSyncWorker {
 
       try {
         const { recordIndexingDLQ } = await import('@/utils/metrics');
-        const tenantId = (change.fullDocument?.tenantId) || (change.fullDocumentBeforeChange?.tenantId) || 'unknown';
+        const tenantId = ((change as any).fullDocument?.tenantId) || ((change as any).fullDocumentBeforeChange?.tenantId) || 'unknown';
         recordIndexingDLQ(String(tenantId));
       } catch (metricError) {
         this.contextLogger.error('Failed to record DLQ metric', metricError as Error);
@@ -416,7 +419,7 @@ export class ElasticsearchSyncWorker {
       this.contextLogger.error('Failed to get sync status', error as Error);
       return {
         isRunning: this.isRunning,
-        error: error.message
+        error: (error as Error).message
       };
     }
   }
@@ -465,8 +468,8 @@ export class ElasticsearchSyncWorker {
             created_at: content.createdAt,
             updated_at: content.updatedAt,
             published_at: content.publishedAt,
-            view_count: content.metadata?.viewCount || 0,
-            engagement_score: content.metadata?.engagementScore || 0.0
+            view_count: (content.metadata as any)?.viewCount || 0,
+            engagement_score: (content.metadata as any)?.engagementScore || 0.0
           }
         });
       }

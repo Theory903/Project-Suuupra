@@ -1,0 +1,206 @@
+# Production Prometheus Configuration
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus-main
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  replicas: 2
+  retention: 30d
+  retentionSize: 500GB
+  
+  # Resource Configuration for Billion Users
+  resources:
+    requests:
+      cpu: 4
+      memory: 16Gi
+    limits:
+      cpu: 8
+      memory: 32Gi
+  
+  # Storage Configuration
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: gp3
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Ti
+  
+  # Service Discovery
+  serviceMonitorSelector:
+    matchLabels:
+      team: platform
+  
+  ruleSelector:
+    matchLabels:
+      prometheus: main
+  
+  # Alerting Configuration
+  alerting:
+    alertmanagers:
+    - namespace: monitoring
+      name: alertmanager-main
+      port: web
+  
+  # External Labels
+  externalLabels:
+    cluster: suuupra-prod
+    region: us-east-1
+    environment: production
+  
+  # Security Context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 2000
+  
+  # Additional Configuration
+  additionalScrapeConfigs:
+    name: additional-scrape-configs
+    key: prometheus-additional.yaml
+
+---
+# AlertManager Configuration
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  name: alertmanager-main
+  namespace: monitoring
+spec:
+  replicas: 3
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: gp3
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+  
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 2000
+
+---
+# Service Monitor for API Gateway
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-gateway-metrics
+  namespace: monitoring
+  labels:
+    team: platform
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    honorLabels: true
+
+---
+# Service Monitor for Identity Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: identity-service-metrics
+  namespace: monitoring
+  labels:
+    team: platform
+spec:
+  selector:
+    matchLabels:
+      app: identity-service
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /actuator/prometheus
+    honorLabels: true
+
+---
+# Service Monitor for Payment Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: payment-service-metrics
+  namespace: monitoring
+  labels:
+    team: platform
+spec:
+  selector:
+    matchLabels:
+      app: payment-service
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    honorLabels: true
+
+---
+# Custom Metrics for Business KPIs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: additional-scrape-configs
+  namespace: monitoring
+data:
+  prometheus-additional.yaml: |
+    # Business Metrics Scraping
+    - job_name: 'business-metrics'
+      static_configs:
+      - targets: ['analytics-service.production.svc.cluster.local:8087']
+      metrics_path: '/metrics/business'
+      scrape_interval: 30s
+    
+    # Infrastructure Metrics
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.*):10250'
+        replacement: '${1}:9100'
+        target_label: __address__
+    
+    # Database Metrics
+    - job_name: 'postgres-exporter'
+      static_configs:
+      - targets: ['postgres-exporter.production.svc.cluster.local:9187']
+    
+    - job_name: 'redis-exporter'
+      static_configs:
+      - targets: ['redis-exporter.production.svc.cluster.local:9121']
+    
+    # Application Performance Monitoring
+    - job_name: 'application-performance'
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__

@@ -1,0 +1,318 @@
+services:
+  # Infrastructure Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: suuupra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: suuupra
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_MULTIPLE_DATABASES: identity,commerce,payments,ledger,bank_simulator,upi_core,analytics,live_classes,recommendations,vod,llm_tutor
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - suuupra-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: suuupra-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - suuupra-network
+
+  mongo:
+    image: mongo:6.0
+    container_name: suuupra-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - suuupra-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: suuupra-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - suuupra-network
+
+  # Core Microservices
+  analytics:
+    build:
+      context: ./services/analytics
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-analytics
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+      - "9098:9090"
+    environment:
+      ENVIRONMENT: production
+      PORT: 8087
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/analytics
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  recommendations:
+    build:
+      context: ./services/recommendations
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-recommendations
+    restart: unless-stopped
+    ports:
+      - "8095:8095"
+      - "9106:9090"
+    environment:
+      ENVIRONMENT: production
+      PORT: 8095
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/recommendations
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  bank-simulator:
+    build:
+      context: ./services/bank-simulator
+      dockerfile: Dockerfile
+      target: runner
+    container_name: suuupra-bank-simulator
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "50050:50050"
+      - "9112:9090"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SERVICE_NAME: bank-simulator
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/bank_simulator
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  commerce:
+    build:
+      context: ./services/commerce
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-commerce
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+      - "9095:9090"
+    environment:
+      ENVIRONMENT: production
+      PORT: 8084
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/commerce
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  notifications:
+    build:
+      context: ./services/notifications
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-notifications
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+      - "9096:9090"
+    environment:
+      ENVIRONMENT: production
+      PORT: 8085
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/suuupra
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  vod:
+    build:
+      context: ./services/vod
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-vod
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+      - "9107:9090"
+    environment:
+      ENVIRONMENT: production
+      PORT: 8096
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/vod
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  llm-tutor:
+    build:
+      context: ./services/llm-tutor
+      dockerfile: Dockerfile
+      target: production
+    container_name: suuupra-llm-tutor
+    restart: unless-stopped
+    ports:
+      - "8094:8094"
+      - "9105:9090"
+    environment:
+      ENVIRONMENT: production
+      PORT: 8094
+      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/llm_tutor
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8094/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - suuupra-network
+
+  # Monitoring Services
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: suuupra-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - suuupra-network
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: suuupra-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - suuupra-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
+  elasticsearch_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  suuupra-network:
+    driver: bridge

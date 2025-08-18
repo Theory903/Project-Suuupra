@@ -1,0 +1,135 @@
+# HashiCorp Vault Configuration for Production
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+data:
+  vault.hcl: |
+    ui = true
+    
+    listener "tcp" {
+      address = "0.0.0.0:8200"
+      tls_cert_file = "/vault/tls/tls.crt"
+      tls_key_file = "/vault/tls/tls.key"
+      tls_client_ca_file = "/vault/tls/ca.crt"
+    }
+    
+    storage "raft" {
+      path = "/vault/data"
+      node_id = "vault-0"
+      
+      retry_join {
+        leader_api_addr = "https://vault-1.vault-internal:8200"
+        leader_ca_cert_file = "/vault/tls/ca.crt"
+        leader_client_cert_file = "/vault/tls/tls.crt"
+        leader_client_key_file = "/vault/tls/tls.key"
+      }
+      
+      retry_join {
+        leader_api_addr = "https://vault-2.vault-internal:8200"
+        leader_ca_cert_file = "/vault/tls/ca.crt"
+        leader_client_cert_file = "/vault/tls/tls.crt"
+        leader_client_key_file = "/vault/tls/tls.key"
+      }
+    }
+    
+    seal "awskms" {
+      region = "us-east-1"
+      kms_key_id = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+    }
+    
+    api_addr = "https://vault.suuupra.com:8200"
+    cluster_addr = "https://vault-0.vault-internal:8201"
+    cluster_name = "suuupra-vault"
+    
+    # Telemetry
+    telemetry {
+      prometheus_retention_time = "30s"
+      disable_hostname = true
+    }
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  serviceName: vault-internal
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      serviceAccountName: vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        fsGroup: 1000
+      containers:
+      - name: vault
+        image: vault:1.15.0
+        command: ["vault", "server", "-config=/vault/config/vault.hcl"]
+        ports:
+        - containerPort: 8200
+          name: http
+        - containerPort: 8201
+          name: cluster
+        env:
+        - name: VAULT_ADDR
+          value: "https://127.0.0.1:8200"
+        - name: VAULT_CLUSTER_ADDR
+          value: "https://$(HOSTNAME).vault-internal:8201"
+        - name: VAULT_LOG_LEVEL
+          value: "INFO"
+        - name: VAULT_RAFT_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: config
+          mountPath: /vault/config
+        - name: data
+          mountPath: /vault/data
+        - name: tls
+          mountPath: /vault/tls
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1
+            memory: 2Gi
+        readinessProbe:
+          exec:
+            command: ["vault", "status", "-tls-skip-verify"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command: ["vault", "status", "-tls-skip-verify"]
+          initialDelaySeconds: 60
+          periodSeconds: 30
+      volumes:
+      - name: config
+        configMap:
+          name: vault-config
+      - name: tls
+        secret:
+          secretName: vault-tls
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: gp3
+      resources:
+        requests:
+          storage: 50Gi

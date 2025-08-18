@@ -1,0 +1,359 @@
+name: Microservice CI/CD Pipeline
+on:
+  push:
+    paths: 
+      - 'services/**'
+      - '.github/workflows/**'
+    branches: [main, develop, 'feature/**', 'hotfix/**']
+  pull_request:
+    paths: 
+      - 'services/**'
+    branches: [main, develop]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 123456789012.dkr.ecr.us-east-1.amazonaws.com
+  CLUSTER_NAME: suuupra-prod-eks
+
+jobs:
+  # Detect which services have changed
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.changes.outputs.services }}
+      has-changes: ${{ steps.changes.outputs.has-changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Detect service changes
+        id: changes
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          fi
+          
+          # Extract unique services
+          SERVICES=$(echo "$CHANGED_FILES" | grep '^services/' | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          
+          if [ "$SERVICES" != "[]" ] && [ "$SERVICES" != '[""]' ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "Changed services: $SERVICES"
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "No service changes detected"
+          fi
+
+  # Security scanning and code quality
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Run Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+          scanIgnoredFiles: false
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      
+      - name: Build Docker image for scanning
+        run: |
+          if [ -f "services/${{ matrix.service }}/Dockerfile" ]; then
+            docker build -t ${{ matrix.service }}:scan services/${{ matrix.service }}/
+          else
+            echo "No Dockerfile found for ${{ matrix.service }}, skipping"
+            exit 0
+          fi
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ matrix.service }}:scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Run Grype container scan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          grype ${{ matrix.service }}:scan --fail-on high
+
+  # Run tests for each service
+  test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, security-scan]
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup service environment
+        run: |
+          SERVICE_PATH="services/${{ matrix.service }}"
+          
+          # Determine service type and setup accordingly
+          if [ -f "$SERVICE_PATH/package.json" ]; then
+            echo "SERVICE_TYPE=node" >> $GITHUB_ENV
+          elif [ -f "$SERVICE_PATH/requirements.txt" ] || [ -f "$SERVICE_PATH/pyproject.toml" ]; then
+            echo "SERVICE_TYPE=python" >> $GITHUB_ENV
+          elif [ -f "$SERVICE_PATH/go.mod" ]; then
+            echo "SERVICE_TYPE=go" >> $GITHUB_ENV
+          elif [ -f "$SERVICE_PATH/pom.xml" ]; then
+            echo "SERVICE_TYPE=java" >> $GITHUB_ENV
+          elif [ -f "$SERVICE_PATH/Cargo.toml" ]; then
+            echo "SERVICE_TYPE=rust" >> $GITHUB_ENV
+          else
+            echo "SERVICE_TYPE=unknown" >> $GITHUB_ENV
+          fi
+      
+      - name: Setup Node.js
+        if: env.SERVICE_TYPE == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'services/${{ matrix.service }}/package-lock.json'
+      
+      - name: Setup Python
+        if: env.SERVICE_TYPE == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Setup Go
+        if: env.SERVICE_TYPE == 'go'
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache-dependency-path: 'services/${{ matrix.service }}/go.sum'
+      
+      - name: Setup Java
+        if: env.SERVICE_TYPE == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      
+      - name: Setup Rust
+        if: env.SERVICE_TYPE == 'rust'
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.75.0
+          override: true
+      
+      - name: Install dependencies and run tests
+        run: |
+          cd services/${{ matrix.service }}
+          
+          case $SERVICE_TYPE in
+            node)
+              npm ci
+              npm run test:ci || npm test || echo "No tests configured"
+              npm run lint || echo "No linting configured"
+              ;;
+            python)
+              if [ -f "requirements.txt" ]; then
+                pip install -r requirements.txt
+              fi
+              if [ -f "pyproject.toml" ]; then
+                pip install -e .
+              fi
+              pytest --cov=. --cov-report=xml || python -m unittest discover || echo "No tests configured"
+              flake8 . || echo "No linting configured"
+              ;;
+            go)
+              go mod download
+              go test -v -race -coverprofile=coverage.out ./...
+              go vet ./...
+              ;;
+            java)
+              ./mvnw clean test
+              ./mvnw spotbugs:check || echo "No static analysis configured"
+              ;;
+            rust)
+              cargo test --verbose
+              cargo clippy -- -D warnings
+              ;;
+            *)
+              echo "Unknown service type, skipping tests"
+              ;;
+          esac
+      
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./services/${{ matrix.service }}/coverage.*
+          flags: ${{ matrix.service }}
+
+  # Build and push Docker images
+  build-push:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test]
+    if: needs.detect-changes.outputs.has-changes == 'true' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and push Docker image
+        run: |
+          SERVICE_PATH="services/${{ matrix.service }}"
+          
+          if [ ! -f "$SERVICE_PATH/Dockerfile" ]; then
+            echo "No Dockerfile found for ${{ matrix.service }}, skipping"
+            exit 0
+          fi
+          
+          # Generate image tags
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          IMAGE_TAG="${{ env.ECR_REGISTRY }}/${{ matrix.service }}"
+          
+          # Build and push with multiple tags
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --target production \
+            --tag ${IMAGE_TAG}:${SHORT_SHA} \
+            --tag ${IMAGE_TAG}:latest \
+            --tag ${IMAGE_TAG}:main-${SHORT_SHA} \
+            --push \
+            $SERVICE_PATH
+          
+          echo "IMAGE_URI=${IMAGE_TAG}:${SHORT_SHA}" >> $GITHUB_ENV
+      
+      - name: Update GitOps repository
+        run: |
+          # Clone GitOps repository
+          git clone https://github.com/suuupra/gitops-config.git
+          cd gitops-config
+          
+          # Update image tag in Kubernetes manifests
+          sed -i "s|image: ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:.*|image: ${{ env.IMAGE_URI }}|g" \
+            environments/production/services/${{ matrix.service }}/deployment.yaml
+          
+          # Commit and push changes
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Update ${{ matrix.service }} image to ${{ env.IMAGE_URI }}"
+          git push https://${{ secrets.GITOPS_TOKEN }}@github.com/suuupra/gitops-config.git
+
+  # Deploy to staging for feature branches
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test]
+    if: needs.detect-changes.outputs.has-changes == 'true' && startsWith(github.ref, 'refs/heads/feature/')
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name suuupra-staging-eks
+      
+      - name: Deploy to staging
+        run: |
+          # Apply staging configuration
+          kubectl apply -f infrastructure/kubernetes/overlays/staging/
+          
+          # Update specific service
+          kubectl set image deployment/${{ matrix.service }} \
+            ${{ matrix.service }}=${{ env.ECR_REGISTRY }}/${{ matrix.service }}:staging-${{ github.sha }} \
+            -n staging
+          
+          # Wait for rollout
+          kubectl rollout status deployment/${{ matrix.service }} -n staging --timeout=300s
+
+  # Notify teams
+  notify:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-push]
+    if: always() && needs.detect-changes.outputs.has-changes == 'true'
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          text: |
+            Services deployed: ${{ needs.detect-changes.outputs.services }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,6 @@
+[22:34:55] SUCCESS: Infrastructure services started
+[22:34:55] WARNING: PostgreSQL connection test skipped
+[22:34:56] SUCCESS: Elasticsearch OK
+[22:34:56] SUCCESS: Prometheus OK
+[22:35:01] SUCCESS: upi-core build successful
+[22:35:03] ERROR: upi-core failed to start

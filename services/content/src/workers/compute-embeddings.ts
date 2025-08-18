@@ -14,7 +14,7 @@ export async function computeEmbeddingsForTenant(tenantId: string): Promise<{ up
         skipped++;
         continue;
       }
-      const vec = await embeddingService.embedForContent({ title: doc.title, description: doc.description, tags: doc.tags });
+      const vec = await embeddingService.embedForContent({ title: doc.title, description: doc.description || undefined, tags: doc.tags });
       (doc as any).embedding = vec;
       await doc.save();
       updated++;

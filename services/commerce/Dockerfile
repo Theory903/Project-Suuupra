@@ -27,6 +27,7 @@ FROM python:3.11-slim as production
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONPATH="/app/src"
 
 # Create non-root user
 RUN groupadd -r commerce && useradd -r -g commerce commerce

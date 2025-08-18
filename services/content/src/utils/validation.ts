@@ -41,7 +41,7 @@ export const contentSchemas = {
           type: 'string',
           minLength: 1,
           maxLength: 50,
-          pattern: '^[a-zA-Z0-9\\s-_]+$'
+          pattern: '^[a-zA-Z0-9 \\-_]+$'
         },
         maxItems: 20,
         uniqueItems: true
@@ -82,7 +82,7 @@ export const contentSchemas = {
           type: 'string',
           minLength: 1,
           maxLength: 50,
-          pattern: '^[a-zA-Z0-9\\s-_]+$'
+          pattern: '^[a-zA-Z0-9 \\-_]+$'
         },
         maxItems: 20,
         uniqueItems: true
@@ -479,17 +479,34 @@ export function sanitizeFileName(filename: string): string {
 export function sanitizeHtml(html: string): string {
   // This would typically use DOMPurify or a similar library for robust sanitization.
   // For this example, we'll implement basic sanitization to remove common attack vectors.
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove inline event handlers (e.g., onclick)
-    .replace(/javascript:/gi, '') // Remove javascript: URIs
-    .replace(/data:text\/html/gi, '') // Remove data URIs with HTML content
-    .replace(/<link\s+rel=["']stylesheet["'][^>]*>/gi, '') // Remove external stylesheets
-    .replace(/<meta\s+http-equiv=["']refresh["'][^>]*>/gi, '') // Remove meta refresh
-    .replace(/<!--.*?-->/g, '') // Remove HTML comments (can hide attacks)
-    .replace(/<\/?(object|embed|applet|form|input|button|select|textarea|style|frame|frameset|noframes)\b[^>]*>/gi, '') // Remove dangerous tags
-    .replace(/expression\s*\(.*?\)/gi, ''); // Remove CSS expressions
+  try {
+    // Use DOMPurify for robust HTML sanitization in Node.js environment
+    const { JSDOM } = require('jsdom');
+    const createDOMPurify = require('dompurify');
+    
+    const window = new JSDOM('').window;
+    const DOMPurify = createDOMPurify(window);
+    
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a'],
+      ALLOWED_ATTR: ['href', 'title'],
+      ALLOW_DATA_ATTR: false
+    });
+  } catch (error) {
+    // Fallback to basic sanitization if DOMPurify fails
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove inline event handlers (e.g., onclick)
+      .replace(/javascript:/gi, '') // Remove javascript: URIs
+      .replace(/data:text\/html/gi, '') // Remove data URIs with HTML content
+      .replace(/<link\s+rel=["']stylesheet["'][^>]*>/gi, '') // Remove external stylesheets
+      .replace(/<meta\s+http-equiv=["']refresh["'][^>]*>/gi, '') // Remove meta refresh
+      .replace(/<!--.*?-->/g, '') // Remove HTML comments (can hide attacks)
+      .replace(/<\/?(object|embed|applet|form|input|button|select|textarea|style|frame|frameset|noframes)\b[^>]*>/gi, '') // Remove dangerous tags
+      .replace(/expression\s*\(.*?\)/gi, '') // Remove CSS expressions
+      .trim();
+  }
 }
 
 export { validators };

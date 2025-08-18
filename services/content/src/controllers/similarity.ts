@@ -20,7 +20,7 @@ export class SimilarityController {
       // ensure embedding
       let vector = content.embedding;
       if (!vector || vector.length !== 768) {
-        vector = await embeddingService.embedForContent({ title: content.title, description: content.description, tags: content.tags });
+        vector = await embeddingService.embedForContent({ title: content.title, description: content.description || undefined, tags: content.tags });
         content.embedding = vector;
         await content.save();
       }

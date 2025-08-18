@@ -357,6 +357,8 @@ export class S3UploadService {
     const clamavPort = config.clamAV.port;
     const clamavTimeout = config.clamAV.timeout;
 
+    let socket: net.Socket | undefined; // Declare socket outside try block
+
     try {
       this.contextLogger.info('Initiating ClamAV scan', { s3Key, clamavHost, clamavPort });
 
@@ -364,7 +366,6 @@ export class S3UploadService {
       // or stream it directly to ClamAV. For this simulation, we'll assume the file
       // is accessible by ClamAV via its S3 key or a pre-signed URL.
       // For demonstration, we'll simulate a connection and a response.
-      let socket: net.Socket | undefined; // Declare socket outside try block
 
       try {
         socket = new net.Socket();
@@ -373,7 +374,7 @@ export class S3UploadService {
 
         socket.setTimeout(clamavTimeout);
 
-        await connect({ port: clamavPort, host: clamavHost });
+        await connect(clamavPort, clamavHost);
         this.contextLogger.debug('Connected to ClamAV daemon');
 
         // Simulate sending a SCAN command with the S3 key (in a real scenario, this would be a file stream)
@@ -400,17 +401,21 @@ export class S3UploadService {
           });
         });
 
-      this.contextLogger.info('ClamAV scan result received', { s3Key, result: data.trim() });
+        this.contextLogger.info('ClamAV scan result received', { s3Key, result: data.trim() });
 
-      // ClamAV response format: filename: STATUS
-      // STATUS can be OK (clean), FOUND (infected), ERROR
-      if (data.includes('FOUND')) {
-        this.contextLogger.warn('File infected by ClamAV', { s3Key, result: data.trim() });
-        return false;
-      } else if (data.includes('OK')) {
-        return true;
-      } else {
-        this.contextLogger.error('ClamAV scan returned an error or unexpected response', new Error('ClamAV unexpected response'), { s3Key, response: data.trim() });
+        // ClamAV response format: filename: STATUS
+        // STATUS can be OK (clean), FOUND (infected), ERROR
+        if (data.includes('FOUND')) {
+          this.contextLogger.warn('File infected by ClamAV', { s3Key, result: data.trim() });
+          return false;
+        } else if (data.includes('OK')) {
+          return true;
+        } else {
+          this.contextLogger.error('ClamAV scan returned an error or unexpected response', new Error('ClamAV unexpected response'), { s3Key, response: data.trim() });
+          return false;
+        }
+      } catch (socketError) {
+        this.contextLogger.error('ClamAV socket connection failed', socketError as Error, { s3Key });
         return false;
       }
 
@@ -421,7 +426,7 @@ export class S3UploadService {
       // Ensure the socket is destroyed if it was created
       socket?.destroy();
     }
-  }
+  }     
 
   // Abort multipart upload
   public async abortUpload(uploadSessionId: string): Promise<void> {

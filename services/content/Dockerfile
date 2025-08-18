@@ -20,7 +20,7 @@ COPY tsconfig.json ./
 # Development stage
 FROM base AS development
 ENV NODE_ENV=development
-RUN npm ci --include=dev
+RUN npm ci --include=dev --legacy-peer-deps
 COPY . .
 RUN chown -R contentservice:nodejs /app
 USER contentservice
@@ -30,10 +30,11 @@ CMD ["npm", "run", "dev"]
 # Build stage
 FROM base AS build
 ENV NODE_ENV=production
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm ci --include=dev --legacy-peer-deps
 COPY . .
 RUN npm run build && \
-    npm prune --production
+    npm prune --production --legacy-peer-deps && \
+    npm cache clean --force
 
 # Production stage
 FROM node:20-alpine AS production
@@ -54,6 +55,8 @@ WORKDIR /app
 COPY --from=build --chown=contentservice:nodejs /app/dist ./dist
 COPY --from=build --chown=contentservice:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=contentservice:nodejs /app/package*.json ./
+COPY --from=build --chown=contentservice:nodejs /app/tsconfig.json ./
+COPY --chown=contentservice:nodejs start-production.js ./
 
 # Create logs directory
 RUN mkdir -p logs && chown -R contentservice:nodejs logs
@@ -72,7 +75,7 @@ EXPOSE 8082
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Start application
-CMD ["dumb-init", "node", "dist/server.js"]
+CMD ["dumb-init", "node", "start-production.js"]
 
 # Labels for metadata
 LABEL maintainer="Suuupra Platform Team" \

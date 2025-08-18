@@ -1,400 +1,892 @@
-# Suuupra EdTech Super-Platform - Complete Production Deployment
-# All 17 microservices ready for billion-user scale
+# ==============================================================================
+# Suuupra EdTech Platform - Production Grade Unified Docker Compose
+#
+# This file defines the complete platform with all 17 services for production
+# deployment and integration testing. Designed for billion-user scale.
+#
+# Usage:
+#   docker-compose -f docker-compose.production.yml up -d
+#
+# ==============================================================================
 version: '3.8'
-
-services:
-  # =============================================================================
-  # PHASE 1: FOUNDATION SERVICES
-  # =============================================================================
-  
-  api-gateway:
-    build: ./services/api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - ENVIRONMENT=production
-      - SPRING_PROFILES_ACTIVE=production
-    depends_on:
-      - identity
-      - commerce
-      - payments
-    networks:
-      - suuupra-network
-
-  identity:
-    build: ./services/identity
-    ports:
-      - "8081:8081"
-    environment:
-      - ENVIRONMENT=production
-      - SPRING_PROFILES_ACTIVE=production
-    networks:
-      - suuupra-network
-
-  content:
-    build: ./services/content
-    ports:
-      - "8082:8082"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  # =============================================================================
-  # PHASE 2: PAYMENTS & COMMERCE
-  # =============================================================================
-  
-  commerce:
-    build: ./services/commerce
-    ports:
-      - "8083:8083"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  payments:
-    build: ./services/payments
-    ports:
-      - "8084:8084"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  ledger:
-    build: ./services/ledger
-    ports:
-      - "8085:8085"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  upi-core:
-    build: ./services/upi-core
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  bank-simulator:
-    build: ./services/bank-simulator
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  # =============================================================================
-  # PHASE 3: MEDIA SERVICES
-  # =============================================================================
-  
-  live-classes:
-    build: ./services/live-classes
-    ports:
-      - "8086:8086"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  vod:
-    build: ./services/vod
-    ports:
-      - "8087:8087"
-    environment:
-      - ENVIRONMENT=production
-    networks:
-      - suuupra-network
-
-  mass-live:
-    build: ./services/mass-live
-    ports:
-      - "8088:8088"
-    environment:
-      - ENVIRONMENT=production
-    networks:
-      - suuupra-network
-
-  creator-studio:
-    build: ./services/creator-studio
-    ports:
-      - "8089:8089"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - suuupra-network
-
-  # =============================================================================
-  # PHASE 4: INTELLIGENCE SERVICES
-  # =============================================================================
-  
-  search-crawler:
-    build: ./services/search-crawler
-    ports:
-      - "8090:8090"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - elasticsearch
-      - redis
-    networks:
-      - suuupra-network
-
-  recommendations:
-    build: ./services/recommendations
-    ports:
-      - "8091:8091"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - suuupra-network
-
-  llm-tutor:
-    build: ./services/llm-tutor
-    ports:
-      - "8000:8000"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - postgres
-      - redis
-      - milvus
-      - elasticsearch
-    networks:
-      - suuupra-network
-
-  analytics:
-    build: ./services/analytics
-    ports:
-      - "8092:8092"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - suuupra-network
-
-  # =============================================================================
-  # PHASE 5: SUPPORTING SERVICES
-  # =============================================================================
-  
-  counters:
-    build: ./services/counters
-    ports:
-      - "8093:8093"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - redis-cluster
-    networks:
-      - suuupra-network
-
-  live-tracking:
-    build: ./services/live-tracking
-    ports:
-      - "8094:8094"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - suuupra-network
-
-  notifications:
-    build: ./services/notifications
-    ports:
-      - "8095:8095"
-    environment:
-      - ENVIRONMENT=production
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - suuupra-network
-
-  admin:
-    build: ./services/admin
-    ports:
-      - "3002:3000"
-    environment:
-      - NODE_ENV=production
-      - REACT_APP_API_BASE_URL=http://localhost:8080
-    networks:
-      - suuupra-network
-
-  # =============================================================================
-  # INFRASTRUCTURE SERVICES
-  # =============================================================================
-  
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=suuupra
-      - POSTGRES_USER=suuupra
-      - POSTGRES_PASSWORD=suuupra_secure_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - suuupra-network
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - suuupra-network
-
-  redis-cluster:
-    image: redis:7-alpine
-    ports:
-      - "7000-7005:7000-7005"
-    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
-    networks:
-      - suuupra-network
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - suuupra-network
-
-  milvus:
-    image: milvusdb/milvus:v2.3.4
-    ports:
-      - "19530:19530"
-    environment:
-      - ETCD_ENDPOINTS=etcd:2379
-      - MINIO_ADDRESS=minio:9000
-    depends_on:
-      - etcd
-      - minio
-    networks:
-      - suuupra-network
-
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.0
-    environment:
-      - ETCD_AUTO_COMPACTION_MODE=revision
-      - ETCD_AUTO_COMPACTION_RETENTION=1000
-      - ETCD_QUOTA_BACKEND_BYTES=4294967296
-    networks:
-      - suuupra-network
-
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    networks:
-      - suuupra-network
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    ports:
-      - "9092:9092"
-    environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-    depends_on:
-      - zookeeper
-    networks:
-      - suuupra-network
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    ports:
-      - "2181:2181"
-    environment:
-      - ZOOKEEPER_CLIENT_PORT=2181
-      - ZOOKEEPER_TICK_TIME=2000
-    networks:
-      - suuupra-network
-
-  # =============================================================================
-  # MONITORING & OBSERVABILITY
-  # =============================================================================
-  
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    networks:
-      - suuupra-network
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
-    networks:
-      - suuupra-network
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"
-      - "14268:14268"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    networks:
-      - suuupra-network
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-    networks:
-      - suuupra-network
-
-volumes:
-  postgres_data:
-  redis_data:
-  elasticsearch_data:
-  milvus_data:
-  minio_data:
-  prometheus_data:
-  grafana_data:
 
 networks:
   suuupra-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # Infrastructure volumes
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  jaeger_data:
+  kafka_data:
+  zookeeper_data:
+  
+  # Service-specific volumes
+  commerce_postgres_data:
+  identity_postgres_data:
+  ledger_postgres_data:
+  llm_tutor_postgres_data:
+  analytics_postgres_data:
+  live_classes_postgres_data:
+  vod_postgres_data:
+  minio_data:
+  elasticsearch_data:
+  milvus_data:
+
+services:
+  # ============================================================================
+  # INFRASTRUCTURE SERVICES
+  # ============================================================================
+  
+  # PostgreSQL - Main Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: suuupra-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_MULTIPLE_DATABASES: identity,commerce,payments,ledger,bank_simulator,upi_core,analytics,live_classes,vod,llm_tutor
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+
+  # Redis - Cache and Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: suuupra-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.11
+    restart: unless-stopped
+
+  # Kafka Ecosystem
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: suuupra-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SERVER_ID: 1
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.12
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: suuupra-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 172.20.0.12:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://172.20.0.13:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.13
+    restart: unless-stopped
+
+  # Observability Stack
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: suuupra-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "14268:14268"  # Collector
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      SPAN_STORAGE_TYPE: memory
+    volumes:
+      - jaeger_data:/tmp
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.14
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: suuupra-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.15
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: suuupra-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.16
+    restart: unless-stopped
+
+  # Elasticsearch for Search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: suuupra-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.17
+    restart: unless-stopped
+
+  # MinIO for Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: suuupra-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.18
+    restart: unless-stopped
+
+  # ============================================================================
+  # FOUNDATION SERVICES
+  # ============================================================================
+
+  # API Gateway - Single Entry Point
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: suuupra-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      OIDC_DISCOVERY_URL: http://172.20.0.21:8081/.well-known/openid-configuration
+      OIDC_ISSUER: http://172.20.0.21:8081
+      OIDC_AUDIENCE: suuupra-api
+      JAEGER_ENDPOINT: http://172.20.0.14:14268/api/traces
+      REDIS_URL: redis://172.20.0.11:6379
+    depends_on:
+      - identity
+      - redis
+      - jaeger
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.20
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Identity Service - Authentication & Authorization
+  identity:
+    build:
+      context: ./services/identity
+      dockerfile: Dockerfile
+    container_name: suuupra-identity
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://172.20.0.10:5432/identity
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_REDIS_HOST: 172.20.0.11
+      SPRING_REDIS_PORT: 6379
+      SECURITY_JWT_ISSUER: http://172.20.0.21:8081
+      KMS_KEKBASE64: dGVzdC1rZXktZm9yLWRldmVsb3BtZW50LW9ubHk=
+      SECURITY_MFA_KEKBASE64: dGVzdC1tZmEta2V5LWZvci1kZXZlbG9wbWVudA==
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.21
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Content Service - Course and Media Management
+  content:
+    build:
+      context: ./services/content
+      dockerfile: Dockerfile
+    container_name: suuupra-content
+    ports:
+      - "8082:8082"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/content
+      REDIS_URL: redis://172.20.0.11:6379
+      ELASTICSEARCH_URL: http://172.20.0.17:9200
+      S3_ENDPOINT: http://172.20.0.18:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+      S3_BUCKET: suuupra-content
+      JAEGER_ENDPOINT: http://172.20.0.14:14268/api/traces
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+      - minio
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.22
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # PAYMENTS & COMMERCE SERVICES
+  # ============================================================================
+
+  # Commerce Service - Product Catalog & Orders
+  commerce:
+    build:
+      context: ./services/commerce
+      dockerfile: Dockerfile
+    container_name: suuupra-commerce
+    ports:
+      - "8084:8084"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://postgres:password@172.20.0.10:5432/commerce
+      REDIS_URL: redis://172.20.0.11:6379/1
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+      JAEGER_ENDPOINT: http://172.20.0.14:14268
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.30
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Payments Service - Payment Orchestration
+  payments:
+    build:
+      context: ./services/payments
+      dockerfile: Dockerfile
+    container_name: suuupra-payments
+    ports:
+      - "8085:8085"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/payments
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+      UPI_CORE_GRPC_ENDPOINT: 172.20.0.32:50051
+      BANK_SIMULATOR_GRPC_ENDPOINT: 172.20.0.33:50050
+      JAEGER_ENDPOINT: http://172.20.0.14:14268/api/traces
+    depends_on:
+      - postgres
+      - kafka
+      - upi-core
+      - bank-simulator
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.31
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # UPI Core - UPI Switch Simulator
+  upi-core:
+    build:
+      context: ./services/upi-core
+      dockerfile: Dockerfile
+    container_name: suuupra-upi-core
+    ports:
+      - "8083:8081"   # HTTP API
+      - "50051:50051" # gRPC
+      - "9091:9090"   # Metrics
+    environment:
+      UPI_CORE_APP_ENVIRONMENT: production
+      UPI_CORE_SERVER_HOST: 0.0.0.0
+      UPI_CORE_SERVER_PORT: 50051
+      UPI_CORE_DATABASE_HOST: 172.20.0.10
+      UPI_CORE_DATABASE_PORT: 5432
+      UPI_CORE_DATABASE_USERNAME: postgres
+      UPI_CORE_DATABASE_PASSWORD: password
+      UPI_CORE_DATABASE_DATABASE: upi_core
+      UPI_CORE_REDIS_HOST: 172.20.0.11
+      UPI_CORE_REDIS_PORT: 6379
+      UPI_CORE_KAFKA_BROKERS: 172.20.0.13:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.32
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Bank Simulator - Core Banking System
+  bank-simulator:
+    build:
+      context: ./services/bank-simulator
+      dockerfile: Dockerfile
+    container_name: suuupra-bank-simulator
+    ports:
+      - "3000:3000"   # HTTP API
+      - "50050:50050" # gRPC
+      - "9094:9090"   # Metrics
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/bank_simulator
+      GRPC_PORT: 50050
+      PORT: 3000
+      HOST: 0.0.0.0
+      JWT_SECRET: your-super-secret-jwt-key-production
+      LOG_LEVEL: info
+      ENABLE_METRICS: true
+      ENABLE_TRACING: true
+      JAEGER_ENDPOINT: http://172.20.0.14:14268/api/traces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.33
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ledger Service - Double Entry Accounting
+  ledger:
+    build:
+      context: ./services/ledger
+      dockerfile: Dockerfile
+    container_name: suuupra-ledger
+    ports:
+      - "8086:8086"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/ledger
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+      JAEGER_ENDPOINT: http://172.20.0.14:14268/api/traces
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.34
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # MEDIA SERVICES
+  # ============================================================================
+
+  # Live Classes - Interactive Online Classes
+  live-classes:
+    build:
+      context: ./services/live-classes
+      dockerfile: Dockerfile
+    container_name: suuupra-live-classes
+    ports:
+      - "8090:8090"
+      - "40000-49999:40000-49999/udp"  # MediaSoup RTC ports
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/live_classes
+      REDIS_URL: redis://172.20.0.11:6379/2
+      JWT_SECRET: your-super-secret-jwt-key-production
+      S3_BUCKET_NAME: suuupra-live-recordings
+      S3_ENDPOINT: http://172.20.0.18:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+      MEDIASOUP_ANNOUNCED_IP: 127.0.0.1
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.40
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # VOD Service - Video on Demand
+  vod:
+    build:
+      context: ./services/vod
+      dockerfile: Dockerfile
+    container_name: suuupra-vod
+    ports:
+      - "8097:8097"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/vod
+      REDIS_URL: redis://172.20.0.11:6379/3
+      S3_ENDPOINT: http://172.20.0.18:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+      S3_BUCKET: suuupra-vod
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.41
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8097/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Mass Live - Large Scale Streaming
+  mass-live:
+    build:
+      context: ./services/mass-live
+      dockerfile: Dockerfile
+    container_name: suuupra-mass-live
+    ports:
+      - "8088:8088"
+      - "1935:1935"   # RTMP
+      - "8081:8081"   # HLS
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/mass_live
+      REDIS_URL: redis://172.20.0.11:6379/4
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.42
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Creator Studio - Content Creator Tools
+  creator-studio:
+    build:
+      context: ./services/creator-studio
+      dockerfile: Dockerfile
+    container_name: suuupra-creator-studio
+    ports:
+      - "8093:8093"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/creator_studio
+      REDIS_URL: redis://172.20.0.11:6379/5
+      S3_ENDPOINT: http://172.20.0.18:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.43
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # INTELLIGENCE SERVICES
+  # ============================================================================
+
+  # LLM Tutor - AI-Powered Learning Assistant
+  llm-tutor:
+    build:
+      context: ./services/llm-tutor
+      dockerfile: Dockerfile
+    container_name: suuupra-llm-tutor
+    ports:
+      - "8092:8092"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://postgres:password@172.20.0.10:5432/llm_tutor
+      REDIS_URL: redis://172.20.0.11:6379/6
+      MILVUS_HOST: 172.20.0.51
+      ELASTICSEARCH_URL: http://172.20.0.17:9200
+      JAEGER_ENDPOINT: http://172.20.0.14:14268
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+      - milvus
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.50
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Milvus Vector Database (for LLM Tutor)
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: suuupra-etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.52
+    restart: unless-stopped
+
+  milvus:
+    image: milvusdb/milvus:v2.3.0
+    container_name: suuupra-milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: 172.20.0.52:2379
+      MINIO_ADDRESS: 172.20.0.18:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+    ports:
+      - "19530:19530"
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.51
+    restart: unless-stopped
+
+  # Search Crawler - Full-text Search
+  search-crawler:
+    build:
+      context: ./services/search-crawler
+      dockerfile: Dockerfile
+    container_name: suuupra-search-crawler
+    ports:
+      - "8096:8096"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/search_crawler
+      ELASTICSEARCH_URL: http://172.20.0.17:9200
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+    depends_on:
+      - postgres
+      - elasticsearch
+      - kafka
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.53
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Recommendations - ML-Powered Recommendations
+  recommendations:
+    build:
+      context: ./services/recommendations
+      dockerfile: Dockerfile
+    container_name: suuupra-recommendations
+    ports:
+      - "8095:8095"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/recommendations
+      REDIS_URL: redis://172.20.0.11:6379/7
+      ELASTICSEARCH_URL: http://172.20.0.17:9200
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.54
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Analytics - Data Collection and Analysis
+  analytics:
+    build:
+      context: ./services/analytics
+      dockerfile: Dockerfile
+    container_name: suuupra-analytics
+    ports:
+      - "8087:8087"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/analytics
+      REDIS_URL: redis://172.20.0.11:6379/8
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.55
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # SUPPORTING SERVICES
+  # ============================================================================
+
+  # Counters - Distributed Counter Service
+  counters:
+    build:
+      context: ./services/counters
+      dockerfile: Dockerfile
+    container_name: suuupra-counters
+    ports:
+      - "8089:8089"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/counters
+      REDIS_URL: redis://172.20.0.11:6379/9
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.60
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Live Tracking - Real-time Activity Tracking
+  live-tracking:
+    build:
+      context: ./services/live-tracking
+      dockerfile: Dockerfile
+    container_name: suuupra-live-tracking
+    ports:
+      - "8091:8091"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/live_tracking
+      REDIS_URL: redis://172.20.0.11:6379/10
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.61
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Notifications - Multi-channel Notifications
+  notifications:
+    build:
+      context: ./services/notifications
+      dockerfile: Dockerfile
+    container_name: suuupra-notifications
+    ports:
+      - "8098:8098"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/notifications
+      REDIS_URL: redis://172.20.0.11:6379/11
+      KAFKA_BOOTSTRAP_SERVERS: 172.20.0.13:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.62
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Admin Dashboard - Platform Administration
+  admin:
+    build:
+      context: ./services/admin
+      dockerfile: Dockerfile
+    container_name: suuupra-admin
+    ports:
+      - "8099:8099"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:password@172.20.0.10:5432/admin
+      REDIS_URL: redis://172.20.0.11:6379/12
+      API_GATEWAY_URL: http://172.20.0.20:8080
+    depends_on:
+      - postgres
+      - redis
+      - api-gateway
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.63
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # MONITORING & HEALTH CHECK SERVICE
+  # ============================================================================
+
+  # Health Monitor - Monitors all services and provides unified health status
+  health-monitor:
+    image: nginx:alpine
+    container_name: suuupra-health-monitor
+    ports:
+      - "9999:80"
+    volumes:
+      - ./monitoring/health-check.html:/usr/share/nginx/html/index.html
+      - ./monitoring/nginx-health.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api-gateway
+      - identity
+      - content
+      - commerce
+      - payments
+      - upi-core
+      - bank-simulator
+      - ledger
+      - live-classes
+      - vod
+      - mass-live
+      - creator-studio
+      - llm-tutor
+      - search-crawler
+      - recommendations
+      - analytics
+      - counters
+      - live-tracking
+      - notifications
+      - admin
+    networks:
+      suuupra-network:
+        ipv4_address: 172.20.0.100
+    restart: unless-stopped

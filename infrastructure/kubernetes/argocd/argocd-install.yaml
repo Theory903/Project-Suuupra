@@ -1,0 +1,308 @@
+# ArgoCD Installation with HA Configuration
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ArgoCD
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  # High Availability Configuration
+  ha:
+    enabled: true
+    redisProxyImage: "haproxy"
+    redisProxyVersion: "2.0.4"
+  
+  # Server Configuration
+  server:
+    replicas: 2
+    service:
+      type: LoadBalancer
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      hosts:
+        - argocd.suuupra.com
+      tls:
+        - secretName: argocd-server-tls
+          hosts:
+            - argocd.suuupra.com
+    
+    # RBAC Configuration
+    rbacConfig: |
+      policy.default: role:readonly
+      policy.csv: |
+        p, role:admin, applications, *, */*, allow
+        p, role:admin, clusters, *, *, allow
+        p, role:admin, repositories, *, *, allow
+        g, suuupra:devops, role:admin
+      scopes: '[groups]'
+    
+    # Configuration
+    config:
+      url: https://argocd.suuupra.com
+      application.instanceLabelKey: argocd.argoproj.io/instance
+      server.rbac.log.enforce.enable: "true"
+      exec.enabled: "false"
+      admin.enabled: "true"
+      timeout.reconciliation: 180s
+      
+      # Git repository configuration
+      repositories: |
+        - type: git
+          url: https://github.com/suuupra/gitops-config
+        - type: git
+          url: https://github.com/suuupra/platform-manifests
+      
+      # Resource customizations
+      resource.customizations: |
+        networking.k8s.io/Ingress:
+          health.lua: |
+            hs = {}
+            hs.status = "Healthy"
+            return hs
+  
+  # Repository Server Configuration
+  repo:
+    replicas: 2
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+  
+  # Application Controller Configuration
+  controller:
+    replicas: 2
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    
+    # Metrics configuration
+    metrics:
+      enabled: true
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/path: "/metrics"
+          prometheus.io/port: "8082"
+  
+  # Redis Configuration for HA
+  redis:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  
+  # Dex Configuration (OIDC)
+  dex:
+    openShiftOAuth: false
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  
+  # Grafana Integration
+  grafana:
+    enabled: true
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - argocd-grafana.suuupra.com
+    
+    # Grafana Configuration
+    config:
+      auth.anonymous.enabled: "false"
+      users.auto_assign_org_role: "Admin"
+    
+    # Data source for ArgoCD metrics
+    additionalDataSources:
+      - name: ArgoCD Metrics
+        type: prometheus
+        url: http://argocd-metrics.argocd.svc.cluster.local:8082
+        access: proxy
+        isDefault: false
+  
+  # Notifications Controller
+  notifications:
+    enabled: true
+    argocdUrl: https://argocd.suuupra.com
+    
+    # Notification services configuration
+    notifiers: |
+      service.slack: |
+        token: $slack-token
+        username: ArgoCD
+        channel: devops-alerts
+      service.email: |
+        host: smtp.gmail.com
+        port: 587
+        from: noreply@suuupra.com
+    
+    # Default subscriptions
+    subscriptions: |
+      - recipients:
+        - slack:devops-alerts
+        triggers:
+        - on-deployed
+        - on-health-degraded
+        - on-sync-failed
+      - recipients:
+        - email:devops@suuupra.com
+        triggers:
+        - on-sync-failed
+    
+    # Notification templates
+    templates: |
+      template.app-deployed: |
+        email:
+          subject: Application {{.app.metadata.name}} is now running new version.
+        message: |
+          {{if eq .serviceType "slack"}}:white_check_mark:{{end}} Application {{.app.metadata.name}} is now running new version of {{.app.status.sync.revision}}.
+      template.app-health-degraded: |
+        email:
+          subject: Application {{.app.metadata.name}} has degraded.
+        message: |
+          {{if eq .serviceType "slack"}}:exclamation:{{end}} Application {{.app.metadata.name}} has degraded.
+          Application details: {{.context.argocdUrl}}/applications/{{.app.metadata.name}}.
+      template.app-sync-failed: |
+        email:
+          subject: Application {{.app.metadata.name}} sync is failed.
+        message: |
+          {{if eq .serviceType "slack"}}:exclamation:{{end}} Application {{.app.metadata.name}} sync is failed.
+          Application details: {{.context.argocdUrl}}/applications/{{.app.metadata.name}}.
+          Error: {{.app.status.operationState.message}}.
+
+---
+# ArgoCD CLI Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-cli
+  namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-cli
+rules:
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["argoproj.io"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-cli
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-cli
+subjects:
+- kind: ServiceAccount
+  name: argocd-cli
+  namespace: argocd
+
+---
+# ArgoCD Projects for Environment Separation
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: suuupra-production
+  namespace: argocd
+spec:
+  description: Production environment for Suuupra platform
+  sourceRepos:
+  - 'https://github.com/suuupra/gitops-config'
+  - 'https://github.com/suuupra/platform-manifests'
+  destinations:
+  - namespace: 'production'
+    server: https://kubernetes.default.svc
+  - namespace: 'monitoring'
+    server: https://kubernetes.default.svc
+  - namespace: 'security'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  - group: 'networking.k8s.io'
+    kind: NetworkPolicy
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRole
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: Secret
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: StatefulSet
+  - group: 'networking.k8s.io'
+    kind: Ingress
+  roles:
+  - name: admin
+    description: Admin access to production
+    policies:
+    - p, proj:suuupra-production:admin, applications, *, suuupra-production/*, allow
+    groups:
+    - suuupra:devops
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: suuupra-staging
+  namespace: argocd
+spec:
+  description: Staging environment for Suuupra platform
+  sourceRepos:
+  - 'https://github.com/suuupra/gitops-config'
+  - 'https://github.com/suuupra/platform-manifests'
+  destinations:
+  - namespace: 'staging'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: Secret
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: StatefulSet
+  - group: 'networking.k8s.io'
+    kind: Ingress

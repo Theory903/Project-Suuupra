@@ -31,7 +31,7 @@ export class InvertedIndexService {
     this.docs.set(id, {
       id,
       title: doc.title,
-      description: doc.description,
+      description: doc.description || undefined,
       tags: doc.tags || [],
       contentType: doc.contentType,
       tenantId: doc.tenantId,
@@ -79,7 +79,7 @@ export class InvertedIndexService {
       const d = this.docs.get(id);
       if (!d) continue;
       if (filterTypes && !filterTypes.includes(d.contentType)) continue;
-      results.push({ id: d.id, title: d.title, description: d.description, tags: d.tags, contentType: d.contentType });
+      results.push({ id: d.id, title: d.title, description: d.description || undefined, tags: d.tags, contentType: d.contentType });
       if (results.length >= limit) break;
     }
     // Naive ranking: recent first

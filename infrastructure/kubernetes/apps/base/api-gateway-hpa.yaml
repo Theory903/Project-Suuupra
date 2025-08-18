@@ -1,0 +1,170 @@
+# Horizontal Pod Autoscaler for API Gateway - Billion User Scale
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: production
+  labels:
+    app: api-gateway
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  
+  # Scale from 10 to 500 pods based on traffic
+  minReplicas: 10
+  maxReplicas: 500
+  
+  # Scaling metrics for billion-user load
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  
+  # Custom metrics for request rate
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "1000"
+  
+  # Custom metrics for response time
+  - type: Pods
+    pods:
+      metric:
+        name: http_request_duration_p95
+      target:
+        type: AverageValue
+        averageValue: "200m"  # 200ms
+  
+  # Scaling behavior for rapid scale-up, gradual scale-down
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Max
+    
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+      - type: Pods
+        value: 5
+        periodSeconds: 60
+      selectPolicy: Min
+
+---
+# Vertical Pod Autoscaler for Right-sizing
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: api-gateway-vpa
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  
+  updatePolicy:
+    updateMode: "Auto"
+    minReplicas: 10
+  
+  resourcePolicy:
+    containerPolicies:
+    - containerName: api-gateway
+      minAllowed:
+        cpu: 500m
+        memory: 1Gi
+      maxAllowed:
+        cpu: 4
+        memory: 8Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+
+---
+# Pod Disruption Budget for High Availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  minAvailable: 80%  # Always keep 80% of pods available during disruptions
+
+---
+# Network Policy for Performance (Allow specific traffic)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-gateway-performance
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from load balancer
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 3001
+  
+  egress:
+  # Allow to all backend services (optimized routing)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: production
+    ports:
+    - protocol: TCP
+      port: 8081  # Identity
+    - protocol: TCP
+      port: 8082  # Content
+    - protocol: TCP
+      port: 8084  # Commerce/Payment
+    - protocol: TCP
+      port: 8085  # Notifications
+    - protocol: TCP
+      port: 8087  # Analytics
+  
+  # Allow to Redis (caching)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379
+  
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53

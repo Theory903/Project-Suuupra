@@ -18,9 +18,22 @@
   <description>Suuupra Identity Service</description>
 
   <properties>
-    <java.version>24</java.version>
+    <java.version>21</java.version>
     <nimbus.version>9.37.3</nimbus.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Jackson BOM to override transitive dependencies -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.17.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <!-- Spring starters -->
@@ -123,13 +136,13 @@
     <dependency>
       <groupId>com.yubico</groupId>
       <artifactId>webauthn-server-core</artifactId>
-      <version>2.4.0</version>
+      <version>2.2.0</version>
     </dependency>
     <!-- CBOR parsing for COSE/WebAuthn -->
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-cbor</artifactId>
-      <version>2.18.0</version>
+      <version>2.17.2</version>
     </dependency>
     <dependency>
       <groupId>com.google.zxing</groupId>

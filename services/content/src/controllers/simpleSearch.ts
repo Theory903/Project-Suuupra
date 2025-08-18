@@ -17,7 +17,7 @@ export class SimpleSearchController {
         return;
       }
 
-      const data = this.idx.search(q, { limit, contentType: types });
+      const data = this.idx.search(q, { limit, contentType: types || undefined });
 
       const response: ApiResponse = {
         success: true,

@@ -1,97 +1,48 @@
-# Beyond‑UPI PSP (Mobile App)
+# UPI PSP Service
 
-## Overview
+A comprehensive **Payment Service Provider (PSP)** backend service for the UPI (Unified Payments Interface) ecosystem. This service provides secure payment processing, user management, device binding, QR code generation, and transaction management capabilities.
 
-The PSP app is the user‑facing experience for Beyond‑UPI. It enables secure peer and merchant payments, alias privacy UX, delegated pay controls, MINI (minor) policies, group commits/splits, offline vouchers, device linking/session handoff, and a unified ledger view. It integrates with the Payments API and Core gRPC, applying strong device binding and passkey‑first authentication.
+## 🎯 Overview
 
-## 🎯 Features
+The UPI PSP Service acts as the backend for mobile payment applications, providing:
 
-### 🔐 Security & Authentication
-- **Biometric Authentication** (Fingerprint, Face ID)
-- **Device Binding** with secure device fingerprinting
-- **Root/Jailbreak Detection** for enhanced security
-- **Screen Recording Protection** to prevent data leaks
-- **Secure PIN Management** with encryption
-- **App Integrity Checks** to prevent tampering
+- **Secure Authentication**: JWT-based auth with device binding and biometric support
+- **UPI Transaction Processing**: P2P, P2M payments with real-time status tracking
+- **QR Code Management**: Dynamic QR generation and scanning capabilities
+- **Device Security**: Multi-device support with security validation
+- **Payment Requests**: Money request and collection features
+- **Transaction History**: Comprehensive transaction tracking and reporting
 
-### 💰 Payment Features
-- **Send Money** via VPA, mobile number, or QR code
-- **Request Money** with customizable payment requests
-- **QR Code Generation** for receiving payments
-- **QR Code Scanning** for quick payments
-- **Transaction History** with detailed records
-- **Recurring Payments** and scheduled transfers
-- **Split Bills** among multiple users
-
-### 🏪 Merchant Features
-- **Merchant QR Codes** for business payments
-- **Payment Collection** with invoice generation
-- **Business Analytics** and transaction reports
-- **Bulk Payment Processing** for vendors
-
-### 📱 User Experience
-- **Intuitive UI/UX** following Material Design principles
-- **Dark/Light Theme** support
-- **Multi-language Support** (Hindi, English)
-- **Offline Transaction Queue** for poor connectivity
-- **Push Notifications** for transaction updates
-- **Voice Commands** for accessibility
-
-## Tech Stack
-
-| Component | Technology | Version | Purpose |
-|-----------|------------|---------|---------|
-| **Framework** | Flutter | 3.16+ | Cross-platform mobile development |
-| **Language** | Dart | 3.2+ | Application logic and UI |
-| **State Management** | BLoC Pattern | 8.1+ | Predictable state management |
-| **Networking** | gRPC + Dio | Latest | Backend communication |
-| **Security** | Flutter Secure Storage | 9.0+ | Encrypted local storage |
-| **Authentication** | Local Auth | 2.1+ | Biometric authentication |
-| **QR Codes** | QR Flutter/Scanner | Latest | QR code generation and scanning |
-| **Database** | Hive/SQLite | Latest | Local data persistence |
-| **Testing** | Flutter Test + Mockito | Latest | Unit and widget testing |
-
-## Architecture
-
-The app follows **Clean Architecture** principles with clear separation of concerns:
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                       │
+│                    Mobile Applications                      │
+│               (iOS, Android, Web)                          │
+└─────────────────────────────────────────────────────────────┘
+                              │ REST API
+┌─────────────────────────────────────────────────────────────┐
+│                    UPI PSP Service                          │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
-│  │    BLoC     │ │   Widgets   │ │        Pages           │ │
-│  │ (Business   │ │    (UI)     │ │    (Screens)           │ │
-│  │   Logic)    │ │             │ │                        │ │
+│  │   Auth      │ │   Payment   │ │        QR Code          │ │
+│  │  Service    │ │   Service   │ │       Service           │ │
 │  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
-                              │
+                              │ gRPC
 ┌─────────────────────────────────────────────────────────────┐
-│                    Domain Layer                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
-│  │  Use Cases  │ │  Entities   │ │    Repositories         │ │
-│  │ (Business   │ │ (Models)    │ │   (Interfaces)          │ │
-│  │    Rules)   │ │             │ │                        │ │
-│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                    Data Layer                               │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
-│  │ Repositories│ │ Data Sources│ │       Models            │ │
-│  │(Concrete)   │ │(Remote/Local│ │    (DTOs)              │ │
-│  │             │ │             │ │                        │ │
-│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+│                    UPI Core Service                         │
+│              (Transaction Processing)                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- Flutter SDK 3.16+
-- Dart SDK 3.2+
-- Android Studio / VS Code
-- Android SDK (for Android development)
-- Xcode (for iOS development)
+
+- **Go 1.21+**
+- **Docker & Docker Compose**
+- **PostgreSQL 15+**
+- **Redis 7+**
 
 ### Installation
 
@@ -101,342 +52,343 @@ The app follows **Clean Architecture** principles with clear separation of conce
    cd services/upi-psp
    ```
 
-2. **Install dependencies**
+2. **Setup environment**
    ```bash
-   flutter pub get
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-3. **Generate code (if needed)**
+3. **Start with Docker Compose**
    ```bash
-   flutter packages pub run build_runner build
+   make docker-run
    ```
 
-4. **Run the app**
+4. **Or run in development mode**
    ```bash
-   # Development
-   flutter run --debug
-   
-   # Production
-   flutter run --release
+   make dev
    ```
 
-### Environment Setup
+The service will be available at:
+- **API**: http://localhost:8097
+- **Health Check**: http://localhost:8097/health
+- **Metrics**: http://localhost:9090
 
-Create environment configuration files:
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+#### Register User
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "phone_number": "+1234567890",
+  "password": "securepassword",
+  "pin": "1234"
+}
+```
+
+#### Login
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "securepassword",
+  "device_id": "device-123",
+  "device_info": {
+    "device_name": "iPhone 14",
+    "platform": "ios",
+    "os_version": "16.0",
+    "app_version": "1.0.0"
+  }
+}
+```
+
+#### Refresh Token
+```http
+POST /api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "your-refresh-token"
+}
+```
+
+### Payment Endpoints
+
+#### Send Money
+```http
+POST /api/v1/payments/send
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "payer_vpa": "user@suuupra",
+  "payee_vpa": "merchant@suuupra",
+  "amount": "100.00",
+  "description": "Payment for services",
+  "pin": "1234"
+}
+```
+
+#### Request Money
+```http
+POST /api/v1/payments/request
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "requester_vpa": "user@suuupra",
+  "payer_vpa": "friend@suuupra",
+  "amount": "50.00",
+  "description": "Dinner split",
+  "expires_in": 24
+}
+```
+
+#### Transaction History
+```http
+GET /api/v1/payments/history?limit=20&offset=0
+Authorization: Bearer <access-token>
+```
+
+### QR Code Endpoints
+
+#### Generate QR Code
+```http
+POST /api/v1/qr/generate
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "vpa": "merchant@suuupra",
+  "amount": "250.00",
+  "description": "Product purchase",
+  "type": "dynamic",
+  "expires_in": 30
+}
+```
+
+#### Scan QR Code
+```http
+POST /api/v1/qr/scan
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "qr_string": "upi://pay?pa=merchant@suuupra&am=250.00&tn=Product%20purchase",
+  "device_id": "device-123"
+}
+```
+
+## 🔧 Configuration
+
+The service uses environment variables for configuration. Key settings:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Service port | `8097` |
+| `DATABASE_URL` | PostgreSQL connection string | - |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `JWT_SECRET` | JWT signing secret | - |
+| `UPI_PSP_ID` | UPI PSP identifier | `SUUUPRAPSP` |
+
+See [`.env.example`](.env.example) for complete configuration options.
+
+## 🛠️ Development
+
+### Available Commands
 
 ```bash
-# lib/core/config/dev_config.dart
-class DevConfig {
-  static const String apiBaseUrl = 'https://dev-api.upi.com';
-  static const String grpcEndpoint = 'dev-grpc.upi.com:50051';
-  static const bool enableLogging = true;
-}
+# Development
+make dev              # Start with hot reload
+make run              # Run without hot reload
+make build            # Build binary
 
-# lib/core/config/prod_config.dart
-class ProdConfig {
-  static const String apiBaseUrl = 'https://api.upi.com';
-  static const String grpcEndpoint = 'grpc.upi.com:50051';
-  static const bool enableLogging = false;
-}
+# Testing
+make test             # Run tests
+make test-coverage    # Run tests with coverage
+make test-race        # Run tests with race detection
+
+# Code Quality
+make lint             # Run linter
+make format           # Format code
+make security-scan    # Security analysis
+
+# Docker
+make docker-build     # Build Docker image
+make docker-run       # Start services
+make docker-stop      # Stop services
+
+# Database
+make db-migrate       # Run migrations
+make db-reset         # Reset database
+
+# Utilities
+make clean            # Clean build artifacts
+make install-tools    # Install dev tools
 ```
 
-## 📱 App Structure
+### Project Structure
 
 ```
-lib/
-├── core/                           # Core utilities and constants
-│   ├── config/                     # Environment configurations
-│   ├── constants/                  # App constants and enums
-│   ├── errors/                     # Error handling
-│   ├── network/                    # Network clients and interceptors
-│   ├── security/                   # Security utilities
-│   ├── themes/                     # App themes and styling
-│   └── utils/                      # Helper utilities
-├── data/                           # Data layer
-│   ├── datasources/               # Remote and local data sources
-│   │   ├── remote/                # API clients
-│   │   └── local/                 # Local storage
-│   ├── models/                    # Data models (DTOs)
-│   └── repositories/              # Repository implementations
-├── domain/                        # Domain layer
-│   ├── entities/                  # Business entities
-│   ├── repositories/              # Repository interfaces
-│   └── usecases/                  # Business use cases
-├── presentation/                  # Presentation layer
-│   ├── bloc/                      # BLoC state management
-│   ├── pages/                     # Screen widgets
-│   ├── widgets/                   # Reusable UI components
-│   └── routes/                    # Navigation routing
-├── injection/                     # Dependency injection
-├── l10n/                         # Localization files
-└── main.dart                     # App entry point
+services/upi-psp/
+├── cmd/                    # Application entry points
+│   └── main.go
+├── internal/               # Private application code
+│   ├── config/            # Configuration management
+│   ├── database/          # Database connection & migrations
+│   ├── handlers/          # HTTP request handlers
+│   ├── middleware/        # HTTP middleware
+│   ├── models/           # Database models
+│   ├── repository/       # Data access layer
+│   └── services/         # Business logic
+├── scripts/              # Build and deployment scripts
+├── tests/                # Integration tests
+├── docker-compose.yml    # Docker services
+├── Dockerfile           # Container definition
+├── Makefile            # Build automation
+└── README.md           # This file
 ```
 
-## 🔐 Security Features
+## 🔒 Security Features
 
-### Device Security
-```dart
-class DeviceSecurityService {
-  // Root/Jailbreak detection
-  Future<bool> isDeviceSecure();
-  
-  // Screen recording protection
-  Future<void> enableScreenProtection();
-  
-  // Device fingerprinting
-  Future<String> getDeviceFingerprint();
-  
-  // App integrity verification
-  Future<bool> verifyAppIntegrity();
-}
-```
-
-### Secure Storage
-```dart
-class SecureStorageService {
-  // Encrypted PIN storage
-  Future<void> storeUserPin(String hashedPin);
-  
-  // Device binding token
-  Future<void> storeDeviceToken(String token);
-  
-  // Biometric preferences
-  Future<void> storeBiometricPreference(bool enabled);
-}
-```
+### Authentication & Authorization
+- **JWT-based authentication** with refresh tokens
+- **Device binding** and fingerprinting
+- **Multi-factor authentication** support
+- **Role-based access control**
 
 ### Transaction Security
-```dart
-class TransactionSecurityService {
-  // Transaction signing
-  Future<String> signTransaction(Transaction transaction, String pin);
-  
-  // PIN validation
-  Future<bool> validatePin(String enteredPin, String storedHash);
-  
-  // Transaction encryption
-  Future<String> encryptTransactionData(Map<String, dynamic> data);
-}
-```
+- **PIN verification** for sensitive operations
+- **Biometric authentication** support
+- **Device trust scoring**
+- **Real-time fraud detection**
+- **Transaction encryption**
 
-## 💳 Payment Flows
+### API Security
+- **Rate limiting** per user/device
+- **Request size limits**
+- **CORS protection**
+- **Security headers**
+- **Input validation & sanitization**
 
-### Send Money Flow
-1. **Recipient Selection** (VPA, Mobile, QR)
-2. **Amount Entry** with validation
-3. **Transaction Review** with fees
-4. **Authentication** (PIN/Biometric)
-5. **Processing** with real-time status
-6. **Confirmation** with receipt
+## 📊 Monitoring & Observability
 
-### Request Money Flow
-1. **Request Creation** with amount and note
-2. **Recipient Selection** from contacts
-3. **Request Sending** via notification
-4. **Status Tracking** until payment
-5. **Receipt Generation** on completion
+### Health Checks
+- **Liveness**: `/health`
+- **Readiness**: `/ready`
+- **Metrics**: `/metrics`
 
-### QR Payment Flow
-1. **QR Code Scanning** with camera
-2. **Payment Details Parsing**
-3. **Amount Confirmation**
-4. **Authentication** and processing
-5. **Success Confirmation**
+### Logging
+- **Structured JSON logging**
+- **Request/response logging**
+- **Error tracking**
+- **Performance metrics**
+
+### Metrics
+- **Prometheus integration**
+- **Custom business metrics**
+- **Database connection pooling**
+- **Redis performance metrics**
 
 ## 🧪 Testing
 
-### Unit Tests
-```bash
-# Run all unit tests
-flutter test
+The service includes comprehensive testing:
 
-# Run specific test file
-flutter test test/domain/usecases/process_payment_test.dart
+```bash
+# Run all tests
+make test
 
 # Run with coverage
-flutter test --coverage
+make test-coverage
+
+# Run specific test
+go test -v ./internal/services/...
+
+# Run benchmarks
+make benchmark
 ```
 
-### Widget Tests
+### Test Categories
+- **Unit Tests**: Service and handler logic
+- **Integration Tests**: Database and external service interactions
+- **API Tests**: End-to-end HTTP endpoint testing
+- **Security Tests**: Authentication and authorization flows
+
+## 🚀 Deployment
+
+### Docker Deployment
 ```bash
-# Test UI components
-flutter test test/presentation/widgets/
-
-# Test specific widget
-flutter test test/presentation/widgets/transaction_card_test.dart
+# Build and run with Docker Compose
+make docker-build
+make docker-run
 ```
 
-### Integration Tests
+### Production Deployment
 ```bash
-# Run integration tests
-flutter drive --target=test_driver/app.dart
+# Build for production
+make build-linux
+
+# Deploy (customize based on your infrastructure)
+make deploy
 ```
 
-### Test Coverage
-```bash
-# Generate coverage report
-genhtml coverage/lcov.info -o coverage/html
-open coverage/html/index.html
-```
+### Environment Setup
+- **Development**: Use `.env` file
+- **Staging/Production**: Use environment variables or secret management
+- **Kubernetes**: Use ConfigMaps and Secrets
 
-## 📊 Performance Monitoring
+## 🔄 Database Schema
 
-### Key Metrics
-- **App Launch Time**: < 3 seconds cold start
-- **Transaction Processing**: < 2 seconds end-to-end
-- **Memory Usage**: < 150MB average
-- **Battery Consumption**: Optimized for all-day usage
-- **Crash Rate**: < 0.1% sessions
+### Core Tables
+- **users**: User accounts and profiles
+- **devices**: Registered user devices
+- **vpas**: Virtual Payment Addresses
+- **transactions**: Payment transactions
+- **qr_codes**: Generated QR codes
+- **payment_requests**: Money requests
 
-### Monitoring Tools
-- **Firebase Crashlytics** for crash reporting
-- **Firebase Performance** for app performance
-- **Custom Analytics** for business metrics
-- **APM Integration** for transaction monitoring
-
-## 🌐 Localization
-
-The app supports multiple languages:
-
-```yaml
-# pubspec.yaml
-flutter:
-  generate: true
-
-# l10n.yaml
-arb-dir: lib/l10n
-template-arb-file: app_en.arb
-output-localization-file: app_localizations.dart
-```
-
-Supported languages:
-- English (en)
-- Hindi (hi)
-- Tamil (ta)
-- Telugu (te)
-- Bengali (bn)
-
-## 🔧 Build & Deployment
-
-### Android Build
-```bash
-# Debug build
-flutter build apk --debug
-
-# Release build
-flutter build apk --release
-
-# App Bundle for Play Store
-flutter build appbundle --release
-```
-
-### iOS Build
-```bash
-# Debug build
-flutter build ios --debug
-
-# Release build
-flutter build ios --release
-
-# Archive for App Store
-flutter build ipa --release
-```
-
-### Build Configuration
-
-```yaml
-# android/app/build.gradle
-android {
-    signingConfigs {
-        release {
-            storeFile file('../../../keystore/upi-psp-release.jks')
-            storePassword System.getenv("KEYSTORE_PASSWORD")
-            keyAlias System.getenv("KEY_ALIAS")
-            keyPassword System.getenv("KEY_PASSWORD")
-        }
-    }
-    
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-}
-```
-
-## 🚀 CI/CD Pipeline
-
-### GitHub Actions Workflow
-```yaml
-name: UPI PSP App CI/CD
-
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test --coverage
-      
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v3
-        with:
-          name: release-apk
-          path: build/app/outputs/apk/release/
-```
-
-## 📚 Documentation
-
-- **API Documentation**: [API Docs](docs/api.md)
-- **Architecture Guide**: [Architecture](docs/architecture.md)
-- **Security Guide**: [Security](docs/security.md)
-- **Testing Guide**: [Testing](docs/testing.md)
-- **Deployment Guide**: [Deployment](docs/deployment.md)
+### Key Features
+- **UUID primary keys** for security
+- **Soft deletes** for audit trails
+- **Indexed queries** for performance
+- **JSONB metadata** for flexibility
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the coding standards and write tests
-4. Commit your changes (`git commit -m 'Add amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+3. Follow coding standards (`make format lint`)
+4. Write tests for new functionality
+5. Commit changes (`git commit -m 'Add amazing feature'`)
+6. Push to branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-### Code Standards
-- Follow [Effective Dart](https://dart.dev/guides/language/effective-dart) guidelines
-- Use meaningful variable and function names
-- Write comprehensive tests for new features
-- Document public APIs with dartdoc comments
-- Run `flutter analyze` before committing
+### Coding Standards
+- **Go best practices** and idiomatic code
+- **Comprehensive error handling**
+- **Structured logging**
+- **Unit test coverage > 80%**
+- **API documentation** for new endpoints
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Support
+## 🆘 Support
 
 For support and questions:
-- **Email**: support@upi-psp.com
-- **Documentation**: [docs.upi-psp.com](https://docs.upi-psp.com)
-- **Issues**: [GitHub Issues](https://github.com/your-org/upi-psp/issues)
+- **Documentation**: Internal docs
+- **Issues**: GitHub Issues
+- **Email**: dev-team@suuupra.com
 
 ---
 
-**Built with ❤️ using Flutter**
+**Built with ❤️ using Go, PostgreSQL, and Redis**
