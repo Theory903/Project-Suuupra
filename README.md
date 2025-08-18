@@ -152,6 +152,36 @@ cd services/creator-studio
 docker-compose up -d                               # Creator content management
 curl -s http://localhost:8089/health | jq
 
+# 🧠 Intelligence Services (Production Ready)
+cd services/search-crawler
+docker-compose up -d                               # Search and content indexing
+curl -s http://localhost:8090/health | jq
+
+cd services/recommendations
+docker-compose up -d                               # ML-powered recommendations
+curl -s http://localhost:8091/health | jq
+
+cd services/analytics
+docker-compose up -d                               # Real-time analytics
+curl -s http://localhost:8092/health | jq
+
+# 🔧 Supporting Services (Production Ready)
+cd services/counters
+docker-compose up -d                               # High-performance counters
+curl -s http://localhost:8093/health | jq
+
+cd services/live-tracking
+docker-compose up -d                               # GPS and activity tracking
+curl -s http://localhost:8094/health | jq
+
+cd services/notifications
+docker-compose up -d                               # Multi-channel notifications
+curl -s http://localhost:8095/health | jq
+
+cd services/admin
+docker-compose up -d                               # Admin dashboard
+curl -s http://localhost:3002/health | jq
+
 # Per-Service Operations (standardized scripts):
 
 # In any service directory (e.g., services/api-gateway/)
@@ -310,6 +340,13 @@ We will follow a phased approach to building the Suuupra platform. Each phase de
 - **VOD service**: ✅ **PRODUCTION READY** - Video-on-demand platform with FFmpeg transcoding pipeline, multi-quality streaming, CDN integration, and S3 storage.
 - **Mass Live service**: ✅ **PRODUCTION READY** - Large-scale live streaming with LL-HLS protocol, multi-CDN support, real-time analytics, and capability for millions of concurrent viewers.
 - **Creator Studio service**: ✅ **PRODUCTION READY** - Comprehensive content management platform with analytics dashboard, monetization tools, upload pipeline, and creator-focused features.
+- **Search Crawler service**: ✅ **PRODUCTION READY** - Elasticsearch-based distributed crawler with content indexing, quality scoring, and duplicate detection.
+- **Recommendations service**: ✅ **PRODUCTION READY** - ML-powered recommendation engine with collaborative filtering, content-based filtering, and hybrid models.
+- **Analytics service**: ✅ **PRODUCTION READY** - Real-time data collection with business intelligence dashboards and user behavior tracking.
+- **Counters service**: ✅ **PRODUCTION READY** - High-performance distributed counter service with Redis clustering and persistence.
+- **Live Tracking service**: ✅ **PRODUCTION READY** - Real-time GPS tracking with route optimization, geofencing, and WebSocket updates.
+- **Notifications service**: ✅ **PRODUCTION READY** - Multi-channel delivery system with email, SMS, push notifications, and template management.
+- **Admin Dashboard**: ✅ **PRODUCTION READY** - Comprehensive platform management interface with user support and system monitoring.
 - **Global CI/CD**: Enforce lint, typecheck, unit/integration tests, security scans, and image signing.
 - **Security**: Vault-backed secrets, least-privilege IAM, rate limiting, and S2S auth.
 - **Observability**: OTEL tracing, Prometheus metrics, RED dashboards, and probes.
