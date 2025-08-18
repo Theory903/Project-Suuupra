@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  mass-live:
+    build: .
+    ports:
+      - "8088:8088"
+      - "1935:1935"  # RTMP port
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgres://massuser:masspass@postgres:5432/mass_live_db?sslmode=disable
+      - REDIS_URL=redis://redis:6379/5
+      - S3_BUCKET=suuupra-mass-live
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - CDN_BASE_URL=http://localhost:9000/suuupra-mass-live
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - LOG_LEVEL=info
+      - RTMP_PORT=1935
+      - LLHLS_ENABLED=true
+      - MAX_CONCURRENT_STREAMS=100
+      - MAX_VIEWERS_PER_STREAM=10000
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    volumes:
+      - ./streams:/tmp/streams
+    networks:
+      - mass-live-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=mass_live_db
+      - POSTGRES_USER=massuser
+      - POSTGRES_PASSWORD=masspass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mass-live-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - mass-live-network
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - mass-live-network
+
+  # Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - mass-live-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3003:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - mass-live-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16688:16686"
+      - "14270:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - mass-live-network
+
+  # CDN simulation (nginx with HLS support)
+  cdn:
+    image: nginx:alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx-hls.conf:/etc/nginx/nginx.conf
+      - ./streams:/usr/share/nginx/html/streams
+    networks:
+      - mass-live-network
+
+  # RTMP server for testing
+  rtmp-server:
+    image: tiangolo/nginx-rtmp
+    ports:
+      - "1936:1935"
+    volumes:
+      - ./rtmp.conf:/etc/nginx/nginx.conf
+      - ./streams:/tmp/hls
+    networks:
+      - mass-live-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  mass-live-network:
+    driver: bridge

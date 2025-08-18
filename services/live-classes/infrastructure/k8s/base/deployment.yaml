@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-classes
+  labels:
+    app: live-classes
+    service: live-classes
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: live-classes
+  template:
+    metadata:
+      labels:
+        app: live-classes
+        service: live-classes
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8086"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: live-classes
+        image: suuupra/live-classes:latest
+        ports:
+        - containerPort: 8086
+          name: http
+          protocol: TCP
+        - containerPort: 40000
+          name: rtc-start
+          protocol: UDP
+        - containerPort: 49999
+          name: rtc-end
+          protocol: UDP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8086"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: live-classes-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: live-classes-secrets
+              key: redis-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: live-classes-secrets
+              key: jwt-secret
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: live-classes-secrets
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: live-classes-secrets
+              key: aws-secret-access-key
+        - name: S3_BUCKET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: live-classes-config
+              key: s3-bucket-name
+        - name: S3_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: live-classes-config
+              key: s3-region
+        - name: MEDIASOUP_ANNOUNCED_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: OTEL_SERVICE_NAME
+          value: "live-classes"
+        - name: JAEGER_ENDPOINT
+          value: "http://jaeger-collector:14268/api/traces"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: recordings-storage
+          mountPath: /recordings
+      volumes:
+      - name: recordings-storage
+        persistentVolumeClaim:
+          claimName: live-classes-recordings-pvc
+      restartPolicy: Always
+      serviceAccountName: live-classes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-classes
+  labels:
+    app: live-classes
+    service: live-classes
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8086
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: live-classes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-classes-rtc
+  labels:
+    app: live-classes
+    service: live-classes-rtc
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 40000
+    targetPort: 40000
+    protocol: UDP
+    name: rtc-start
+  - port: 49999
+    targetPort: 49999
+    protocol: UDP
+    name: rtc-end
+  selector:
+    app: live-classes
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: live-classes
+  labels:
+    app: live-classes
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: live-classes-config
+  labels:
+    app: live-classes
+data:
+  s3-bucket-name: "suuupra-live-recordings"
+  s3-region: "us-west-2"
+  max-participants-per-room: "100"
+  max-concurrent-rooms: "1000"
+  recording-enabled: "true"
+  prometheus-enabled: "true"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: live-classes-recordings-pvc
+  labels:
+    app: live-classes
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp2

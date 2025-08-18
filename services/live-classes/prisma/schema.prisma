@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  role         String   @default("student") // student, instructor, admin
+  permissions  Json?    @default("[]")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdRooms    Room[]          @relation("RoomInstructor")
+  participations  Participant[]
+  chatMessages    ChatMessage[]
+  recordings      Recording[]
+
+  @@map("users")
+}
+
+model Room {
+  id               String    @id @default(uuid())
+  name             String
+  description      String?
+  instructorId     String    @map("instructor_id")
+  status           String    @default("scheduled") // scheduled, active, ended
+  maxParticipants  Int       @default(100) @map("max_participants")
+  scheduledAt      DateTime  @map("scheduled_at")
+  startedAt        DateTime? @map("started_at")
+  endedAt          DateTime? @map("ended_at")
+  isRecording      Boolean   @default(false) @map("is_recording")
+  recordingUrl     String?   @map("recording_url")
+  settings         Json      @default("{}")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  instructor    User            @relation("RoomInstructor", fields: [instructorId], references: [id])
+  participants  Participant[]
+  chatMessages  ChatMessage[]
+  recordings    Recording[]
+  breakoutRooms BreakoutRoom[]
+
+  @@map("rooms")
+}
+
+model Participant {
+  id               String    @id @default(uuid())
+  roomId           String    @map("room_id")
+  userId           String    @map("user_id")
+  name             String
+  email            String
+  role             String    @default("student") // instructor, student, moderator
+  joinedAt         DateTime  @default(now()) @map("joined_at")
+  leftAt           DateTime? @map("left_at")
+  isAudioEnabled   Boolean   @default(true) @map("is_audio_enabled")
+  isVideoEnabled   Boolean   @default(false) @map("is_video_enabled")
+  isScreenSharing  Boolean   @default(false) @map("is_screen_sharing")
+  isHandRaised     Boolean   @default(false) @map("is_hand_raised")
+  connectionStatus String    @default("connecting") @map("connection_status") // connecting, connected, disconnected
+
+  // Relations
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("participants")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  userName  String   @map("user_name")
+  message   String
+  type      String   @default("text") // text, file, system
+  metadata  Json?
+  timestamp DateTime @default(now())
+
+  // Relations
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, timestamp])
+  @@map("chat_messages")
+}
+
+model Recording {
+  id           String    @id @default(uuid())
+  roomId       String    @map("room_id")
+  instructorId String    @map("instructor_id")
+  startTime    DateTime  @map("start_time")
+  endTime      DateTime? @map("end_time")
+  status       String    @default("recording") // recording, processing, completed, failed
+  filePath     String?   @map("file_path")
+  s3Url        String?   @map("s3_url")
+  duration     Int?      // in seconds
+  fileSize     BigInt?   @map("file_size") // in bytes
+
+  // Relations
+  room       Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  instructor User @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([instructorId])
+  @@map("recordings")
+}
+
+model BreakoutRoom {
+  id           String    @id @default(uuid())
+  parentRoomId String    @map("parent_room_id")
+  name         String
+  participants Json      @default("[]") // Array of user IDs
+  createdAt    DateTime  @default(now()) @map("created_at")
+  endedAt      DateTime? @map("ended_at")
+
+  // Relations
+  parentRoom Room @relation(fields: [parentRoomId], references: [id], onDelete: Cascade)
+
+  @@map("breakout_rooms")
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  event      String
+  userId     String   @map("user_id")
+  properties Json     @default("{}")
+  roomId     String?  @map("room_id")
+  timestamp  DateTime @default(now())
+
+  @@index([event, timestamp])
+  @@index([userId, timestamp])
+  @@index([roomId, timestamp])
+  @@map("analytics_events")
+}
+
+model ScreenShareSession {
+  id        String    @id @default(uuid())
+  roomId    String    @map("room_id")
+  userId    String    @map("user_id")
+  startTime DateTime  @default(now()) @map("start_time")
+  endTime   DateTime? @map("end_time")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  @@index([roomId, isActive])
+  @@map("screen_share_sessions")
+}

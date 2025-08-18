@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: live-classes-base
+
+resources:
+  - deployment.yaml
+  - secrets.yaml
+  - hpa.yaml
+  - network-policy.yaml
+
+images:
+  - name: suuupra/live-classes
+    newTag: latest
+
+commonLabels:
+  app: live-classes
+  service: live-classes
+  component: backend
+
+namespace: default

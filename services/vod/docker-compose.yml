@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  vod:
+    build: .
+    ports:
+      - "8087:8087"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://voduser:vodpass@postgres:5432/vod_db
+      - REDIS_URL=redis://redis:6379/4
+      - S3_BUCKET_NAME=suuupra-vod-content
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - CDN_BASE_URL=http://localhost:9000/suuupra-vod-content
+      - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
+      - LOG_LEVEL=INFO
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - celery-worker
+    volumes:
+      - ./videos:/tmp/videos
+      - ./transcoded:/tmp/transcoded
+    networks:
+      - vod-network
+
+  celery-worker:
+    build: .
+    command: celery -A src.services.transcoding worker --loglevel=info --concurrency=2
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://voduser:vodpass@postgres:5432/vod_db
+      - REDIS_URL=redis://redis:6379/4
+      - S3_BUCKET_NAME=suuupra-vod-content
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    volumes:
+      - ./videos:/tmp/videos
+      - ./transcoded:/tmp/transcoded
+    networks:
+      - vod-network
+
+  celery-flower:
+    build: .
+    command: celery -A src.services.transcoding flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_URL=redis://redis:6379/4
+    depends_on:
+      - redis
+    networks:
+      - vod-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=vod_db
+      - POSTGRES_USER=voduser
+      - POSTGRES_PASSWORD=vodpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vod-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - vod-network
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - vod-network
+
+  # Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - vod-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - vod-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16687:16686"
+      - "14269:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - vod-network
+
+  # CDN simulation (nginx)
+  cdn:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./transcoded:/usr/share/nginx/html/videos
+    networks:
+      - vod-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  vod-network:
+    driver: bridge

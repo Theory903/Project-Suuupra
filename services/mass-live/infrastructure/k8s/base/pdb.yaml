@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mass-live-pdb
+  labels:
+    app: mass-live
+    service: mass-live
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: mass-live

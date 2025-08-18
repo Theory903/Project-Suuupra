@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mass-live-service-monitor
+  labels:
+    app: mass-live
+    service: mass-live
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: mass-live
+      service: mass-live
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'go_.*'
+      action: drop
+    - sourceLabels: [__name__]
+      regex: 'promhttp_.*'
+      action: drop
+  namespaceSelector:
+    matchNames:
+    - suuupra

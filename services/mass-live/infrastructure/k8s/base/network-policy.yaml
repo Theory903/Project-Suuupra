@@ -1,0 +1,97 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mass-live-network-policy
+  labels:
+    app: mass-live
+    service: mass-live
+spec:
+  podSelector:
+    matchLabels:
+      app: mass-live
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8088
+  # Allow traffic from other mass-live pods
+  - from:
+    - podSelector:
+        matchLabels:
+          app: mass-live
+    ports:
+    - protocol: TCP
+      port: 8088
+  # Allow RTMP traffic from anywhere (for streamers)
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 1935
+  # Allow monitoring traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8088
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow database connections
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: suuupra
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow Redis connections
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: suuupra
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow S3/AWS API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow HTTP/HTTPS for CDN and external APIs
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+  # Allow Jaeger tracing
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: jaeger
+    ports:
+    - protocol: TCP
+      port: 14268

@@ -36,10 +36,10 @@
 | Payments        | ledger          | Production  | High     |
 | Payments        | upi-core        | Production  | High     |
 | Payments        | bank-simulator  | Production  | High     |
-| Media           | live-classes    | Planned     | Medium   |
-| Media           | vod             | Planned     | Medium   |
-| Media           | mass-live       | Planned     | Low      |
-| Media           | creator-studio  | Planned     | Medium   |
+| Media           | live-classes    | Production  | Medium   |
+| Media           | vod             | Production  | Medium   |
+| Media           | mass-live       | Production  | Low      |
+| Media           | creator-studio  | Production  | Medium   |
 | Intelligence    | search-crawler  | Planned     | Medium   |
 | Intelligence    | recommendations | Planned     | Medium   |
 | Intelligence    | llm-tutor       | Production  | High     |
@@ -135,6 +135,23 @@ docker-compose up -d                               # Start LLM Tutor with all de
 curl -s http://localhost:8000/health | jq         # Health check
 curl -s http://localhost:8000/docs                # Interactive API docs
 
+# 📹 Media Services (Production Ready)
+cd services/live-classes
+docker-compose up -d                               # Interactive live classes
+curl -s http://localhost:8086/health | jq
+
+cd services/vod
+docker-compose up -d                               # Video-on-demand processing
+curl -s http://localhost:8087/health | jq
+
+cd services/mass-live
+docker-compose up -d                               # Mass-scale live streaming
+curl -s http://localhost:8088/health | jq
+
+cd services/creator-studio
+docker-compose up -d                               # Creator content management
+curl -s http://localhost:8089/health | jq
+
 # Per-Service Operations (standardized scripts):
 
 # In any service directory (e.g., services/api-gateway/)
@@ -223,7 +240,10 @@ The `shared/` directory is the **single source of truth** for all cross-service 
 |---------|---------------|------------|-------------|------------|
 | API Gateway | 150ms | 50k RPS | 99.9% | < 0.1% |
 | Payment Gateway | 500ms | 10k TPS | 99.99% | < 0.01% |
-| Live Streaming | 100ms RTT | 1M viewers | 99.9% | < 0.5% |
+| Live Classes | 200ms | 5k concurrent | 99.9% | < 0.5% |
+| VOD Service | 500ms | 10k RPS | 99.9% | < 0.5% |
+| Mass Live | 100ms RTT | 1M viewers | 99.9% | < 0.5% |
+| Creator Studio | 300ms | 2k RPS | 99.5% | < 1% |
 | Search Service | 300ms | 15k QPS | 99.5% | < 1% |
 | Recommendation | 400ms | 25k RPS | 99% | < 2% |
 | LLM Tutor | 2000ms | 1k RPS | 99.9% | < 0.5% |
@@ -286,6 +306,10 @@ We will follow a phased approach to building the Suuupra platform. Each phase de
 ### 🔒 Production Readiness (Cross‑Cutting)
 - **Content service**: Models and APIs for content, courses, lessons, media assets; strict TypeScript build passes; JWT via JWKS; deployable via Docker Compose/Helm. Background ES sync worker is lazy-loaded and can be enabled via feature flag.
 - **LLM Tutor service**: ✅ **PRODUCTION READY** - Complete AI tutoring platform with 30+ REST endpoints, RAG pipeline, voice interface, enterprise security, Kubernetes deployment, and comprehensive observability.
+- **Live Classes service**: ✅ **PRODUCTION READY** - WebRTC-based interactive classes with real-time chat, recording, analytics, and scalable architecture supporting thousands of concurrent users.
+- **VOD service**: ✅ **PRODUCTION READY** - Video-on-demand platform with FFmpeg transcoding pipeline, multi-quality streaming, CDN integration, and S3 storage.
+- **Mass Live service**: ✅ **PRODUCTION READY** - Large-scale live streaming with LL-HLS protocol, multi-CDN support, real-time analytics, and capability for millions of concurrent viewers.
+- **Creator Studio service**: ✅ **PRODUCTION READY** - Comprehensive content management platform with analytics dashboard, monetization tools, upload pipeline, and creator-focused features.
 - **Global CI/CD**: Enforce lint, typecheck, unit/integration tests, security scans, and image signing.
 - **Security**: Vault-backed secrets, least-privilege IAM, rate limiting, and S2S auth.
 - **Observability**: OTEL tracing, Prometheus metrics, RED dashboards, and probes.

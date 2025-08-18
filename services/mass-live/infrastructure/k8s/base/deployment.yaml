@@ -1,0 +1,206 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mass-live-deployment
+  labels:
+    app: mass-live
+    service: mass-live
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mass-live
+  template:
+    metadata:
+      labels:
+        app: mass-live
+        service: mass-live
+        version: v1
+    spec:
+      containers:
+      - name: mass-live
+        image: suuupra/mass-live:latest
+        ports:
+        - containerPort: 8088
+          name: http
+        - containerPort: 1935
+          name: rtmp
+        env:
+        - name: PORT
+          value: "8088"
+        - name: RTMP_PORT
+          value: "1935"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: mass-live-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: mass-live-secrets
+              key: redis-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mass-live-secrets
+              key: jwt-secret
+        - name: S3_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: s3-bucket
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: mass-live-secrets
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mass-live-secrets
+              key: aws-secret-access-key
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: aws-region
+        - name: CDN_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: cdn-base-url
+        - name: CDN_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: cdn-provider
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: log-level
+        - name: LLHLS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: llhls-enabled
+        - name: MAX_CONCURRENT_STREAMS
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: max-concurrent-streams
+        - name: MAX_VIEWERS_PER_STREAM
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: max-viewers-per-stream
+        - name: JAEGER_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: mass-live-config
+              key: jaeger-endpoint
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8088
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8088
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: stream-storage
+          mountPath: /tmp/streams
+        - name: segment-storage
+          mountPath: /tmp/segments
+      volumes:
+      - name: stream-storage
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: segment-storage
+        emptyDir:
+          sizeLimit: 5Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - mass-live
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mass-live-service
+  labels:
+    app: mass-live
+    service: mass-live
+spec:
+  selector:
+    app: mass-live
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8088
+    protocol: TCP
+  - name: rtmp
+    port: 1935
+    targetPort: 1935
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mass-live-config
+  labels:
+    app: mass-live
+data:
+  s3-bucket: "suuupra-mass-live"
+  aws-region: "us-east-1"
+  cdn-base-url: "https://cdn.suuupra.com/mass-live"
+  cdn-provider: "cloudflare"
+  log-level: "info"
+  llhls-enabled: "true"
+  max-concurrent-streams: "1000"
+  max-viewers-per-stream: "50000"
+  jaeger-endpoint: "http://jaeger-collector:14268/api/traces"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mass-live-secrets
+  labels:
+    app: mass-live
+type: Opaque
+data:
+  # These are base64 encoded placeholder values
+  # In production, these should be properly managed secrets
+  database-url: cG9zdGdyZXM6Ly91c2VyOnBhc3N3b3JkQGxvY2FsaG9zdDo1NDMyL21hc3NfbGl2ZV9kYj9zc2xtb2RlPWRpc2FibGU=
+  redis-url: cmVkaXM6Ly9sb2NhbGhvc3Q6NjM3OS81
+  jwt-secret: eW91ci1zdXBlci1zZWNyZXQtand0LWtleS1jaGFuZ2UtaW4tcHJvZHVjdGlvbg==
+  aws-access-key-id: eW91ci1hd3MtYWNjZXNzLWtleS1pZA==
+  aws-secret-access-key: eW91ci1hd3Mtc2VjcmV0LWFjY2Vzcy1rZXk=
