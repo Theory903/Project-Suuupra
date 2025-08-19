@@ -1,33 +1,27 @@
-
 {
-  "name": "suuupra-test-orchestrator",
+  "name": "suuupra-api-test-suite",
   "version": "1.0.0",
-  "description": "Comprehensive testing framework for Suuupra microservices",
-  "main": "test-orchestrator.js",
+  "description": "Comprehensive API testing suite for Suuupra EdTech Platform",
+  "main": "api-test-suite.js",
   "scripts": {
-    "test": "node test-orchestrator.js",
-    "test:verbose": "DEBUG=1 node test-orchestrator.js",
-    "test:single": "node test-single-service.js",
-    "test:load": "node test-load.js",
-    "test:contracts": "node test-contracts.js",
-    "install-deps": "npm run install-deps:node && npm run install-deps:python && npm run install-deps:go",
-    "install-deps:node": "for dir in services/*/; do (cd \"$dir\" && [ -f package.json ] && npm install || true); done",
-    "install-deps:python": "for dir in services/*/; do (cd \"$dir\" && [ -f requirements.txt ] && pip install -r requirements.txt || true); done",
-    "install-deps:go": "for dir in services/*/; do (cd \"$dir\" && [ -f go.mod ] && go mod tidy || true); done"
+    "test": "node api-test-suite.js",
+    "test:performance": "node api-test-suite.js --performance-only",
+    "test:security": "node api-test-suite.js --security-only",
+    "test:health": "node api-test-suite.js --health-only"
   },
   "dependencies": {
-    "node-fetch": "^2.6.7",
-    "commander": "^11.0.0",
-    "chalk": "^4.1.2",
-    "ora": "^5.4.1",
-    "table": "^6.8.1"
+    "axios": "^1.6.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "jest": "^29.7.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "author": "Suuupra Team",
-  "license": "MIT"
+  "keywords": [
+    "api-testing",
+    "microservices",
+    "health-check",
+    "performance",
+    "security"
+  ],
+  "author": "Suuupra EdTech Team",
+  "license": "PROPRIETARY"
 }

@@ -1,4 +1,3 @@
-
 {
   "name": "suuupra-test-orchestrator",
   "version": "1.0.0",
@@ -16,9 +15,10 @@
     "install-deps:go": "for dir in services/*/; do (cd \"$dir\" && [ -f go.mod ] && go mod tidy || true); done"
   },
   "dependencies": {
-    "node-fetch": "^2.6.7",
-    "commander": "^11.0.0",
+    "axios": "^1.11.0",
     "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "node-fetch": "^2.6.7",
     "ora": "^5.4.1",
     "table": "^6.8.1"
   },

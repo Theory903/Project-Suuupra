@@ -1,0 +1,35 @@
+# Vegeta targets file for industry-grade load testing
+# Format: METHOD URL
+
+# API Gateway (High Priority)
+GET http://localhost:8080/healthz
+GET http://localhost:8080/healthz
+GET http://localhost:8080/healthz
+
+# Identity Service (High Priority)
+GET http://localhost:8080/identity/actuator/health
+GET http://localhost:8080/identity/actuator/health
+
+# Financial Services (Critical)
+GET http://localhost:8080/payments/health
+GET http://localhost:8080/payments/health
+GET http://localhost:8080/payments/health
+GET http://localhost:8080/bank-simulator/api/banks
+GET http://localhost:8080/bank-simulator/api/banks
+GET http://localhost:8080/upi-core/health
+GET http://localhost:8080/upi-core/health
+
+# Educational Platform
+GET http://localhost:8080/content/health
+GET http://localhost:8080/content/health
+GET http://localhost:8080/live-classes/health
+GET http://localhost:8080/commerce/health
+
+# AI & Analytics
+GET http://localhost:8080/analytics/health
+GET http://localhost:8080/llm-tutor/health
+GET http://localhost:8080/recommendations/health
+
+# Communication Services
+GET http://localhost:8080/notifications/health
+GET http://localhost:8080/admin/health

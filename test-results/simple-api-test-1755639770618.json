@@ -1,0 +1,346 @@
+{
+  "services": {
+    "api-gateway": {
+      "success": true,
+      "status": 200,
+      "data": "{\"message\":\"api-gateway is running\",\"service\":\"api-gateway\",\"timestamp\":\"2025-08-19T21:42:50.525Z\",\"path\":\"/healthz\",\"method\":\"GET\",\"version\":\"1.0.0\"}",
+      "duration": 18,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "critical": true,
+      "url": "http://localhost:8080/healthz"
+    },
+    "identity": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"identity\",\"timestamp\":\"2025-08-19T21:42:50.529599344Z\",\"uptime\":1151451}",
+      "duration": 3,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "content-length": "103"
+      },
+      "critical": true,
+      "url": "http://localhost:8081/health"
+    },
+    "payments": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"payments\",\"timestamp\":\"2025-08-19T21:42:50Z\",\"uptime\":2214562}\n",
+      "duration": 3,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-length": "94"
+      },
+      "critical": true,
+      "url": "http://localhost:8082/health"
+    },
+    "commerce": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\": \"healthy\", \"service\": \"commerce\", \"timestamp\": \"2025-08-19T21:42:50Z\", \"uptime\": 1755639770537.8704}",
+      "duration": 5,
+      "headers": {
+        "server": "BaseHTTP/0.6 Python/3.11.13",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*"
+      },
+      "critical": true,
+      "url": "http://localhost:8083/health"
+    },
+    "content-delivery": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"content-delivery\",\"timestamp\":\"2025-08-19T21:42:50.541Z\",\"uptime\":1659.377657425}",
+      "duration": 3,
+      "headers": {
+        "x-powered-by": "Express",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "112",
+        "etag": "W/\"70-8HqUC+6qDET5kGtVhg/4gKArRuw\"",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      },
+      "critical": false,
+      "url": "http://localhost:8084/health"
+    },
+    "notifications": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\": \"healthy\", \"service\": \"notifications\", \"timestamp\": \"2025-08-19T21:42:50Z\", \"uptime\": 1755639770547.109}",
+      "duration": 6,
+      "headers": {
+        "server": "BaseHTTP/0.6 Python/3.11.13",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*"
+      },
+      "critical": false,
+      "url": "http://localhost:8085/health"
+    },
+    "ledger": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"ledger\",\"timestamp\":\"2025-08-19T21:42:50.552357011Z\",\"uptime\":1771306}",
+      "duration": 7,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "content-length": "101"
+      },
+      "critical": true,
+      "url": "http://localhost:8086/health"
+    },
+    "upi-core": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"upi-core\",\"timestamp\":\"2025-08-19T21:42:50Z\",\"uptime\":2214440}\n",
+      "duration": 5,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-length": "94"
+      },
+      "critical": true,
+      "url": "http://localhost:8087/health"
+    },
+    "bank-simulator": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"bank-simulator\",\"timestamp\":\"2025-08-19T21:42:50.564Z\",\"uptime\":2246472.787067}",
+      "duration": 5,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "critical": true,
+      "url": "http://localhost:8088/health"
+    },
+    "content": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"content\",\"timestamp\":\"2025-08-19T21:42:50.567Z\",\"uptime\":2214157.244552}",
+      "duration": 3,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "critical": true,
+      "url": "http://localhost:8089/health"
+    },
+    "live-classes": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"live-classes\",\"timestamp\":\"2025-08-19T21:42:50.570Z\",\"uptime\":1242273.876651}",
+      "duration": 2,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "critical": false,
+      "url": "http://localhost:8090/health"
+    },
+    "vod": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\": \"healthy\", \"service\": \"vod\", \"timestamp\": \"2025-08-19T21:42:50Z\", \"uptime\": 1755639770581.7368}",
+      "duration": 11,
+      "headers": {
+        "server": "BaseHTTP/0.6 Python/3.11.13",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*"
+      },
+      "critical": false,
+      "url": "http://localhost:8091/health"
+    },
+    "mass-live": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"mass-live\",\"timestamp\":\"2025-08-19T21:42:50Z\",\"uptime\":2214121}\n",
+      "duration": 2,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-length": "95"
+      },
+      "critical": false,
+      "url": "http://localhost:8092/health"
+    },
+    "creator-studio": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"creator-studio\",\"timestamp\":\"2025-08-19T21:42:50.587Z\",\"uptime\":2214079.721553}",
+      "duration": 3,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "critical": false,
+      "url": "http://localhost:8093/health"
+    },
+    "search-crawler": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"search-crawler\",\"timestamp\":\"2025-08-19T21:42:50.590516511Z\",\"version\":\"1.0.0\"}",
+      "duration": 2,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-length": "110"
+      },
+      "critical": false,
+      "url": "http://localhost:8094/health"
+    },
+    "recommendations": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\": \"healthy\", \"service\": \"recommendations\", \"timestamp\": \"2025-08-19T21:42:50Z\", \"uptime\": 1755639770593.4304}",
+      "duration": 3,
+      "headers": {
+        "server": "BaseHTTP/0.6 Python/3.11.13",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*"
+      },
+      "critical": false,
+      "url": "http://localhost:8095/health"
+    },
+    "llm-tutor": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\": \"healthy\", \"service\": \"llm-tutor\", \"timestamp\": \"2025-08-19T21:42:50Z\", \"uptime\": 1755639770598.5928}",
+      "duration": 5,
+      "headers": {
+        "server": "BaseHTTP/0.6 Python/3.11.13",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*"
+      },
+      "critical": false,
+      "url": "http://localhost:8096/health"
+    },
+    "analytics": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\": \"healthy\", \"service\": \"analytics\", \"timestamp\": \"2025-08-19T21:42:50Z\", \"uptime\": 1755639770603.234}",
+      "duration": 5,
+      "headers": {
+        "server": "BaseHTTP/0.6 Python/3.11.13",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-type": "application/json",
+        "access-control-allow-origin": "*"
+      },
+      "critical": false,
+      "url": "http://localhost:8097/health"
+    },
+    "counters": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"counters\",\"timestamp\":\"2025-08-19T21:42:50Z\",\"uptime\":2214734}\n",
+      "duration": 2,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-length": "94"
+      },
+      "critical": false,
+      "url": "http://localhost:8098/health"
+    },
+    "live-tracking": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"live-tracking\",\"timestamp\":\"2025-08-19T21:42:50Z\",\"uptime\":2214583}\n",
+      "duration": 7,
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "content-length": "99"
+      },
+      "critical": false,
+      "url": "http://localhost:8099/health"
+    },
+    "admin": {
+      "success": true,
+      "status": 200,
+      "data": "{\"status\":\"healthy\",\"service\":\"admin\",\"timestamp\":\"2025-08-19T21:42:50.615Z\",\"uptime\":1145957.9926480001}",
+      "duration": 3,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "content-type": "application/json",
+        "date": "Tue, 19 Aug 2025 21:42:50 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5",
+        "transfer-encoding": "chunked"
+      },
+      "critical": false,
+      "url": "http://localhost:8100/health"
+    }
+  },
+  "summary": {
+    "total": 21,
+    "passed": 21,
+    "failed": 0,
+    "critical_failures": 0,
+    "start_time": "2025-08-19T21:42:50.505Z",
+    "end_time": "2025-08-19T21:42:50.618Z"
+  }
+}

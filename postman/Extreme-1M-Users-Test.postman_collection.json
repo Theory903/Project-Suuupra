@@ -1,0 +1,561 @@
+{
+  "info": {
+    "name": "Suuupra 1M Users Extreme Load Test",
+    "description": "Ultimate extreme load testing simulating 1,000,000 concurrent users for global enterprise scale validation",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "concurrent_users",
+      "value": "1000000",
+      "type": "string"
+    },
+    {
+      "key": "test_duration",
+      "value": "1800",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🚀 1M Users - Ultimate System Stress Test",
+      "item": [
+        {
+          "name": "API Gateway - 1M User Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-users-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-User-{{$randomInt}}/1.0"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$randomUUID}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API Gateway handles 1M user load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time under 1M user load', function () {",
+                  "    const responseTime = pm.response.responseTime;",
+                  "    console.log('1M Load Response time:', responseTime + 'ms');",
+                  "    pm.expect(responseTime).to.be.below(10000);",
+                  "});",
+                  "",
+                  "// Track 1M user performance metrics",
+                  "const responseTime = pm.response.responseTime;",
+                  "pm.globals.set('last_1m_response_time', responseTime);",
+                  "pm.globals.set('test_timestamp_1m', Date.now());",
+                  "",
+                  "// Count successful 1M user requests",
+                  "const successCount = pm.globals.get('success_count_1m') || 0;",
+                  "pm.globals.set('success_count_1m', successCount + 1);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Identity Service - 1M User Authentication",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-identity-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/identity/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "actuator", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Identity service handles 1M users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Authentication performance under 1M load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(15000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 1M Users - Financial Systems Ultimate Test",
+      "item": [
+        {
+          "name": "Payment System - 1M Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-payments-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payments/health",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment system handles 1M transactions', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Payment processing under 1M load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(20000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Banking Operations - 1M Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-banking-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "banks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Banking system handles 1M concurrent users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Banking operations under massive load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(25000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "UPI Core - 1M Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-upi-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/upi-core/health",
+              "host": ["{{base_url}}"],
+              "path": ["upi-core", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UPI system handles 1M transactions', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('UPI performance under 1M user load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(20000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📚 1M Users - Educational Platform Ultimate Scale",
+      "item": [
+        {
+          "name": "Content Delivery - 1M Learners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-content-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-Learner-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/content/health",
+              "host": ["{{base_url}}"],
+              "path": ["content", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content system handles 1M concurrent learners', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content delivery at 1M scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(15000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Live Classes - 1M Students",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-live-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-Student-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/live-classes/health",
+              "host": ["{{base_url}}"],
+              "path": ["live-classes", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Live classes handle 1M concurrent students', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Live streaming at massive scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(20000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commerce - 1M Shoppers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-commerce-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-Shopper-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/commerce/health",
+              "host": ["{{base_url}}"],
+              "path": ["commerce", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Commerce handles 1M concurrent shoppers', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('E-commerce at 1M user scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(18000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🤖 1M Users - AI & Analytics Ultimate Load",
+      "item": [
+        {
+          "name": "Analytics Engine - 1M Data Streams",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-analytics-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-Analytics-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/health",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Analytics handles 1M data streams', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Analytics processing at massive scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(12000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LLM Tutor - 1M AI Interactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-llm-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-AI-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/llm-tutor/health",
+              "host": ["{{base_url}}"],
+              "path": ["llm-tutor", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('LLM Tutor handles 1M AI interactions', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('AI processing at 1M user scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recommendations - 1M User Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-recommendations-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-ML-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recommendations/health",
+              "host": ["{{base_url}}"],
+              "path": ["recommendations", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendations handle 1M user profiles', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('ML recommendations at massive scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(25000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔔 1M Users - Communication & Notifications",
+      "item": [
+        {
+          "name": "Notifications - 1M Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-notifications-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-Notify-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/health",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Notifications handle 1M messages', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Notification delivery at 1M scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(15000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Dashboard - 1M User Management",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "1M-admin-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-1M-Admin-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/health",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin system manages 1M users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Admin operations at massive scale', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(20000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

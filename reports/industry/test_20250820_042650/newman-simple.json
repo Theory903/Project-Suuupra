@@ -1,0 +1,4678 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "421c444b-2389-499b-b0eb-08062c31383f",
+        "name": "Health Checks",
+        "item": [
+          {
+            "id": "68fd3487-12ad-45d3-80f4-075477b04abe",
+            "name": "API Gateway Health",
+            "request": {
+              "url": {
+                "path": [
+                  "healthz"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "a65868b8-3d95-42ff-94ef-3ee6b65e2126",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('API Gateway is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "24943eba-9596-4fb5-a1e6-515cceee5564"
+                }
+              }
+            ]
+          },
+          {
+            "id": "d173c5cc-2e0b-4906-b2c9-875a5c8acca0",
+            "name": "Identity Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "identity",
+                  "actuator",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "873db5ad-03c8-47b4-a85c-d150dc837831",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Identity service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "19fa74ea-6cca-4514-b5ab-0d8614abdcfb"
+                }
+              }
+            ]
+          },
+          {
+            "id": "15a86dc7-ee1b-4817-b5b1-c846f97fc581",
+            "name": "Payments Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "payments",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "31c26281-a294-4b47-a0b0-d549cfd100e8",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Payments service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "bb3b398a-3a1e-45b1-b96b-570334ad8c81"
+                }
+              }
+            ]
+          },
+          {
+            "id": "04d9993a-4e8a-4d1c-941e-8fea0016c9ce",
+            "name": "Commerce Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "commerce",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8d22f147-20f9-42e3-a0b3-ca21f2c58f71",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Commerce service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "d7ec10f8-2969-4e3a-ac44-96a9a366126b"
+                }
+              }
+            ]
+          },
+          {
+            "id": "fab659f6-082b-4e46-b919-5c16c8c412b4",
+            "name": "Content Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "content",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "410649f9-fc92-4223-8412-b8e638df938e",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Content service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "03a28143-43e0-41df-98e0-d79fc368a866"
+                }
+              }
+            ]
+          },
+          {
+            "id": "938f96a3-4128-4e9a-9755-e19c14567bc4",
+            "name": "Bank Simulator Health",
+            "request": {
+              "url": {
+                "path": [
+                  "bank-simulator",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "b24b8366-7d58-4339-8796-c884b087d293",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Bank Simulator is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "32196bf7-7ae3-40f9-ae2a-25d7a47f7f8b"
+                }
+              }
+            ]
+          },
+          {
+            "id": "893857e4-4ecc-41b3-8aad-86ee5f0a621c",
+            "name": "UPI Core Health",
+            "request": {
+              "url": {
+                "path": [
+                  "upi-core",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "cdb1e29e-65a5-4822-9c34-fa8a2c0975c3",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('UPI Core is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "fe328319-442b-4355-b5c5-1065a16905a2"
+                }
+              }
+            ]
+          },
+          {
+            "id": "8a78acc0-7c4f-49e6-a4f5-c8e2d967d5cd",
+            "name": "Analytics Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "analytics",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "e39bcbff-7ceb-4618-bd9a-fb4bf35bcf0d",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Analytics service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "60f8945e-240d-4f2f-8b75-2bab4f187113"
+                }
+              }
+            ]
+          },
+          {
+            "id": "41bef691-be67-401c-95f0-bd9bb89e6bcb",
+            "name": "Notifications Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "notifications",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "a3914c77-5643-447a-b44c-45bc20b8268e",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Notifications service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "e4cec1c0-27cf-4338-b6cb-9e060a5c6279"
+                }
+              }
+            ]
+          },
+          {
+            "id": "bef35d5e-70b3-476d-b7c1-e9872e52d1c8",
+            "name": "Live Classes Health",
+            "request": {
+              "url": {
+                "path": [
+                  "live-classes",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "003fecf8-fd55-4613-b626-2058e81a42a1",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Live Classes service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "9b8124f7-3f9e-43af-b7b8-ed84ed3dd64b"
+                }
+              }
+            ]
+          },
+          {
+            "id": "1fa4cd66-e538-4657-ad6b-e7806fd47b72",
+            "name": "LLM Tutor Health",
+            "request": {
+              "url": {
+                "path": [
+                  "llm-tutor",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "ae0ce8c8-9fb9-4b58-aab8-bf064962d5ec",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('LLM Tutor service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "ec03bcc6-246e-4cd2-b5b3-48093b002cb1"
+                }
+              }
+            ]
+          },
+          {
+            "id": "c34ffdf8-245b-425b-a01d-4eba5a05e567",
+            "name": "Recommendations Health",
+            "request": {
+              "url": {
+                "path": [
+                  "recommendations",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "8a535bfb-a448-4ab4-99c3-aab3865fd55b",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Recommendations service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "f077349f-8538-4bf3-b24a-f1af34bc54e8"
+                }
+              }
+            ]
+          },
+          {
+            "id": "dcf768f6-5ce1-43cb-99b4-2b55ef1c260f",
+            "name": "Admin Service Health",
+            "request": {
+              "url": {
+                "path": [
+                  "admin",
+                  "health"
+                ],
+                "host": [
+                  "{{base_url}}"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "aa776c92-194a-4997-819c-95f23f46988e",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test('Admin service is healthy', function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});"
+                  ],
+                  "_lastExecutionId": "95a64408-567f-4065-84e5-f3109e664ee0"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "http://localhost:8080",
+        "key": "base_url"
+      }
+    ],
+    "info": {
+      "_postman_id": "0721b3e9-61cf-41fa-bb18-f70c45712e3e",
+      "name": "Suuupra API Tests - Simple",
+      "version": {
+        "raw": "1.0.0",
+        "major": 1,
+        "minor": 0,
+        "patch": 0,
+        "prerelease": [],
+        "build": [],
+        "string": "1.0.0"
+      },
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Simplified API testing for all Suuupra services",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "_": {
+      "postman_variable_scope": "environment"
+    },
+    "id": "local-dev-env",
+    "name": "Local Development",
+    "values": [
+      {
+        "type": "any",
+        "value": "http://localhost:8080",
+        "key": "gateway_url"
+      },
+      {
+        "type": "any",
+        "value": "v1",
+        "key": "api_version"
+      },
+      {
+        "type": "any",
+        "value": "development",
+        "key": "environment"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "access_token"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "refresh_token"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_expiry"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "test_user_id"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "test_user_email"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "cart_id"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "order_id"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "payment_intent_id"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "content_id"
+      },
+      {
+        "type": "any",
+        "value": "HDFC",
+        "key": "test_bank_code"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "correlationId"
+      }
+    ]
+  },
+  "globals": {
+    "id": "cbd7dc79-5cda-4ed8-b407-4b0c78b22d36",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 13,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 3.6923076923076925,
+      "responseMin": 1,
+      "responseMax": 16,
+      "responseSd": 3.7495561867550586,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1755644211471,
+      "completed": 1755644211656
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 13,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "773d06dc-3ded-4233-84c3-041d2d45a061",
+          "httpRequestId": "158a6dc8-486f-4734-b654-63054a47c04f"
+        },
+        "item": {
+          "id": "68fd3487-12ad-45d3-80f4-075477b04abe",
+          "name": "API Gateway Health",
+          "request": {
+            "url": {
+              "path": [
+                "healthz"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "a65868b8-3d95-42ff-94ef-3ee6b65e2126",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API Gateway is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "24943eba-9596-4fb5-a1e6-515cceee5564"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "healthz"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "00eb9338-0cd0-4b40-aa1d-eff43cada8eb",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "5fb2133f-3860-445a-84d9-1bd78c1039b9",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              52,
+              56,
+              56,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              122,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 16,
+          "responseSize": 150
+        },
+        "id": "68fd3487-12ad-45d3-80f4-075477b04abe",
+        "assertions": [
+          {
+            "assertion": "API Gateway is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0efa2835-e2b0-4414-ac13-05ef79111d51",
+          "length": 13,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "2ad48153-dd20-4cea-8638-92dc18f946ba"
+        },
+        "item": {
+          "id": "d173c5cc-2e0b-4906-b2c9-875a5c8acca0",
+          "name": "Identity Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "identity",
+                "actuator",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "873db5ad-03c8-47b4-a85c-d150dc837831",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Identity service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "19fa74ea-6cca-4514-b5ab-0d8614abdcfb"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "identity",
+              "actuator",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "1c3a2a7a-e9a5-42be-83e4-6096fe48ffc9",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "974e70a9-dda4-40af-a0d4-470446080020",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              49,
+              48,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              116,
+              121,
+              47,
+              97,
+              99,
+              116,
+              117,
+              97,
+              116,
+              111,
+              114,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 167
+        },
+        "id": "d173c5cc-2e0b-4906-b2c9-875a5c8acca0",
+        "assertions": [
+          {
+            "assertion": "Identity service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "3385c9a0-e50d-4ed2-bf3a-0d1ef7705991",
+          "length": 13,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "57ada2b8-2d3f-4678-ab50-b29fcfc8ab72"
+        },
+        "item": {
+          "id": "15a86dc7-ee1b-4817-b5b1-c846f97fc581",
+          "name": "Payments Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "payments",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "31c26281-a294-4b47-a0b0-d549cfd100e8",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payments service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "bb3b398a-3a1e-45b1-b96b-570334ad8c81"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "payments",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6075844c-cdee-456b-ab8d-cbe88cbd8526",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "787c5606-96aa-4097-be0d-9a94363668f7",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              50,
+              51,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              112,
+              97,
+              121,
+              109,
+              101,
+              110,
+              116,
+              115,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 158
+        },
+        "id": "15a86dc7-ee1b-4817-b5b1-c846f97fc581",
+        "assertions": [
+          {
+            "assertion": "Payments service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "ebcfd9d5-c60d-445c-ad91-79823bc36600",
+          "length": 13,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "b8d4d20a-6900-4bb2-9d02-11b94e846623"
+        },
+        "item": {
+          "id": "04d9993a-4e8a-4d1c-941e-8fea0016c9ce",
+          "name": "Commerce Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "commerce",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8d22f147-20f9-42e3-a0b3-ca21f2c58f71",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Commerce service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "d7ec10f8-2969-4e3a-ac44-96a9a366126b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "commerce",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "03bc4a67-797d-4492-8594-c6c0a27060f4",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "ea8c1f2b-b5b8-4133-85ef-ed41fee86b6b",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              51,
+              54,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              99,
+              111,
+              109,
+              109,
+              101,
+              114,
+              99,
+              101,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 4,
+          "responseSize": 158
+        },
+        "id": "04d9993a-4e8a-4d1c-941e-8fea0016c9ce",
+        "assertions": [
+          {
+            "assertion": "Commerce service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0a5007df-8576-4edd-b9b3-e6c4ac99b49e",
+          "length": 13,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "5b085dbc-8458-4795-82db-90acb8f3fb15"
+        },
+        "item": {
+          "id": "fab659f6-082b-4e46-b919-5c16c8c412b4",
+          "name": "Content Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "content",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "410649f9-fc92-4223-8412-b8e638df938e",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "03a28143-43e0-41df-98e0-d79fc368a866"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "content",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "33cd4301-b0ce-43ba-a24d-e6abcd837f7d",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "07c4924b-3f6f-499c-924c-a805c0cfc85e",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              53,
+              50,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              99,
+              111,
+              110,
+              116,
+              101,
+              110,
+              116,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 6,
+          "responseSize": 157
+        },
+        "id": "fab659f6-082b-4e46-b919-5c16c8c412b4",
+        "assertions": [
+          {
+            "assertion": "Content service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "115bfa59-9945-4496-9a8b-116ae30bb4ac",
+          "length": 13,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "6d731280-0041-457a-9b59-e1f00b79f247"
+        },
+        "item": {
+          "id": "938f96a3-4128-4e9a-9755-e19c14567bc4",
+          "name": "Bank Simulator Health",
+          "request": {
+            "url": {
+              "path": [
+                "bank-simulator",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "b24b8366-7d58-4339-8796-c884b087d293",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bank Simulator is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "32196bf7-7ae3-40f9-ae2a-25d7a47f7f8b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "bank-simulator",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "917a419e-043b-4559-ad13-99f242d27977",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "6c73c494-0c80-4382-b19f-ff7b7178cad1",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              54,
+              54,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              98,
+              97,
+              110,
+              107,
+              45,
+              115,
+              105,
+              109,
+              117,
+              108,
+              97,
+              116,
+              111,
+              114,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 164
+        },
+        "id": "938f96a3-4128-4e9a-9755-e19c14567bc4",
+        "assertions": [
+          {
+            "assertion": "Bank Simulator is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "5d7bdd84-2bd2-4dd6-a037-9a89d57b1a99",
+          "length": 13,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "a6c0b901-5457-449a-a41c-967393ba473b"
+        },
+        "item": {
+          "id": "893857e4-4ecc-41b3-8aad-86ee5f0a621c",
+          "name": "UPI Core Health",
+          "request": {
+            "url": {
+              "path": [
+                "upi-core",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "cdb1e29e-65a5-4822-9c34-fa8a2c0975c3",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UPI Core is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "fe328319-442b-4355-b5c5-1065a16905a2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "upi-core",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ea6d07d3-2df8-4745-84c6-78034061a9ab",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "5f52d1dc-0df6-4d08-8af3-9e61d36b620b",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              55,
+              56,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              117,
+              112,
+              105,
+              45,
+              99,
+              111,
+              114,
+              101,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 1,
+          "responseSize": 158
+        },
+        "id": "893857e4-4ecc-41b3-8aad-86ee5f0a621c",
+        "assertions": [
+          {
+            "assertion": "UPI Core is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "dbea0e8a-f517-4835-ad9e-644e40e0b09e",
+          "length": 13,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "059e4340-7832-46c5-bc62-76da12c4ec36"
+        },
+        "item": {
+          "id": "8a78acc0-7c4f-49e6-a4f5-c8e2d967d5cd",
+          "name": "Analytics Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "analytics",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "e39bcbff-7ceb-4618-bd9a-fb4bf35bcf0d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Analytics service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "60f8945e-240d-4f2f-8b75-2bab4f187113"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "analytics",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "63fef39a-61bb-4dc0-a8a8-7b58a4c1dcb3",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "981a20de-4c3d-468b-9495-ee26713189a6",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              53,
+              56,
+              57,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              97,
+              110,
+              97,
+              108,
+              121,
+              116,
+              105,
+              99,
+              115,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 159
+        },
+        "id": "8a78acc0-7c4f-49e6-a4f5-c8e2d967d5cd",
+        "assertions": [
+          {
+            "assertion": "Analytics service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c80ee691-1e62-42c1-8faf-ca44b711746f",
+          "length": 13,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "a7771974-3ed1-4462-9d00-4677b6010020"
+        },
+        "item": {
+          "id": "41bef691-be67-401c-95f0-bd9bb89e6bcb",
+          "name": "Notifications Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "notifications",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "a3914c77-5643-447a-b44c-45bc20b8268e",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Notifications service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "e4cec1c0-27cf-4338-b6cb-9e060a5c6279"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "notifications",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ae91122d-20f3-4789-83e9-fabbad3c2a3c",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "eb401361-d044-47e6-9ff2-0b6c88dce423",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              54,
+              48,
+              50,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              110,
+              111,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              116,
+              105,
+              111,
+              110,
+              115,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 163
+        },
+        "id": "41bef691-be67-401c-95f0-bd9bb89e6bcb",
+        "assertions": [
+          {
+            "assertion": "Notifications service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "681a0fbc-92c8-4765-8288-708eb30a5e9b",
+          "length": 13,
+          "cycles": 1,
+          "position": 9,
+          "iteration": 0,
+          "httpRequestId": "48077950-d8c0-42f2-925d-1cf745d88a08"
+        },
+        "item": {
+          "id": "bef35d5e-70b3-476d-b7c1-e9872e52d1c8",
+          "name": "Live Classes Health",
+          "request": {
+            "url": {
+              "path": [
+                "live-classes",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "003fecf8-fd55-4613-b626-2058e81a42a1",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Live Classes service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "9b8124f7-3f9e-43af-b7b8-ed84ed3dd64b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "live-classes",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c98aed4e-6fed-4ab4-a08e-9c54e1ffd67d",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "73b3cf35-c8d7-497c-b714-8821edd781c2",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              54,
+              49,
+              53,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              108,
+              105,
+              118,
+              101,
+              45,
+              99,
+              108,
+              97,
+              115,
+              115,
+              101,
+              115,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 162
+        },
+        "id": "bef35d5e-70b3-476d-b7c1-e9872e52d1c8",
+        "assertions": [
+          {
+            "assertion": "Live Classes service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "78cdd1fc-7f14-4308-a99f-814063e21338",
+          "length": 13,
+          "cycles": 1,
+          "position": 10,
+          "iteration": 0,
+          "httpRequestId": "cfd3381f-8927-4159-a38f-48f592a3af15"
+        },
+        "item": {
+          "id": "1fa4cd66-e538-4657-ad6b-e7806fd47b72",
+          "name": "LLM Tutor Health",
+          "request": {
+            "url": {
+              "path": [
+                "llm-tutor",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "ae0ce8c8-9fb9-4b58-aab8-bf064962d5ec",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('LLM Tutor service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "ec03bcc6-246e-4cd2-b5b3-48093b002cb1"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "llm-tutor",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "be2337a5-5c30-4d21-9a5c-d0c305b8b344",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "94c070c2-a05d-4f8b-a618-c1828e2a333d",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              54,
+              50,
+              55,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              108,
+              108,
+              109,
+              45,
+              116,
+              117,
+              116,
+              111,
+              114,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 159
+        },
+        "id": "1fa4cd66-e538-4657-ad6b-e7806fd47b72",
+        "assertions": [
+          {
+            "assertion": "LLM Tutor service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "cd93a1ee-8d22-434f-b7ce-d453931c9003",
+          "length": 13,
+          "cycles": 1,
+          "position": 11,
+          "iteration": 0,
+          "httpRequestId": "6e00ee33-244e-49d4-99c3-09fce03f42bb"
+        },
+        "item": {
+          "id": "c34ffdf8-245b-425b-a01d-4eba5a05e567",
+          "name": "Recommendations Health",
+          "request": {
+            "url": {
+              "path": [
+                "recommendations",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "8a535bfb-a448-4ab4-99c3-aab3865fd55b",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendations service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "f077349f-8538-4bf3-b24a-f1af34bc54e8"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "recommendations",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "da621d58-e30c-415f-9cd5-8e0a3d7f2985",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "0fcba521-6252-453d-9f32-2afdba8fe10d",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              54,
+              51,
+              56,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              114,
+              101,
+              99,
+              111,
+              109,
+              109,
+              101,
+              110,
+              100,
+              97,
+              116,
+              105,
+              111,
+              110,
+              115,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2,
+          "responseSize": 165
+        },
+        "id": "c34ffdf8-245b-425b-a01d-4eba5a05e567",
+        "assertions": [
+          {
+            "assertion": "Recommendations service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0619cdfe-e2c4-466a-b557-a99b76b36938",
+          "length": 13,
+          "cycles": 1,
+          "position": 12,
+          "iteration": 0,
+          "httpRequestId": "4a468ce4-699c-4424-86dd-9d156e0bbb37"
+        },
+        "item": {
+          "id": "dcf768f6-5ce1-43cb-99b4-2b55ef1c260f",
+          "name": "Admin Service Health",
+          "request": {
+            "url": {
+              "path": [
+                "admin",
+                "health"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "aa776c92-194a-4997-819c-95f23f46988e",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin service is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "_lastExecutionId": "95a64408-567f-4065-84e5-f3109e664ee0"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "http",
+            "port": "8080",
+            "path": [
+              "admin",
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "196b4c87-608e-4c1c-af23-51cf5c39649c",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8080",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "721a27f6-06f9-4162-8bf5-50e872081df7",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, POST, PUT, DELETE, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type, Authorization"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 19 Aug 2025 22:56:51 GMT"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=5"
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              32,
+              105,
+              115,
+              32,
+              114,
+              117,
+              110,
+              110,
+              105,
+              110,
+              103,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              97,
+              112,
+              105,
+              45,
+              103,
+              97,
+              116,
+              101,
+              119,
+              97,
+              121,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              56,
+              45,
+              49,
+              57,
+              84,
+              50,
+              50,
+              58,
+              53,
+              54,
+              58,
+              53,
+              49,
+              46,
+              54,
+              52,
+              57,
+              90,
+              34,
+              44,
+              34,
+              112,
+              97,
+              116,
+              104,
+              34,
+              58,
+              34,
+              47,
+              97,
+              100,
+              109,
+              105,
+              110,
+              47,
+              104,
+              101,
+              97,
+              108,
+              116,
+              104,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              104,
+              111,
+              100,
+              34,
+              58,
+              34,
+              71,
+              69,
+              84,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              49,
+              46,
+              48,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 155
+        },
+        "id": "dcf768f6-5ce1-43cb-99b4-2b55ef1c260f",
+        "assertions": [
+          {
+            "assertion": "Admin service is healthy",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 2075
+    },
+    "failures": [],
+    "error": null
+  }
+}

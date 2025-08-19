@@ -1,0 +1,144 @@
+config:
+  target: "http://localhost:8080"
+  phases:
+    # Industry-grade load testing phases
+    - duration: 60
+      arrivalRate: 25
+      name: "Warm-up Phase"
+    - duration: 120
+      arrivalRate: 100
+      name: "Baseline Load"
+    - duration: 180
+      arrivalRate: 250
+      name: "Sustained Load"
+    - duration: 120
+      arrivalRate: 500
+      name: "Peak Spike"
+    - duration: 60
+      arrivalRate: 1000
+      name: "Breaking Point"
+  plugins:
+    ensure: {}
+  ensure:
+    thresholds:
+      - http.response_time.p95: 1000
+      - http.response_time.p99: 3000
+      - http.response_time.mean: 500
+      - http.requests.completed: 95%
+  defaults:
+    headers:
+      User-Agent: "Artillery-IndustryGrade/1.0"
+      X-Test-Type: "Industry-Load-Test"
+
+scenarios:
+  # API Gateway Tests
+  - name: "API Gateway Health Check"
+    weight: 15
+    flow:
+      - get:
+          url: "/healthz"
+          expect:
+            - statusCode: 200
+            - hasHeader: "content-type"
+
+  # Identity Service Tests
+  - name: "Identity Service Health"
+    weight: 12
+    flow:
+      - get:
+          url: "/identity/actuator/health"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  # Financial Services Tests
+  - name: "Payment System Health"
+    weight: 15
+    flow:
+      - get:
+          url: "/payments/health"
+          expect:
+            - statusCode: 200
+
+  - name: "Banking Operations"
+    weight: 12
+    flow:
+      - get:
+          url: "/bank-simulator/api/banks"
+          expect:
+            - statusCode: 200
+
+  - name: "UPI Core System"
+    weight: 10
+    flow:
+      - get:
+          url: "/upi-core/health"
+          expect:
+            - statusCode: 200
+
+  # Educational Platform Tests
+  - name: "Content Delivery"
+    weight: 10
+    flow:
+      - get:
+          url: "/content/health"
+          expect:
+            - statusCode: 200
+
+  - name: "Live Classes"
+    weight: 8
+    flow:
+      - get:
+          url: "/live-classes/health"
+          expect:
+            - statusCode: 200
+
+  - name: "Commerce System"
+    weight: 8
+    flow:
+      - get:
+          url: "/commerce/health"
+          expect:
+            - statusCode: 200
+
+  # AI & Analytics Tests
+  - name: "Analytics Engine"
+    weight: 5
+    flow:
+      - get:
+          url: "/analytics/health"
+          expect:
+            - statusCode: 200
+
+  - name: "LLM Tutor"
+    weight: 3
+    flow:
+      - get:
+          url: "/llm-tutor/health"
+          expect:
+            - statusCode: 200
+
+  - name: "Recommendations"
+    weight: 2
+    flow:
+      - get:
+          url: "/recommendations/health"
+          expect:
+            - statusCode: 200
+
+  # Communication Tests
+  - name: "Notifications"
+    weight: 5
+    flow:
+      - get:
+          url: "/notifications/health"
+          expect:
+            - statusCode: 200
+
+  - name: "Admin Dashboard"
+    weight: 3
+    flow:
+      - get:
+          url: "/admin/health"
+          expect:
+            - statusCode: 200

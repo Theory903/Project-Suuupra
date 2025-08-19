@@ -1,0 +1,438 @@
+{
+  "info": {
+    "name": "Suuupra 10K Users Extreme Load Test",
+    "description": "Extreme load testing simulating 10,000 concurrent users for billion-user scale validation",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "concurrent_users",
+      "value": "10000",
+      "type": "string"
+    },
+    {
+      "key": "test_duration",
+      "value": "600",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🚀 10K Users - System Health Bombardment",
+      "item": [
+        {
+          "name": "API Gateway Health - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-users-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API Gateway handles 10K user load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time under extreme load', function () {",
+                  "    const responseTime = pm.response.responseTime;",
+                  "    console.log('10K Load Response time:', responseTime + 'ms');",
+                  "    pm.expect(responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "// Track performance metrics",
+                  "const responseTime = pm.response.responseTime;",
+                  "pm.globals.set('last_10k_response_time', responseTime);",
+                  "pm.globals.set('test_timestamp_10k', Date.now());",
+                  "",
+                  "// Count successful requests",
+                  "const successCount = pm.globals.get('success_count_10k') || 0;",
+                  "pm.globals.set('success_count_10k', successCount + 1);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Identity Service - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-identity-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/identity/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "actuator", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Identity service handles 10K users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Identity performance under extreme load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payment System - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-payments-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payments/health",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment system handles 10K users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Payment performance under extreme load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 10K Users - Critical Business Operations",
+      "item": [
+        {
+          "name": "Banking Operations - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-banking-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "banks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Banking system handles 10K concurrent users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Banking operations performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "UPI Core - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-upi-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/upi-core/health",
+              "host": ["{{base_url}}"],
+              "path": ["upi-core", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UPI system handles 10K users', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('UPI performance under massive load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📚 10K Users - Content & Learning Platform",
+      "item": [
+        {
+          "name": "Content Delivery - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-content-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/content/health",
+              "host": ["{{base_url}}"],
+              "path": ["content", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content system handles 10K concurrent learners', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content delivery performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(8000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Live Classes - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-live-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/live-classes/health",
+              "host": ["{{base_url}}"],
+              "path": ["live-classes", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Live classes handle 10K concurrent students', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Live streaming performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(8000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🤖 10K Users - AI & Analytics Systems",
+      "item": [
+        {
+          "name": "Analytics Engine - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-analytics-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/health",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Analytics handles 10K user data streams', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Analytics processing performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(6000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LLM Tutor - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-llm-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/llm-tutor/health",
+              "host": ["{{base_url}}"],
+              "path": ["llm-tutor", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('LLM Tutor handles 10K concurrent AI requests', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('AI processing performance under load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(15000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recommendations - 10K Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Load-Test",
+                "value": "10K-recommendations-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "LoadTest-User-{{$randomInt}}/1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recommendations/health",
+              "host": ["{{base_url}}"],
+              "path": ["recommendations", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recommendations handle 10K user profiles', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('ML recommendations performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

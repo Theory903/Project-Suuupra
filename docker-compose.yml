@@ -134,7 +134,7 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8081"   # Main service port
-      - "9092:9092"   # Metrics port
+      - "9192:9092"   # Metrics port (changed to avoid Kafka conflict)
     environment:
       # Core configuration
       NODE_ENV: production
@@ -767,7 +767,7 @@ services:
     restart: unless-stopped
     ports:
       - "8090:8090"   # Main service port
-      - "9101:9101"   # Metrics port
+      - "9201:9101"   # Metrics port (changed to avoid Kafka conflict)
       - "3478:3478"   # TURN server
     environment:
       NODE_ENV: production

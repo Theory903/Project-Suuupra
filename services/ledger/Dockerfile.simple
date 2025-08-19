@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /app
 COPY src/main/java/SimpleServer.java .
-RUN javac SimpleServer.java
+RUN javac SimpleServer.java && ls -la *.class
 
 FROM eclipse-temurin:17-jre
 
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y curl && \
 
 WORKDIR /app
 
-COPY --from=builder /app/SimpleServer.class .
+COPY --from=builder /app/*.class .
 
 RUN chown -R ledger:ledger /app
 USER ledger

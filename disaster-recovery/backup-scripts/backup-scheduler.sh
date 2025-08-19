@@ -1,9 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 # Backup Scheduler for Suuupra Platform
 # This is a simplified version for development/testing
 
 set -e
+
+# Install required packages for Alpine
+apk add --no-cache netcat-openbsd curl
 
 # Configuration
 BACKUP_DIR="/backups"
@@ -15,11 +18,11 @@ mkdir -p "$BACKUP_DIR"
 
 echo "Starting backup process at $(date)"
 
-# Simple health check endpoint
+# Simple health check endpoint using netcat
 start_health_server() {
     echo "Starting health check server on port 9999..."
     while true; do
-        echo -e "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n" | nc -l -p 9999 2>/dev/null || sleep 1
+        echo -e "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK" | nc -l -p 9999 2>/dev/null || sleep 1
     done &
 }
 

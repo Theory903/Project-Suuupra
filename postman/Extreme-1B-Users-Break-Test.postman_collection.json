@@ -1,0 +1,613 @@
+{
+  "info": {
+    "name": "Suuupra 1B Users Break Point Test",
+    "description": "Extreme stress test with 1,000,000,000 users designed to find actual system breaking point and failure modes",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "target_users",
+      "value": "1000000000",
+      "type": "string"
+    },
+    {
+      "key": "stress_level",
+      "value": "EXTREME_BREAKING_POINT",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔥 1B Users - System Breaking Point Test",
+      "item": [
+        {
+          "name": "API Gateway - 1B User Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-users-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-User-{{$randomInt}}/BREAK"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$randomUUID}}"
+              },
+              {
+                "key": "X-Load-Level",
+                "value": "EXTREME_OVERLOAD"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Track response time for breaking point analysis",
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "// Log performance metrics",
+                  "console.log('1B Load - Response:', responseTime + 'ms, Status:', statusCode);",
+                  "",
+                  "// Test for system stress indicators",
+                  "pm.test('API Gateway under 1B user stress', function () {",
+                  "    // Accept any response - we want to see failure modes",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "// Track failure patterns",
+                  "if (statusCode !== 200) {",
+                  "    console.log('FAILURE DETECTED - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "    pm.globals.set('failure_detected', 'true');",
+                  "    pm.globals.set('failure_status', statusCode);",
+                  "    pm.globals.set('failure_time', responseTime);",
+                  "}",
+                  "",
+                  "// Track extreme response times (system stress)",
+                  "if (responseTime > 10000) {",
+                  "    console.log('EXTREME LATENCY DETECTED:', responseTime + 'ms');",
+                  "    pm.globals.set('extreme_latency', responseTime);",
+                  "}",
+                  "",
+                  "// Count total stress requests",
+                  "var stressCount = pm.globals.get('stress_count') || 0;",
+                  "pm.globals.set('stress_count', parseInt(stressCount) + 1);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Identity Service - 1B Authentication Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-identity-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Auth-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/identity/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "actuator", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Identity service under 1B user overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 5000) {",
+                  "    console.log('Identity stress detected - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 1B Users - Financial System Overload",
+      "item": [
+        {
+          "name": "Payment System - 1B Transaction Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-payments-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Payment-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payments/health",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Payment system under 1B transaction overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 10000) {",
+                  "    console.log('Payment system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Banking Operations - 1B User Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-banking-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Banking-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "banks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Banking system under 1B user overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 15000) {",
+                  "    console.log('Banking system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "UPI Core - 1B Transaction Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-upi-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-UPI-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/upi-core/health",
+              "host": ["{{base_url}}"],
+              "path": ["upi-core", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('UPI system under 1B transaction overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 20000) {",
+                  "    console.log('UPI system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📚 1B Users - Educational Platform Overload",
+      "item": [
+        {
+          "name": "Content Delivery - 1B Learner Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-content-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Content-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/content/health",
+              "host": ["{{base_url}}"],
+              "path": ["content", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Content system under 1B learner overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 15000) {",
+                  "    console.log('Content system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Live Classes - 1B Student Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-live-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Live-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/live-classes/health",
+              "host": ["{{base_url}}"],
+              "path": ["live-classes", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Live classes under 1B student overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 20000) {",
+                  "    console.log('Live classes stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commerce - 1B Shopper Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-commerce-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Commerce-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/commerce/health",
+              "host": ["{{base_url}}"],
+              "path": ["commerce", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Commerce under 1B shopper overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 18000) {",
+                  "    console.log('Commerce system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🤖 1B Users - AI System Overload",
+      "item": [
+        {
+          "name": "Analytics Engine - 1B Data Stream Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-analytics-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Analytics-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/health",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Analytics under 1B data stream overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 12000) {",
+                  "    console.log('Analytics system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LLM Tutor - 1B AI Interaction Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-llm-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-AI-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/llm-tutor/health",
+              "host": ["{{base_url}}"],
+              "path": ["llm-tutor", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('LLM Tutor under 1B AI interaction overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 30000) {",
+                  "    console.log('LLM Tutor stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recommendations - 1B Profile Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-recommendations-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-ML-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recommendations/health",
+              "host": ["{{base_url}}"],
+              "path": ["recommendations", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Recommendations under 1B profile overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 25000) {",
+                  "    console.log('Recommendations stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔔 1B Users - Communication Overload",
+      "item": [
+        {
+          "name": "Notifications - 1B Message Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-notifications-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Notify-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/health",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Notifications under 1B message overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 15000) {",
+                  "    console.log('Notifications stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Dashboard - 1B User Management Overload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "1B-admin-break-{{$randomInt}}"
+              },
+              {
+                "key": "User-Agent",
+                "value": "StressTest-1B-Admin-{{$randomInt}}/BREAK"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/health",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var responseTime = pm.response.responseTime;",
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "pm.test('Admin system under 1B user management overload', function () {",
+                  "    pm.expect([200, 429, 500, 502, 503, 504]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (statusCode !== 200 || responseTime > 20000) {",
+                  "    console.log('Admin system stress - Status:', statusCode, 'Time:', responseTime + 'ms');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

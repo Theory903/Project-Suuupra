@@ -21,15 +21,7 @@ exports.fastifyLoggingPlugin = fastifyLoggingPlugin;
 const async_hooks_1 = require("async_hooks");
 const crypto_1 = require("crypto");
 const perf_hooks_1 = require("perf_hooks");
-let trace = { 
-    getActiveSpan: () => null,
-    getTracer: () => ({ 
-        startSpan: () => ({ 
-            setStatus: () => {}, 
-            end: () => {} 
-        }) 
-    })
-};
+let trace = { getActiveSpan: () => null };
 let otelContext = { active: () => ({}) };
 let SpanStatusCode = { OK: 1, ERROR: 2 };
 try {

@@ -1,0 +1,1104 @@
+{
+  "info": {
+    "name": "Suuupra EdTech Platform - Complete API Testing Suite",
+    "description": "Comprehensive production-level API testing for all 20+ microservices in the Suuupra EdTech Platform. This collection tests every endpoint through the API Gateway with full authentication, validation, and error handling.",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('🚀 Executing request:', pm.info.requestName);",
+          "console.log('📍 Environment:', pm.environment.name);",
+          "",
+          "// Set correlation ID for tracing",
+          "pm.globals.set('correlationId', 'test-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9));",
+          "",
+          "// Auto-refresh token if expired",
+          "const tokenExpiry = pm.environment.get('token_expiry');",
+          "if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {",
+          "    console.log('🔄 Token expired, refreshing...');",
+          "    // Token refresh logic will be handled in auth requests",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "const responseTime = pm.response.responseTime;",
+          "const statusCode = pm.response.code;",
+          "",
+          "console.log('✅ Response received:', statusCode, 'in', responseTime + 'ms');",
+          "",
+          "// Performance assertions",
+          "pm.test('Response time is acceptable', function () {",
+          "    pm.expect(responseTime).to.be.below(5000); // 5 seconds max",
+          "});",
+          "",
+          "// Security headers check",
+          "pm.test('Security headers present', function () {",
+          "    pm.expect(pm.response.headers.get('X-Content-Type-Options')).to.exist;",
+          "    pm.expect(pm.response.headers.get('X-Frame-Options')).to.exist;",
+          "});",
+          "",
+          "// Error handling",
+          "if (statusCode >= 400) {",
+          "    console.log('❌ Error response:', pm.response.text());",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "{{gateway_url}}",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication & Authorization",
+      "description": "Identity service authentication flows, token management, and user operations",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API Gateway is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.service).to.eql('api-gateway');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OIDC Discovery",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/identity/.well-known/openid-configuration",
+              "host": ["{{base_url}}"],
+              "path": ["identity", ".well-known", "openid-configuration"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OIDC Discovery successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.issuer).to.exist;",
+                  "    pm.expect(response.authorization_endpoint).to.exist;",
+                  "    pm.expect(response.token_endpoint).to.exist;",
+                  "    pm.expect(response.jwks_uri).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get JWKS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/identity/oauth2/jwks",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "oauth2", "jwks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('JWKS endpoint accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.keys).to.be.an('array');",
+                  "    pm.expect(response.keys.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Correlation-ID",
+                "value": "{{correlationId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test-{{$randomInt}}@suuupra.com\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/identity/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "{{api_version}}", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User registration successful', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.user).to.exist;",
+                  "    pm.expect(response.user.id).to.exist;",
+                  "    pm.environment.set('test_user_id', response.user.id);",
+                  "    pm.environment.set('test_user_email', response.user.email);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique test user email",
+                  "const timestamp = Date.now();",
+                  "const email = `test-${timestamp}@suuupra.com`;",
+                  "pm.environment.set('test_email', email);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{test_user_email}}\",\n  \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/identity/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "{{api_version}}", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.accessToken).to.exist;",
+                  "    pm.expect(response.refreshToken).to.exist;",
+                  "    ",
+                  "    // Store tokens",
+                  "    pm.environment.set('access_token', response.accessToken);",
+                  "    pm.environment.set('refresh_token', response.refreshToken);",
+                  "    ",
+                  "    // Calculate token expiry",
+                  "    const expiryTime = Date.now() + (response.expiresIn * 1000);",
+                  "    pm.environment.set('token_expiry', expiryTime.toString());",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/identity/api/{{api_version}}/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "{{api_version}}", "users", "me"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User profile retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.email).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Payment Gateway",
+      "description": "Payment processing, UPI transactions, and financial operations",
+      "item": [
+        {
+          "name": "Payment Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/health",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment Gateway is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem-{{$randomUUID}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"currency\": \"INR\",\n  \"paymentMethods\": [\"upi\", \"card\"],\n  \"customer\": {\n    \"vpa\": \"customer@paytm\",\n    \"mobile\": \"+919876543210\"\n  },\n  \"merchant\": {\n    \"vpa\": \"merchant@phonepe\",\n    \"businessName\": \"Test Merchant\"\n  },\n  \"description\": \"Test payment for API testing\",\n  \"metadata\": {\n    \"testId\": \"{{correlationId}}\",\n    \"source\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/api/{{api_version}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "api", "{{api_version}}", "intents"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment intent created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.clientSecret).to.exist;",
+                  "    pm.environment.set('payment_intent_id', response.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Payment Intent",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payments/api/{{api_version}}/intents/{{payment_intent_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "api", "{{api_version}}", "intents", "{{payment_intent_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment intent retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.eql(pm.environment.get('payment_intent_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏪 Commerce & Orders",
+      "description": "E-commerce operations, shopping cart, and order management",
+      "item": [
+        {
+          "name": "Commerce Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/commerce/health",
+              "host": ["{{base_url}}"],
+              "path": ["commerce", "health"]
+            }
+          }
+        },
+        {
+          "name": "Create Shopping Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"prod-{{$randomInt}}\",\n      \"quantity\": 2,\n      \"price\": 2999,\n      \"name\": \"JavaScript Masterclass\",\n      \"description\": \"Complete JavaScript course\"\n    },\n    {\n      \"productId\": \"prod-{{$randomInt}}\",\n      \"quantity\": 1,\n      \"price\": 4999,\n      \"name\": \"React Advanced Course\",\n      \"description\": \"Advanced React concepts\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/commerce/api/{{api_version}}/cart",
+              "host": ["{{base_url}}"],
+              "path": ["commerce", "api", "{{api_version}}", "cart"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Shopping cart created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.items).to.be.an('array');",
+                  "    pm.environment.set('cart_id', response.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cartId\": \"{{cart_id}}\",\n  \"paymentMethod\": \"upi\",\n  \"shippingAddress\": {\n    \"street\": \"123 Test Street\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"zipCode\": \"400001\",\n    \"country\": \"India\"\n  },\n  \"idempotencyKey\": \"order-{{$randomUUID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/commerce/api/{{api_version}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["commerce", "api", "{{api_version}}", "orders"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Order created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.status).to.exist;",
+                  "    pm.environment.set('order_id', response.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📚 Content Management",
+      "description": "Content creation, file uploads, and content workflow management",
+      "item": [
+        {
+          "name": "Content Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/content/health",
+              "host": ["{{base_url}}"],
+              "path": ["content", "health"]
+            }
+          }
+        },
+        {
+          "name": "Create Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Introduction to Machine Learning\",\n  \"description\": \"A comprehensive guide to machine learning fundamentals\",\n  \"contentType\": \"article\",\n  \"tags\": [\"machine-learning\", \"ai\", \"data-science\"],\n  \"categories\": [\"technology\", \"education\"],\n  \"metadata\": {\n    \"difficulty\": \"beginner\",\n    \"estimatedReadTime\": \"15 minutes\",\n    \"author\": \"Test Author\"\n  },\n  \"idempotencyKey\": \"content-{{$randomUUID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/content/api/{{api_version}}/content",
+              "host": ["{{base_url}}"],
+              "path": ["content", "api", "{{api_version}}", "content"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Content created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.title).to.exist;",
+                  "    pm.environment.set('content_id', response.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/content/api/{{api_version}}/search?q=machine learning&limit=10&contentType=article",
+              "host": ["{{base_url}}"],
+              "path": ["content", "api", "{{api_version}}", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "machine learning"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "contentType",
+                  "value": "article"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Content search successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.results).to.be.an('array');",
+                  "    pm.expect(response.total).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏦 Banking Simulation",
+      "description": "Bank simulator for testing financial operations and UPI transactions",
+      "item": [
+        {
+          "name": "Bank Simulator Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/health",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "health"]
+            }
+          }
+        },
+        {
+          "name": "List Banks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "banks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Banks list retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    pm.expect(response.length).to.be.greaterThan(0);",
+                  "    ",
+                  "    // Store first bank for testing",
+                  "    if (response.length > 0) {",
+                  "        pm.environment.set('test_bank_code', response[0].code);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Process Bank Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"TXN{{$randomInt}}\",\n  \"bankCode\": \"{{test_bank_code}}\",\n  \"accountNumber\": \"50100123456789\",\n  \"amountPaisa\": 150000,\n  \"type\": \"DEBIT\",\n  \"reference\": \"Test transaction via Postman\",\n  \"description\": \"API testing transaction\",\n  \"metadata\": {\n    \"testId\": \"{{correlationId}}\",\n    \"source\": \"postman-api-test\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/real-transactions/process",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "real-transactions", "process"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Bank transaction processed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.transactionId).to.exist;",
+                  "    pm.expect(response.bankReferenceId).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔄 UPI Core",
+      "description": "UPI transaction processing and VPA management",
+      "item": [
+        {
+          "name": "UPI Core Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/upi-core/health",
+              "host": ["{{base_url}}"],
+              "path": ["upi-core", "health"]
+            }
+          }
+        },
+        {
+          "name": "Process UPI Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"UPI{{$randomInt}}\",\n  \"payerVpa\": \"test@paytm\",\n  \"payeeVpa\": \"merchant@phonepe\",\n  \"amountPaisa\": 50000,\n  \"type\": \"P2M\",\n  \"reference\": \"Test UPI payment\",\n  \"payerBankCode\": \"HDFC\",\n  \"payeeBankCode\": \"ICICI\",\n  \"digitalSignature\": \"SHA256:test-signature\",\n  \"initiatedAt\": \"{{$isoTimestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/upi-core/upi/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["upi-core", "upi", "transactions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('UPI transaction processed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.transactionId).to.exist;",
+                  "    pm.expect(response.rrn).to.exist;",
+                  "    pm.expect(response.status).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📊 Analytics & Tracking",
+      "description": "Analytics data collection and reporting",
+      "item": [
+        {
+          "name": "Analytics Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/health",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "health"]
+            }
+          }
+        },
+        {
+          "name": "Track Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"api_test_event\",\n  \"userId\": \"{{test_user_id}}\",\n  \"properties\": {\n    \"source\": \"postman\",\n    \"testId\": \"{{correlationId}}\",\n    \"timestamp\": \"{{$isoTimestamp}}\",\n    \"userAgent\": \"Postman/API-Test\"\n  },\n  \"context\": {\n    \"ip\": \"127.0.0.1\",\n    \"userAgent\": \"Postman API Testing Suite\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/api/{{api_version}}/track",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "api", "{{api_version}}", "track"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Event tracked successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications",
+      "description": "Notification service for email, SMS, and push notifications",
+      "item": [
+        {
+          "name": "Notifications Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/health",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "health"]
+            }
+          }
+        },
+        {
+          "name": "Send Email Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"email\",\n  \"recipient\": \"{{test_user_email}}\",\n  \"template\": \"test_notification\",\n  \"subject\": \"API Test Notification\",\n  \"data\": {\n    \"userName\": \"Test User\",\n    \"message\": \"This is a test notification from Postman API testing\",\n    \"testId\": \"{{correlationId}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/api/{{api_version}}/send",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "api", "{{api_version}}", "send"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Email notification sent', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎓 Live Classes",
+      "description": "Live streaming and class management",
+      "item": [
+        {
+          "name": "Live Classes Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/live-classes/health",
+              "host": ["{{base_url}}"],
+              "path": ["live-classes", "health"]
+            }
+          }
+        },
+        {
+          "name": "Create Live Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Live Session\",\n  \"description\": \"API testing live session\",\n  \"scheduledAt\": \"{{$isoTimestamp}}\",\n  \"duration\": 3600,\n  \"maxParticipants\": 100,\n  \"isRecorded\": true,\n  \"metadata\": {\n    \"testId\": \"{{correlationId}}\",\n    \"source\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/live-classes/api/{{api_version}}/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["live-classes", "api", "{{api_version}}", "sessions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Live session created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.streamUrl).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🤖 LLM Tutor",
+      "description": "AI-powered tutoring and educational assistance",
+      "item": [
+        {
+          "name": "LLM Tutor Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/llm-tutor/health",
+              "host": ["{{base_url}}"],
+              "path": ["llm-tutor", "health"]
+            }
+          }
+        },
+        {
+          "name": "Ask Question to Tutor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Explain the concept of machine learning in simple terms\",\n  \"context\": {\n    \"subject\": \"computer-science\",\n    \"level\": \"beginner\",\n    \"userId\": \"{{test_user_id}}\"\n  },\n  \"preferences\": {\n    \"responseLength\": \"medium\",\n    \"includeExamples\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/llm-tutor/api/{{api_version}}/ask",
+              "host": ["{{base_url}}"],
+              "path": ["llm-tutor", "api", "{{api_version}}", "ask"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tutor response received', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.answer).to.exist;",
+                  "    pm.expect(response.confidence).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📈 Recommendations",
+      "description": "AI-powered content and course recommendations",
+      "item": [
+        {
+          "name": "Recommendations Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/recommendations/health",
+              "host": ["{{base_url}}"],
+              "path": ["recommendations", "health"]
+            }
+          }
+        },
+        {
+          "name": "Get User Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recommendations/api/{{api_version}}/users/{{test_user_id}}/recommendations?type=courses&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["recommendations", "api", "{{api_version}}", "users", "{{test_user_id}}", "recommendations"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "courses"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Recommendations retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.recommendations).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔧 Admin Operations",
+      "description": "Administrative operations and system management",
+      "item": [
+        {
+          "name": "Admin Dashboard Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/health",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "health"]
+            }
+          }
+        },
+        {
+          "name": "Get System Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/api/{{api_version}}/system/status",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "api", "{{api_version}}", "system", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('System status retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.services).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

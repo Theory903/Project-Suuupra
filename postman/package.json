@@ -1,0 +1,62 @@
+{
+  "name": "suuupra-api-testing-suite",
+  "version": "2.0.0",
+  "description": "Production-grade API testing suite for Suuupra EdTech Platform using Newman and Postman",
+  "main": "newman-runner.js",
+  "scripts": {
+    "test": "node newman-runner.js local full",
+    "test:health": "node newman-runner.js local health",
+    "test:local": "node newman-runner.js local full",
+    "test:production": "node newman-runner.js production full",
+    "test:auth": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🔐 Authentication & Authorization\"",
+    "test:payments": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"💳 Payment Gateway\"",
+    "test:commerce": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🏪 Commerce & Orders\"",
+    "test:content": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"📚 Content Management\"",
+    "test:banking": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🏦 Banking Simulation\"",
+    "test:upi": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🔄 UPI Core\"",
+    "test:analytics": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"📊 Analytics & Tracking\"",
+    "test:notifications": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🔔 Notifications\"",
+    "test:live": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🎓 Live Classes\"",
+    "test:ai": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🤖 LLM Tutor\"",
+    "test:recommendations": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"📈 Recommendations\"",
+    "test:admin": "newman run Suuupra-EdTech-Platform.postman_collection.json -e environments/Local-Development.postman_environment.json --folder \"🔧 Admin Operations\"",
+    "install-newman": "npm install -g newman newman-reporter-html newman-reporter-json newman-reporter-junit",
+    "validate": "newman run Suuupra-EdTech-Platform.postman_collection.json --dry-run",
+    "report": "open reports/newman-report.html",
+    "clean": "rm -rf reports/* && mkdir -p reports",
+    "ci": "npm run clean && npm run test && npm run report"
+  },
+  "dependencies": {
+    "newman": "^6.0.0",
+    "newman-reporter-html": "^1.0.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "keywords": [
+    "api-testing",
+    "newman",
+    "postman",
+    "microservices",
+    "edtech",
+    "suuupra",
+    "automation",
+    "ci-cd"
+  ],
+  "author": "Suuupra EdTech Team",
+  "license": "PROPRIETARY",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suuupra/edtech-platform.git",
+    "directory": "postman"
+  },
+  "bugs": {
+    "url": "https://github.com/suuupra/edtech-platform/issues"
+  },
+  "homepage": "https://github.com/suuupra/edtech-platform#readme"
+}

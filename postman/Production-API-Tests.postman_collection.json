@@ -1,0 +1,609 @@
+{
+  "info": {
+    "name": "Suuupra Production API Tests",
+    "description": "Production-level API testing for all Suuupra services with comprehensive functionality testing",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "test_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System Health Checks",
+      "item": [
+        {
+          "name": "API Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API Gateway is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.service).to.eql('api-gateway');",
+                  "});",
+                  "",
+                  "pm.test('Response time is acceptable', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "All Services Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/health",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('All services are healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication Flow",
+      "item": [
+        {
+          "name": "OIDC Discovery",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/identity/.well-known/openid-configuration",
+              "host": ["{{base_url}}"],
+              "path": ["identity", ".well-known", "openid-configuration"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OIDC Discovery successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.issuer).to.exist;",
+                  "    pm.expect(response.authorization_endpoint).to.exist;",
+                  "    pm.expect(response.token_endpoint).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get JWKS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/identity/oauth2/jwks",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "oauth2", "jwks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('JWKS endpoint accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.keys).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Test User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"email\\\": \\\"{{test_email}}\\\",\\n  \\\"password\\\": \\\"TestPassword123!\\\",\\n  \\\"firstName\\\": \\\"API\\\",\\n  \\\"lastName\\\": \\\"Test\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/identity/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "v1", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "const email = `apitest-${timestamp}@suuupra.com`;",
+                  "pm.collectionVariables.set('test_email', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User registration successful', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.user).to.exist;",
+                  "    pm.expect(response.user.email).to.eql(pm.collectionVariables.get('test_email'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Test User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"email\\\": \\\"{{test_email}}\\\",\\n  \\\"password\\\": \\\"TestPassword123!\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/identity/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "v1", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.accessToken).to.exist;",
+                  "    pm.collectionVariables.set('access_token', response.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Banking & Payments",
+      "item": [
+        {
+          "name": "List Banks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "banks"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Banks list retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    pm.expect(response.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Bank Health - HDFC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/banks/HDFC/health",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "banks", "HDFC", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HDFC bank health check successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.bankCode).to.eql('HDFC');",
+                  "    pm.expect(response.status).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Process Bank Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"transactionId\\\": \\\"TEST-{{$randomInt}}\\\",\\n  \\\"bankCode\\\": \\\"HDFC\\\",\\n  \\\"accountNumber\\\": \\\"50100123456789\\\",\\n  \\\"amountPaisa\\\": 100000,\\n  \\\"type\\\": \\\"DEBIT\\\",\\n  \\\"reference\\\": \\\"API Test Transaction\\\",\\n  \\\"description\\\": \\\"Automated API testing transaction\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/real-transactions/process",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "real-transactions", "process"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bank transaction processed successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.transactionId).to.exist;",
+                  "    pm.expect(response.bankReferenceId).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. UPI Operations",
+      "item": [
+        {
+          "name": "UPI Transaction Processing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"transactionId\\\": \\\"UPI-{{$randomInt}}\\\",\\n  \\\"payerVpa\\\": \\\"test@paytm\\\",\\n  \\\"payeeVpa\\\": \\\"merchant@phonepe\\\",\\n  \\\"amountPaisa\\\": 50000,\\n  \\\"type\\\": \\\"P2M\\\",\\n  \\\"reference\\\": \\\"API Test UPI Payment\\\",\\n  \\\"payerBankCode\\\": \\\"HDFC\\\",\\n  \\\"payeeBankCode\\\": \\\"ICICI\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/upi-core/upi/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["upi-core", "upi", "transactions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UPI transaction processed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.transactionId).to.exist;",
+                  "    pm.expect(response.status).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Content Management",
+      "item": [
+        {
+          "name": "Create Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"title\\\": \\\"API Test Content - {{$randomInt}}\\\",\\n  \\\"description\\\": \\\"Content created via API testing\\\",\\n  \\\"contentType\\\": \\\"article\\\",\\n  \\\"tags\\\": [\\\"api-test\\\", \\\"automation\\\"],\\n  \\\"metadata\\\": {\\n    \\\"source\\\": \\\"postman-api-test\\\",\\n    \\\"testId\\\": \\\"{{$randomUUID}}\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/content/api/v1/content",
+              "host": ["{{base_url}}"],
+              "path": ["content", "api", "v1", "content"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.exist;",
+                  "    pm.expect(response.title).to.contain('API Test Content');",
+                  "    pm.collectionVariables.set('content_id', response.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/content/api/v1/search?q=API Test&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["content", "api", "v1", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "API Test"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content search successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.results).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Analytics & Tracking",
+      "item": [
+        {
+          "name": "Track Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"event\\\": \\\"api_test_completed\\\",\\n  \\\"properties\\\": {\\n    \\\"testSuite\\\": \\\"production-api-tests\\\",\\n    \\\"timestamp\\\": \\\"{{$isoTimestamp}}\\\",\\n    \\\"source\\\": \\\"postman\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/api/v1/track",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "api", "v1", "track"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Event tracked successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Notifications",
+      "item": [
+        {
+          "name": "Send Test Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"type\\\": \\\"email\\\",\\n  \\\"recipient\\\": \\\"{{test_email}}\\\",\\n  \\\"subject\\\": \\\"API Test Notification\\\",\\n  \\\"template\\\": \\\"test_notification\\\",\\n  \\\"data\\\": {\\n    \\\"message\\\": \\\"API testing completed successfully\\\",\\n    \\\"timestamp\\\": \\\"{{$isoTimestamp}}\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/api/v1/send",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "api", "v1", "send"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Notification sent successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Performance & Load Testing",
+      "item": [
+        {
+          "name": "Concurrent Health Checks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health check under load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

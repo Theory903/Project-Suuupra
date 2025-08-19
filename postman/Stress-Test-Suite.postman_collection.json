@@ -1,0 +1,601 @@
+{
+  "info": {
+    "name": "Suuupra Stress Test Suite",
+    "description": "High-volume stress testing for Suuupra EdTech Platform - designed for concurrent load testing and performance validation",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "stress_user_count",
+      "value": "100",
+      "type": "string"
+    },
+    {
+      "key": "test_duration",
+      "value": "300",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Baseline Load Tests",
+      "item": [
+        {
+          "name": "API Gateway Stress Test",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "baseline-{{$randomInt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API Gateway responds under load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Response time acceptable under stress', function () {",
+                  "    const responseTime = pm.response.responseTime;",
+                  "    console.log('Response time:', responseTime + 'ms');",
+                  "    pm.expect(responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "// Store metrics for analysis",
+                  "pm.globals.set('last_response_time', pm.response.responseTime);",
+                  "pm.globals.set('test_timestamp', Date.now());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Identity Service Load Test",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "identity-{{$randomInt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/identity/.well-known/openid-configuration",
+              "host": ["{{base_url}}"],
+              "path": ["identity", ".well-known", "openid-configuration"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Identity service handles load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.issuer).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('OIDC discovery performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication Stress Tests",
+      "item": [
+        {
+          "name": "Concurrent User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "registration-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"email\\\": \\\"stresstest-{{$randomInt}}-{{$timestamp}}@suuupra.com\\\",\\n  \\\"password\\\": \\\"StressTest123!\\\",\\n  \\\"firstName\\\": \\\"Stress\\\",\\n  \\\"lastName\\\": \\\"Test{{$randomInt}}\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/identity/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "v1", "auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Registration handles concurrent load', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Registration response time under load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('stress_user_email', response.user.email);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "High-Volume Login Attempts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "login-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"email\\\": \\\"{{stress_user_email}}\\\",\\n  \\\"password\\\": \\\"StressTest123!\\\"\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/identity/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["identity", "api", "v1", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login handles high volume', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Login performance under stress', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2500);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('stress_access_token', response.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Payment System Stress Tests",
+      "item": [
+        {
+          "name": "Concurrent Payment Intent Creation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "stress-{{$randomUUID}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "payment-intent-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"amount\\\": {{$randomInt}},\\n  \\\"currency\\\": \\\"INR\\\",\\n  \\\"paymentMethods\\\": [\\\"upi\\\", \\\"card\\\"],\\n  \\\"customer\\\": {\\n    \\\"vpa\\\": \\\"stresstest{{$randomInt}}@paytm\\\",\\n    \\\"mobile\\\": \\\"+91987654{{$randomInt}}\\\"\\n  },\\n  \\\"merchant\\\": {\\n    \\\"vpa\\\": \\\"merchant{{$randomInt}}@phonepe\\\",\\n    \\\"businessName\\\": \\\"Stress Test Merchant\\\"\\n  },\\n  \\\"description\\\": \\\"Stress test payment {{$randomInt}}\\\",\\n  \\\"metadata\\\": {\\n    \\\"stressTestId\\\": \\\"{{$randomUUID}}\\\",\\n    \\\"timestamp\\\": \\\"{{$isoTimestamp}}\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/api/v1/intents",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "api", "v1", "intents"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payment intent creation under load', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Payment system performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('stress_payment_intent_id', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "High-Volume Bank Transactions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "bank-txn-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"transactionId\\\": \\\"STRESS-{{$randomInt}}-{{$timestamp}}\\\",\\n  \\\"bankCode\\\": \\\"HDFC\\\",\\n  \\\"accountNumber\\\": \\\"50100123456789\\\",\\n  \\\"amountPaisa\\\": {{$randomInt}},\\n  \\\"type\\\": \\\"DEBIT\\\",\\n  \\\"reference\\\": \\\"Stress test transaction {{$randomInt}}\\\",\\n  \\\"description\\\": \\\"High-volume stress testing\\\",\\n  \\\"metadata\\\": {\\n    \\\"stressTest\\\": true,\\n    \\\"batchId\\\": \\\"{{$randomUUID}}\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bank-simulator/api/real-transactions/process",
+              "host": ["{{base_url}}"],
+              "path": ["bank-simulator", "api", "real-transactions", "process"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bank transaction processing under load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Banking system resilience', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "// Track transaction success rate",
+                  "const successCount = pm.globals.get('success_count') || 0;",
+                  "if (pm.response.code === 200) {",
+                  "    pm.globals.set('success_count', successCount + 1);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Content & Search Stress Tests",
+      "item": [
+        {
+          "name": "Concurrent Content Creation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "content-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"title\\\": \\\"Stress Test Content {{$randomInt}} - {{$timestamp}}\\\",\\n  \\\"description\\\": \\\"High-volume content creation test for performance validation\\\",\\n  \\\"contentType\\\": \\\"article\\\",\\n  \\\"tags\\\": [\\\"stress-test\\\", \\\"performance\\\", \\\"load-{{$randomInt}}\\\"],\\n  \\\"categories\\\": [\\\"testing\\\", \\\"performance\\\"],\\n  \\\"metadata\\\": {\\n    \\\"stressTest\\\": true,\\n    \\\"batchId\\\": \\\"{{$randomUUID}}\\\",\\n    \\\"loadLevel\\\": \\\"high\\\",\\n    \\\"timestamp\\\": \\\"{{$isoTimestamp}}\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/content/api/v1/content",
+              "host": ["{{base_url}}"],
+              "path": ["content", "api", "v1", "content"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Content creation under high load', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Content system performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "High-Volume Search Queries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "search-{{$randomInt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/content/api/v1/search?q=stress test {{$randomInt}}&limit=20&sort=relevance",
+              "host": ["{{base_url}}"],
+              "path": ["content", "api", "v1", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "stress test {{$randomInt}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "relevance"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search handles high query volume', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Search performance under load', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Real-time Services Stress Tests",
+      "item": [
+        {
+          "name": "Analytics Event Flood",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "analytics-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"event\\\": \\\"stress_test_event_{{$randomInt}}\\\",\\n  \\\"userId\\\": \\\"stress-user-{{$randomInt}}\\\",\\n  \\\"properties\\\": {\\n    \\\"testType\\\": \\\"stress\\\",\\n    \\\"loadLevel\\\": \\\"high\\\",\\n    \\\"batchId\\\": \\\"{{$randomUUID}}\\\",\\n    \\\"timestamp\\\": \\\"{{$isoTimestamp}}\\\",\\n    \\\"randomValue\\\": {{$randomInt}},\\n    \\\"sessionId\\\": \\\"session-{{$randomUUID}}\\\"\\n  },\\n  \\\"context\\\": {\\n    \\\"ip\\\": \\\"192.168.1.{{$randomInt}}\\\",\\n    \\\"userAgent\\\": \\\"StressTest/1.0\\\",\\n    \\\"platform\\\": \\\"web\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/api/v1/track",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "api", "v1", "track"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Analytics handles event flood', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Analytics ingestion performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notification System Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "notification-{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\\n  \\\"type\\\": \\\"email\\\",\\n  \\\"recipient\\\": \\\"stresstest{{$randomInt}}@suuupra.com\\\",\\n  \\\"subject\\\": \\\"Stress Test Notification {{$randomInt}}\\\",\\n  \\\"template\\\": \\\"stress_test_template\\\",\\n  \\\"data\\\": {\\n    \\\"userName\\\": \\\"StressUser{{$randomInt}}\\\",\\n    \\\"message\\\": \\\"High-volume notification testing in progress\\\",\\n    \\\"testId\\\": \\\"{{$randomUUID}}\\\",\\n    \\\"timestamp\\\": \\\"{{$isoTimestamp}}\\\",\\n    \\\"batchNumber\\\": {{$randomInt}}\\n  },\\n  \\\"priority\\\": \\\"normal\\\",\\n  \\\"metadata\\\": {\\n    \\\"stressTest\\\": true,\\n    \\\"loadLevel\\\": \\\"high\\\"\\n  }\\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/api/v1/send",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "api", "v1", "send"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Notification system handles load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Notification delivery performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. System Resilience Tests",
+      "item": [
+        {
+          "name": "Rapid Health Check Bombardment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Stress-Test",
+                "value": "health-bombardment-{{$randomInt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["healthz"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('System remains stable under bombardment', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Health check resilience', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "// Track system stability",
+                  "const healthChecks = pm.globals.get('health_checks') || 0;",
+                  "pm.globals.set('health_checks', healthChecks + 1);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Multi-Service Concurrent Load",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stress_access_token}}"
+              },
+              {
+                "key": "X-Stress-Test",
+                "value": "multi-service-{{$randomInt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/api/v1/system/status",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "api", "v1", "system", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Multi-service coordination under load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('System status check performance', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
