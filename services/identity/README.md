@@ -1,8 +1,36 @@
-# Identity Service
+# 👤 Suuupra Identity Service
 
-Production‑grade Identity service (auth, RBAC/tenancy, audit) with Spring Authorization Server (OIDC).
+Enterprise-grade authentication and user management service built with Spring Boot, providing JWT-based authentication, role-based access control, and comprehensive user lifecycle management.
 
-- Port: 8081 (configurable)
+## 📋 Overview
+
+The Identity Service is the central authentication and authorization hub for the Suuupra platform, handling:
+
+- **User Registration & Authentication**: Secure user onboarding with email verification
+- **JWT Token Management**: Access and refresh token generation with RS256 algorithm
+- **Role-Based Access Control (RBAC)**: Multi-tier permission system
+- **User Profile Management**: Complete user lifecycle and profile operations
+- **Security Features**: Rate limiting, password policies, session management
+- **Administrative Operations**: User management and monitoring capabilities
+
+## 🏗️ Architecture
+
+```
+Client → API Gateway → Identity Service → Database
+                          ↓
+                    [JWT Token Validation]
+                          ↓
+                    Other Microservices
+```
+
+### Technology Stack
+- **Framework**: Spring Boot 3.2+
+- **Security**: Spring Security with JWT
+- **Database**: PostgreSQL with JPA/Hibernate
+- **Caching**: Redis for session management
+- **Testing**: JUnit 5, Mockito, TestContainers
+- **Documentation**: OpenAPI 3.0/Swagger
+- **Port**: 8080 (configurable)
 - Datastores: Postgres, Redis
 - Build: Maven (do not run build by default)
 

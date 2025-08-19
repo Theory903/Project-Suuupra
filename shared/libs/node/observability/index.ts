@@ -7,7 +7,11 @@
 // Use dynamic require to avoid type resolution errors if prom-client isn't installed in a consumer yet
 declare const require: any;
 let client: any = null;
-client = require("prom-client");
+try {
+  client = require("prom-client");
+} catch (err) {
+  console.warn("[observability] prom-client not available, using no-op implementation");
+}
 
 
 export const metricsRegistry = client

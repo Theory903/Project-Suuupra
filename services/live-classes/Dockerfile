@@ -20,7 +20,11 @@ RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 
 # Development stage
 FROM base AS development
-RUN npm ci
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 COPY . .
 RUN npm run build
 CMD ["npm", "run", "dev"]
@@ -28,7 +32,11 @@ CMD ["npm", "run", "dev"]
 # Production build stage
 FROM base AS build
 COPY . .
-RUN npm ci
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 RUN npm run build
 RUN npm prune --production
 

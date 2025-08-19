@@ -20,7 +20,11 @@ COPY tsconfig.json ./
 # Development stage
 FROM base AS development
 ENV NODE_ENV=development
-RUN npm ci --include=dev
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --include=dev; \
+    else \
+      npm install --include=dev; \
+    fi
 COPY . .
 RUN chown -R gateway:nodejs /app
 USER gateway
@@ -30,7 +34,11 @@ CMD ["npm", "run", "dev"]
 # Build stage
 FROM base AS build
 ENV NODE_ENV=production
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --only=production --legacy-peer-deps; \
+    else \
+      npm install --only=production --legacy-peer-deps; \
+    fi && npm cache clean --force
 COPY . .
 RUN npm run build && \
     npm prune --production

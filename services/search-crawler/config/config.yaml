@@ -1,0 +1,120 @@
+search_crawler:
+  app_name: "Suuupra Search & Crawler Service"
+  version: "1.0.0"
+  port: 8016
+  environment: ${NODE_ENV:development}
+
+crawler:
+  user_agent: "SuuupraCrawler/1.0"
+  concurrent_requests: 100
+  request_delay_ms: 100
+  timeout_seconds: 30
+  
+  politeness:
+    respect_robots_txt: true
+    crawl_delay_seconds: 1
+    max_pages_per_domain: 10000
+  
+  filters:
+    allowed_domains: []
+    blocked_domains: ["facebook.com", "twitter.com"]
+    allowed_file_types: ["html", "pdf", "doc", "docx"]
+    max_file_size_mb: 50
+
+indexing:
+  elasticsearch:
+    host: ${ELASTICSEARCH_HOST:localhost}
+    port: ${ELASTICSEARCH_PORT:9200}
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
+    
+  index_settings:
+    number_of_shards: 3
+    number_of_replicas: 1
+    refresh_interval: "30s"
+  
+  text_processing:
+    language_detection: true
+    stemming: true
+    stop_words_removal: true
+    synonym_expansion: true
+
+search:
+  ranking:
+    algorithm: "bm25"
+    boosting:
+      title: 2.0
+      content: 1.0
+      url: 0.5
+      freshness: 0.3
+  
+  features:
+    fuzzy_matching: true
+    phrase_matching: true
+    wildcard_search: true
+    faceted_search: true
+  
+  pagination:
+    max_results_per_page: 50
+    default_page_size: 10
+
+content_extraction:
+  text_extraction: true
+  metadata_extraction: true
+  image_text_extraction: false
+  
+  deduplication:
+    enabled: true
+    similarity_threshold: 0.85
+    algorithm: "simhash"
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:search_crawler}
+    username: ${POSTGRES_USER:crawler}
+    password: ${POSTGRES_PASSWORD:crawler123}
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 16
+
+queue:
+  provider: "redis"
+  
+  queues:
+    crawl_queue: "crawl_urls"
+    index_queue: "index_content"
+    priority_queue: "priority_urls"
+  
+  workers: 10
+  batch_size: 100
+
+storage:
+  raw_content:
+    enabled: true
+    backend: "s3"
+    bucket: ${S3_BUCKET:suuupra-crawled-content}
+    retention_days: 30
+  
+  processed_content:
+    backend: "elasticsearch"
+    compression: true
+
+monitoring:
+  crawl_metrics: true
+  search_analytics: true
+  performance_tracking: true
+  
+  alerts:
+    crawl_error_rate_threshold: 0.1
+    index_lag_threshold_minutes: 30
+    search_latency_threshold_ms: 500
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console

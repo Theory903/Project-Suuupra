@@ -1,0 +1,22 @@
+FROM node:20-alpine
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache curl && \
+    rm -rf /var/cache/apk/*
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S creator-studio -u 1001 -G nodejs
+
+WORKDIR /app
+
+COPY src/simple-server.js ./simple-server.js
+
+RUN chown -R creator-studio:nodejs /app
+USER creator-studio
+
+EXPOSE 8093
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8093/health || exit 1
+
+CMD ["node", "simple-server.js"]

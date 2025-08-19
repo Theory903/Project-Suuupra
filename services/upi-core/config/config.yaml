@@ -1,0 +1,88 @@
+upi_core:
+  app_name: "Suuupra UPI Core"
+  version: "1.0.0"
+  port: 8012
+  environment: ${GO_ENV:development}
+
+grpc:
+  port: 50051
+  max_receive_message_size: 4194304  # 4MB
+  max_send_message_size: 4194304     # 4MB
+  keepalive:
+    time: 30
+    timeout: 5
+    permit_without_stream: true
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:upi_transactions}
+    username: ${POSTGRES_USER:upi}
+    password: ${POSTGRES_PASSWORD:upi123}
+    ssl_mode: ${POSTGRES_SSL_MODE:disable}
+    max_open_conns: 25
+    max_idle_conns: 10
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 8
+  pool_size: 50
+
+payment_processing:
+  timeout_seconds: 30
+  retry_attempts: 3
+  retry_delay_seconds: 1
+  
+  limits:
+    max_amount: 100000
+    min_amount: 1
+    daily_limit_per_user: 1000000
+  
+  validation:
+    upi_id_regex: "^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$"
+    amount_precision: 2
+    
+fraud_detection:
+  enabled: true
+  rules:
+    velocity_check: true
+    amount_threshold: 50000
+    unusual_pattern_detection: true
+  
+  risk_scoring:
+    high_risk_threshold: 80
+    medium_risk_threshold: 50
+
+settlement:
+  batch_size: 1000
+  interval_minutes: 5
+  retry_failed_settlements: true
+  max_retry_attempts: 5
+
+monitoring:
+  health_check_enabled: true
+  metrics_enabled: true
+  tracing_enabled: true
+  
+  alerts:
+    failure_rate_threshold: 0.05
+    latency_threshold_ms: 1000
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: stdout
+  
+  trace_requests: true
+  log_payment_details: false  # PCI compliance
+
+external_services:
+  bank_simulator:
+    url: ${BANK_SIMULATOR_URL:http://localhost:8011}
+    timeout_seconds: 10
+    circuit_breaker:
+      failure_threshold: 5
+      recovery_timeout: 30

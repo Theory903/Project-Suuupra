@@ -1,0 +1,30 @@
+{
+  "name": "identity-service-tests",
+  "version": "1.0.0",
+  "description": "Test suite for Suuupra Identity Service",
+  "scripts": {
+    "test": "mocha '**/*.test.js' --timeout 30000 --recursive",
+    "test:unit": "mocha 'unit/**/*.test.js' --timeout 10000",
+    "test:integration": "mocha 'integration/**/*.test.js' --timeout 30000",
+    "test:e2e": "mocha 'e2e/**/*.test.js' --timeout 60000",
+    "test:watch": "mocha '**/*.test.js' --watch --timeout 30000",
+    "test:coverage": "nyc mocha '**/*.test.js' --timeout 30000"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "chai": "^4.3.8",
+    "sinon": "^15.2.0",
+    "supertest": "^6.3.3",
+    "nyc": "^15.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "identity",
+    "authentication",
+    "jwt",
+    "testing",
+    "microservices"
+  ]
+}

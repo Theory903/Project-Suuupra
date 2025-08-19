@@ -1,0 +1,99 @@
+mass_live:
+  app_name: "Suuupra Mass Live Streaming"
+  version: "1.0.0"
+  port: 8010
+  environment: ${GO_ENV:development}
+
+streaming:
+  rtmp:
+    port: 1935
+    max_connections: 10000
+    chunk_size: 4096
+  
+  hls:
+    segment_duration: 6
+    playlist_length: 10
+    segment_count: 3
+    cleanup_old_segments: true
+  
+  transcoding:
+    enabled: true
+    profiles:
+      - name: "240p"
+        resolution: "426x240"
+        bitrate: "400k"
+        fps: 25
+      - name: "480p"
+        resolution: "854x480"
+        bitrate: "1000k"
+        fps: 30
+      - name: "720p"
+        resolution: "1280x720"
+        bitrate: "2500k"
+        fps: 30
+      - name: "1080p"
+        resolution: "1920x1080"
+        bitrate: "5000k"
+        fps: 30
+
+cdn:
+  providers:
+    primary: "cloudflare"
+    fallback: "aws_cloudfront"
+  
+  cache_settings:
+    edge_cache_ttl: 60
+    browser_cache_ttl: 30
+    stale_while_revalidate: 86400
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:mass_live}
+    username: ${POSTGRES_USER:streaming}
+    password: ${POSTGRES_PASSWORD:streaming123}
+    max_open_conns: 50
+
+redis:
+  cluster:
+    nodes:
+      - ${REDIS_NODE1:localhost:7001}
+      - ${REDIS_NODE2:localhost:7002}
+      - ${REDIS_NODE3:localhost:7003}
+  pool_size: 200
+
+scaling:
+  auto_scaling: true
+  min_instances: 2
+  max_instances: 100
+  
+  load_balancing:
+    algorithm: "least_connections"
+    health_check_interval: 10
+  
+  capacity:
+    max_concurrent_viewers: 1000000
+    max_bitrate_mbps: 50
+
+monitoring:
+  real_time_analytics: true
+  viewer_metrics: true
+  quality_metrics: true
+  
+  alerts:
+    viewer_drop_threshold: 0.1
+    latency_threshold_ms: 3000
+    error_rate_threshold: 0.05
+
+storage:
+  recordings:
+    enabled: true
+    retention_days: 30
+    storage_backend: "s3"
+    bucket: ${S3_BUCKET:suuupra-recordings}
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: stdout

@@ -1,0 +1,57 @@
+analytics:
+  app_name: "Suuupra Analytics Engine"
+  version: "1.0.0"
+  port: 8001
+  environment: ${NODE_ENV:development}
+
+database:
+  clickhouse:
+    host: ${CLICKHOUSE_HOST:localhost}
+    port: ${CLICKHOUSE_PORT:8123}
+    database: ${CLICKHOUSE_DB:suuupra_analytics}
+    username: ${CLICKHOUSE_USER:analytics}
+    password: ${CLICKHOUSE_PASSWORD:analytics123}
+  
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:suuupra_metadata}
+    username: ${POSTGRES_USER:analytics}
+    password: ${POSTGRES_PASSWORD:analytics123}
+
+kafka:
+  brokers: ${KAFKA_BROKERS:localhost:9092}
+  group_id: analytics-consumer
+  topics:
+    events: user-events
+    metrics: service-metrics
+    logs: application-logs
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 3
+
+processing:
+  batch_size: 1000
+  flush_interval_ms: 5000
+  max_memory_mb: 512
+  parallelism: 4
+
+realtime:
+  window_size_minutes: 5
+  aggregation_interval_ms: 1000
+  alert_thresholds:
+    error_rate: 0.05
+    latency_p99_ms: 1000
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"
+  jaeger_endpoint: ${JAEGER_ENDPOINT:http://localhost:14268/api/traces}

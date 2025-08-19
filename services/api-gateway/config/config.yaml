@@ -1,0 +1,101 @@
+gateway:
+  app_name: "Suuupra API Gateway"
+  version: "1.0.0"
+  port: 8000
+  environment: ${NODE_ENV:development}
+
+services:
+  admin:
+    url: ${ADMIN_SERVICE_URL:http://localhost:3001}
+    timeout_ms: 5000
+    retries: 3
+  
+  analytics:
+    url: ${ANALYTICS_SERVICE_URL:http://localhost:8001}
+    timeout_ms: 10000
+    retries: 2
+  
+  commerce:
+    url: ${COMMERCE_SERVICE_URL:http://localhost:8002}
+    timeout_ms: 5000
+    retries: 3
+  
+  content:
+    url: ${CONTENT_SERVICE_URL:http://localhost:8004}
+    timeout_ms: 5000
+    retries: 2
+  
+  identity:
+    url: ${IDENTITY_SERVICE_URL:http://localhost:8080}
+    timeout_ms: 3000
+    retries: 3
+  
+  payments:
+    url: ${PAYMENTS_SERVICE_URL:http://localhost:8006}
+    timeout_ms: 10000
+    retries: 5
+  
+  upi_core:
+    url: ${UPI_CORE_SERVICE_URL:http://localhost:8012}
+    timeout_ms: 15000
+    retries: 3
+
+authentication:
+  jwt_secret: ${JWT_SECRET:gateway-super-secret-key}
+  token_expiry: "1h"
+  refresh_token_expiry: "30d"
+  
+  excluded_paths:
+    - "/health"
+    - "/metrics"
+    - "/api/v1/auth/login"
+    - "/api/v1/auth/register"
+
+rate_limiting:
+  default:
+    requests_per_minute: 100
+    burst: 200
+  
+  by_endpoint:
+    "/api/v1/auth/login":
+      requests_per_minute: 10
+      burst: 20
+    "/api/v1/payments/process":
+      requests_per_minute: 50
+      burst: 100
+
+circuit_breaker:
+  failure_threshold: 5
+  recovery_timeout_seconds: 30
+  request_timeout_seconds: 10
+
+load_balancing:
+  strategy: "round_robin"  # round_robin, least_connections, weighted
+  health_check_interval_seconds: 30
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 0
+
+cors:
+  allowed_origins: ${CORS_ORIGINS:*}
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["*"]
+  exposed_headers: ["X-Total-Count", "X-Request-ID"]
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+  
+  access_log:
+    enabled: true
+    include_body: false
+    include_headers: true
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"
+  jaeger_endpoint: ${JAEGER_ENDPOINT:http://localhost:14268/api/traces}

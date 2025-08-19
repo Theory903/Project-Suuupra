@@ -1,0 +1,247 @@
+suuupra-postgres  | 2025-08-18T22:10:11.275876972Z 
+suuupra-postgres  | 2025-08-18T22:10:11.275923972Z PostgreSQL Database directory appears to contain a database; Skipping initialization
+suuupra-postgres  | 2025-08-18T22:10:11.275927555Z 
+suuupra-postgres  | 2025-08-18T22:10:11.486377347Z 2025-08-18 22:10:11.486 UTC [1] LOG:  starting PostgreSQL 15.14 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+suuupra-postgres  | 2025-08-18T22:10:11.486913138Z 2025-08-18 22:10:11.486 UTC [1] LOG:  listening on IPv6 address "::1", port 5432
+suuupra-postgres  | 2025-08-18T22:10:11.486956763Z 2025-08-18 22:10:11.486 UTC [1] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+suuupra-postgres  | 2025-08-18T22:10:11.492460763Z 2025-08-18 22:10:11.491 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+suuupra-postgres  | 2025-08-18T22:10:11.502192597Z 2025-08-18 22:10:11.500 UTC [29] LOG:  database system was shut down at 2025-08-18 22:10:00 UTC
+suuupra-postgres  | 2025-08-18T22:10:11.509197638Z 2025-08-18 22:10:11.509 UTC [1] LOG:  database system is ready to accept connections
+suuupra-postgres  | 2025-08-18T22:10:41.317995472Z 2025-08-18 22:10:41.317 UTC [39] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:10:41.319149472Z 2025-08-18 22:10:41.318 UTC [39] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:10:41.342889430Z 2025-08-18 22:10:41.342 UTC [39] LOG:  disconnection: session time: 0:00:00.025 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:11:11.405458722Z 2025-08-18 22:11:11.404 UTC [46] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:11:11.411057597Z 2025-08-18 22:11:11.410 UTC [46] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:11:11.415965180Z 2025-08-18 22:11:11.415 UTC [46] LOG:  disconnection: session time: 0:00:00.011 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:11:41.509098930Z 2025-08-18 22:11:41.508 UTC [53] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:11:41.515866055Z 2025-08-18 22:11:41.515 UTC [53] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:11:41.530654597Z 2025-08-18 22:11:41.530 UTC [53] LOG:  disconnection: session time: 0:00:00.021 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:11:41.569927722Z 2025-08-18 22:11:41.569 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_type"
+suuupra-postgres  | 2025-08-18T22:11:41.569944972Z 	I/O timings: read: 0.714 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.569947013Z 	avg read rate: 38.462 MB/s, avg write rate: 7.212 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.569948097Z 	buffer usage: 1006 hits, 64 misses, 12 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.569948888Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.01 s
+suuupra-postgres  | 2025-08-18T22:11:41.583369222Z 2025-08-18 22:11:41.583 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_attribute"
+suuupra-postgres  | 2025-08-18T22:11:41.583444097Z 	I/O timings: read: 1.008 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.583448180Z 	avg read rate: 22.837 MB/s, avg write rate: 3.606 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.583449638Z 	buffer usage: 472 hits, 38 misses, 6 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.583615472Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.01 s
+suuupra-postgres  | 2025-08-18T22:11:41.584653513Z 2025-08-18 22:11:41.584 UTC [54] LOG:  automatic aggressive vacuum of table "template1.pg_catalog.pg_class": index scans: 0
+suuupra-postgres  | 2025-08-18T22:11:41.584682013Z 	pages: 0 removed, 14 remain, 14 scanned (100.00% of total)
+suuupra-postgres  | 2025-08-18T22:11:41.584685930Z 	tuples: 0 removed, 410 remain, 0 are dead but not yet removable
+suuupra-postgres  | 2025-08-18T22:11:41.584687388Z 	removable cutoff: 727, which was 0 XIDs old when operation ended
+suuupra-postgres  | 2025-08-18T22:11:41.584688638Z 	new relfrozenxid: 727, which is 10 XIDs ahead of previous value
+suuupra-postgres  | 2025-08-18T22:11:41.584689847Z 	index scan not needed: 0 pages from table (0.00% of total) had 0 dead item identifiers removed
+suuupra-postgres  | 2025-08-18T22:11:41.584691097Z 	I/O timings: read: 0.070 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.584692180Z 	avg read rate: 74.405 MB/s, avg write rate: 12.401 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.584693388Z 	buffer usage: 50 hits, 6 misses, 1 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.584694513Z 	WAL usage: 1 records, 1 full page images, 3653 bytes
+suuupra-postgres  | 2025-08-18T22:11:41.584695638Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.590724888Z 2025-08-18 22:11:41.590 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_class"
+suuupra-postgres  | 2025-08-18T22:11:41.590744055Z 	I/O timings: read: 0.043 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.590745930Z 	avg read rate: 7.812 MB/s, avg write rate: 5.208 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.590746763Z 	buffer usage: 520 hits, 6 misses, 4 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.590747388Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.596455138Z 2025-08-18 22:11:41.596 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_constraint"
+suuupra-postgres  | 2025-08-18T22:11:41.596467013Z 	I/O timings: read: 0.051 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.596468263Z 	avg read rate: 6.510 MB/s, avg write rate: 1.302 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.596469097Z 	buffer usage: 528 hits, 5 misses, 1 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.596469763Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.597353555Z 2025-08-18 22:11:41.597 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_rewrite"
+suuupra-postgres  | 2025-08-18T22:11:41.597359722Z 	I/O timings: read: 0.102 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.597360763Z 	avg read rate: 132.812 MB/s, avg write rate: 15.625 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.597361430Z 	buffer usage: 112 hits, 17 misses, 2 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.597362013Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.601115513Z 2025-08-18 22:11:41.600 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_description"
+suuupra-postgres  | 2025-08-18T22:11:41.601152263Z 	I/O timings: read: 0.368 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.601155430Z 	avg read rate: 93.750 MB/s, avg write rate: 5.859 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.601191972Z 	buffer usage: 74 hits, 48 misses, 3 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.601194638Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.603294013Z 2025-08-18 22:11:41.602 UTC [54] LOG:  automatic aggressive vacuum of table "template1.pg_catalog.pg_depend": index scans: 0
+suuupra-postgres  | 2025-08-18T22:11:41.603660430Z 	pages: 0 removed, 14 remain, 14 scanned (100.00% of total)
+suuupra-postgres  | 2025-08-18T22:11:41.603666055Z 	tuples: 0 removed, 1831 remain, 0 are dead but not yet removable
+suuupra-postgres  | 2025-08-18T22:11:41.603666972Z 	removable cutoff: 731, which was 0 XIDs old when operation ended
+suuupra-postgres  | 2025-08-18T22:11:41.603667847Z 	new relfrozenxid: 731, which is 14 XIDs ahead of previous value
+suuupra-postgres  | 2025-08-18T22:11:41.603668763Z 	index scan not needed: 0 pages from table (0.00% of total) had 0 dead item identifiers removed
+suuupra-postgres  | 2025-08-18T22:11:41.603669472Z 	I/O timings: read: 0.367 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.603670055Z 	avg read rate: 149.236 MB/s, avg write rate: 7.462 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.603670722Z 	buffer usage: 54 hits, 20 misses, 1 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.603671430Z 	WAL usage: 1 records, 1 full page images, 7833 bytes
+suuupra-postgres  | 2025-08-18T22:11:41.603672097Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.608189347Z 2025-08-18 22:11:41.608 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_depend"
+suuupra-postgres  | 2025-08-18T22:11:41.608225263Z 	I/O timings: read: 0.000 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.608338263Z 	avg read rate: 0.000 MB/s, avg write rate: 1.302 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.608342847Z 	buffer usage: 104 hits, 0 misses, 1 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.608343888Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.610487430Z 2025-08-18 22:11:41.609 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_ts_config_map"
+suuupra-postgres  | 2025-08-18T22:11:41.610499305Z 	I/O timings: read: 0.216 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.610500638Z 	avg read rate: 46.875 MB/s, avg write rate: 15.625 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.610501347Z 	buffer usage: 54 hits, 6 misses, 2 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.610502013Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.611750263Z 2025-08-18 22:11:41.611 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_init_privs"
+suuupra-postgres  | 2025-08-18T22:11:41.611758638Z 	I/O timings: read: 0.036 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.611759805Z 	avg read rate: 39.062 MB/s, avg write rate: 7.812 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.611760555Z 	buffer usage: 84 hits, 5 misses, 1 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.611761180Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.613735972Z 2025-08-18 22:11:41.613 UTC [54] LOG:  automatic analyze of table "template1.pg_catalog.pg_collation"
+suuupra-postgres  | 2025-08-18T22:11:41.613749555Z 	I/O timings: read: 0.442 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.613750805Z 	avg read rate: 66.406 MB/s, avg write rate: 3.906 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.613751722Z 	buffer usage: 100 hits, 17 misses, 1 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.613752388Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:11:41.618223430Z 2025-08-18 22:11:41.617 UTC [54] LOG:  automatic analyze of table "template1.information_schema.sql_features"
+suuupra-postgres  | 2025-08-18T22:11:41.618246722Z 	I/O timings: read: 0.285 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:11:41.618249222Z 	avg read rate: 25.391 MB/s, avg write rate: 5.859 MB/s
+suuupra-postgres  | 2025-08-18T22:11:41.618250597Z 	buffer usage: 183 hits, 13 misses, 3 dirtied
+suuupra-postgres  | 2025-08-18T22:11:41.618251763Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:12:11.609646263Z 2025-08-18 22:12:11.609 UTC [62] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:12:11.610760347Z 2025-08-18 22:12:11.610 UTC [62] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:12:11.621946305Z 2025-08-18 22:12:11.617 UTC [62] LOG:  disconnection: session time: 0:00:00.008 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:12:41.591151055Z 2025-08-18 22:12:41.590 UTC [63] LOG:  automatic aggressive vacuum of table "template1.pg_catalog.pg_statistic": index scans: 1
+suuupra-postgres  | 2025-08-18T22:12:41.593258222Z 	pages: 0 removed, 24 remain, 24 scanned (100.00% of total)
+suuupra-postgres  | 2025-08-18T22:12:41.593274888Z 	tuples: 109 removed, 404 remain, 0 are dead but not yet removable
+suuupra-postgres  | 2025-08-18T22:12:41.593276513Z 	removable cutoff: 736, which was 0 XIDs old when operation ended
+suuupra-postgres  | 2025-08-18T22:12:41.593277472Z 	new relfrozenxid: 736, which is 19 XIDs ahead of previous value
+suuupra-postgres  | 2025-08-18T22:12:41.593278222Z 	index scan needed: 12 pages from table (50.00% of total) had 137 dead item identifiers removed
+suuupra-postgres  | 2025-08-18T22:12:41.593279013Z 	index "pg_statistic_relid_att_inh_index": pages: 5 in total, 0 newly deleted, 0 currently deleted, 0 reusable
+suuupra-postgres  | 2025-08-18T22:12:41.593279888Z 	I/O timings: read: 0.239 ms, write: 0.000 ms
+suuupra-postgres  | 2025-08-18T22:12:41.593280638Z 	avg read rate: 16.081 MB/s, avg write rate: 5.360 MB/s
+suuupra-postgres  | 2025-08-18T22:12:41.593281430Z 	buffer usage: 85 hits, 6 misses, 2 dirtied
+suuupra-postgres  | 2025-08-18T22:12:41.593282180Z 	WAL usage: 61 records, 3 full page images, 23223 bytes
+suuupra-postgres  | 2025-08-18T22:12:41.593282888Z 	system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+suuupra-postgres  | 2025-08-18T22:12:41.814809305Z 2025-08-18 22:12:41.814 UTC [70] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:12:41.815547972Z 2025-08-18 22:12:41.815 UTC [70] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:12:41.821287680Z 2025-08-18 22:12:41.820 UTC [70] LOG:  disconnection: session time: 0:00:00.005 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:13:11.908873513Z 2025-08-18 22:13:11.908 UTC [77] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:13:11.909768097Z 2025-08-18 22:13:11.909 UTC [77] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:13:11.910821847Z 2025-08-18 22:13:11.910 UTC [77] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:13:41.939528055Z 2025-08-18 22:13:41.939 UTC [85] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:13:41.940047847Z 2025-08-18 22:13:41.939 UTC [85] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:13:41.941647180Z 2025-08-18 22:13:41.941 UTC [85] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:14:11.983599930Z 2025-08-18 22:14:11.983 UTC [93] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:14:11.984124680Z 2025-08-18 22:14:11.984 UTC [93] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:14:11.985006680Z 2025-08-18 22:14:11.984 UTC [93] LOG:  disconnection: session time: 0:00:00.001 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:14:42.885134708Z 2025-08-18 22:14:42.881 UTC [101] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:14:42.912751333Z 2025-08-18 22:14:42.912 UTC [101] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:14:42.926889625Z 2025-08-18 22:14:42.926 UTC [101] LOG:  disconnection: session time: 0:00:00.047 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:15:11.462506180Z 2025-08-18 22:15:11.461 UTC [27] LOG:  checkpoint starting: time
+suuupra-postgres  | 2025-08-18T22:15:12.982626708Z 2025-08-18 22:15:12.982 UTC [109] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:15:12.987395083Z 2025-08-18 22:15:12.986 UTC [109] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:15:12.990473083Z 2025-08-18 22:15:12.990 UTC [109] LOG:  disconnection: session time: 0:00:00.008 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:15:15.585846626Z 2025-08-18 22:15:15.585 UTC [27] LOG:  checkpoint complete: wrote 43 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.112 s, sync=0.004 s, total=4.125 s; sync files=11, longest=0.002 s, average=0.001 s; distance=252 kB, estimate=252 kB
+suuupra-postgres  | 2025-08-18T22:15:43.069957708Z 2025-08-18 22:15:43.069 UTC [117] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:15:43.071558000Z 2025-08-18 22:15:43.071 UTC [117] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:15:43.073618416Z 2025-08-18 22:15:43.073 UTC [117] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:16:13.154076458Z 2025-08-18 22:16:13.153 UTC [124] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:16:13.155091375Z 2025-08-18 22:16:13.154 UTC [124] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:16:13.156188833Z 2025-08-18 22:16:13.156 UTC [124] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:16:43.210169708Z 2025-08-18 22:16:43.210 UTC [132] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:16:43.210767625Z 2025-08-18 22:16:43.210 UTC [132] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:16:43.212110916Z 2025-08-18 22:16:43.212 UTC [132] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:17:13.272071083Z 2025-08-18 22:17:13.271 UTC [140] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:17:13.272699666Z 2025-08-18 22:17:13.272 UTC [140] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:17:13.275189625Z 2025-08-18 22:17:13.274 UTC [140] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:17:43.332517250Z 2025-08-18 22:17:43.332 UTC [148] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:17:43.333470291Z 2025-08-18 22:17:43.333 UTC [148] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:17:43.335243833Z 2025-08-18 22:17:43.335 UTC [148] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:18:13.385508958Z 2025-08-18 22:18:13.385 UTC [156] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:18:13.386554375Z 2025-08-18 22:18:13.386 UTC [156] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:18:13.388296041Z 2025-08-18 22:18:13.388 UTC [156] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:18:43.441842708Z 2025-08-18 22:18:43.441 UTC [164] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:18:43.442670750Z 2025-08-18 22:18:43.442 UTC [164] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:18:43.445395833Z 2025-08-18 22:18:43.445 UTC [164] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:19:13.531497375Z 2025-08-18 22:19:13.531 UTC [172] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:19:13.532318292Z 2025-08-18 22:19:13.532 UTC [172] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:19:13.540583667Z 2025-08-18 22:19:13.538 UTC [172] LOG:  disconnection: session time: 0:00:00.006 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:19:43.624758375Z 2025-08-18 22:19:43.624 UTC [180] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:19:43.625653250Z 2025-08-18 22:19:43.625 UTC [180] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:19:43.627395083Z 2025-08-18 22:19:43.627 UTC [180] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:20:13.716358542Z 2025-08-18 22:20:13.715 UTC [187] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:20:13.725800250Z 2025-08-18 22:20:13.725 UTC [187] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:20:13.732931833Z 2025-08-18 22:20:13.732 UTC [187] LOG:  disconnection: session time: 0:00:00.017 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:20:43.773917750Z 2025-08-18 22:20:43.773 UTC [195] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:20:43.774961167Z 2025-08-18 22:20:43.774 UTC [195] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:20:43.776881250Z 2025-08-18 22:20:43.776 UTC [195] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:21:13.853735083Z 2025-08-18 22:21:13.852 UTC [203] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:21:13.855036167Z 2025-08-18 22:21:13.854 UTC [203] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:21:13.862280250Z 2025-08-18 22:21:13.862 UTC [203] LOG:  disconnection: session time: 0:00:00.009 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:21:43.926912000Z 2025-08-18 22:21:43.926 UTC [211] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:21:43.927446417Z 2025-08-18 22:21:43.927 UTC [211] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:21:43.928887417Z 2025-08-18 22:21:43.928 UTC [211] LOG:  disconnection: session time: 0:00:00.001 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:22:14.912304626Z 2025-08-18 22:22:14.905 UTC [219] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:22:14.921070917Z 2025-08-18 22:22:14.919 UTC [219] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:22:14.933714709Z 2025-08-18 22:22:14.933 UTC [219] LOG:  disconnection: session time: 0:00:00.028 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:22:44.991236709Z 2025-08-18 22:22:44.991 UTC [227] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:22:44.992215251Z 2025-08-18 22:22:44.992 UTC [227] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:22:44.993752001Z 2025-08-18 22:22:44.993 UTC [227] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:23:15.039368334Z 2025-08-18 22:23:15.039 UTC [235] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:23:15.040133251Z 2025-08-18 22:23:15.040 UTC [235] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:23:15.041473376Z 2025-08-18 22:23:15.041 UTC [235] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:23:45.166645667Z 2025-08-18 22:23:45.166 UTC [243] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:23:45.171949584Z 2025-08-18 22:23:45.171 UTC [243] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:23:45.174259792Z 2025-08-18 22:23:45.174 UTC [243] LOG:  disconnection: session time: 0:00:00.008 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:24:15.276139501Z 2025-08-18 22:24:15.275 UTC [251] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:24:15.277318251Z 2025-08-18 22:24:15.277 UTC [251] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:24:15.279571792Z 2025-08-18 22:24:15.279 UTC [251] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:24:45.348798626Z 2025-08-18 22:24:45.348 UTC [259] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:24:45.349362167Z 2025-08-18 22:24:45.349 UTC [259] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:24:45.350588167Z 2025-08-18 22:24:45.350 UTC [259] LOG:  disconnection: session time: 0:00:00.001 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:25:15.406107126Z 2025-08-18 22:25:15.405 UTC [267] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:25:15.406650417Z 2025-08-18 22:25:15.406 UTC [267] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:25:15.407475501Z 2025-08-18 22:25:15.407 UTC [267] LOG:  disconnection: session time: 0:00:00.001 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:25:45.470940334Z 2025-08-18 22:25:45.470 UTC [275] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:25:45.472045167Z 2025-08-18 22:25:45.471 UTC [275] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:25:45.473843417Z 2025-08-18 22:25:45.473 UTC [275] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:26:16.003253459Z 2025-08-18 22:26:15.997 UTC [283] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:26:16.006621043Z 2025-08-18 22:26:16.006 UTC [283] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:26:16.022117543Z 2025-08-18 22:26:16.021 UTC [283] LOG:  disconnection: session time: 0:00:00.031 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:26:46.073445959Z 2025-08-18 22:26:46.073 UTC [291] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:26:46.074130418Z 2025-08-18 22:26:46.073 UTC [291] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:26:46.075463584Z 2025-08-18 22:26:46.075 UTC [291] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:27:16.128343209Z 2025-08-18 22:27:16.128 UTC [299] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:27:16.129075834Z 2025-08-18 22:27:16.128 UTC [299] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:27:16.130145543Z 2025-08-18 22:27:16.130 UTC [299] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:27:46.182138209Z 2025-08-18 22:27:46.181 UTC [307] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:27:46.183215126Z 2025-08-18 22:27:46.183 UTC [307] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:27:46.185505668Z 2025-08-18 22:27:46.185 UTC [307] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:28:16.282496418Z 2025-08-18 22:28:16.282 UTC [315] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:28:16.284473543Z 2025-08-18 22:28:16.284 UTC [315] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:28:16.291303834Z 2025-08-18 22:28:16.289 UTC [315] LOG:  disconnection: session time: 0:00:00.008 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:28:46.346206918Z 2025-08-18 22:28:46.345 UTC [323] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:28:46.347628084Z 2025-08-18 22:28:46.347 UTC [323] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:28:46.349381501Z 2025-08-18 22:28:46.349 UTC [323] LOG:  disconnection: session time: 0:00:00.003 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:29:16.405285335Z 2025-08-18 22:29:16.405 UTC [331] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:29:16.405823335Z 2025-08-18 22:29:16.405 UTC [331] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:29:16.406750210Z 2025-08-18 22:29:16.406 UTC [331] LOG:  disconnection: session time: 0:00:00.001 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:29:46.463138918Z 2025-08-18 22:29:46.462 UTC [339] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:29:46.464018251Z 2025-08-18 22:29:46.463 UTC [339] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:29:46.465297168Z 2025-08-18 22:29:46.465 UTC [339] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:30:16.579433210Z 2025-08-18 22:30:16.578 UTC [347] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:30:16.581300501Z 2025-08-18 22:30:16.581 UTC [347] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:30:16.584992543Z 2025-08-18 22:30:16.584 UTC [347] LOG:  disconnection: session time: 0:00:00.006 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:30:46.657604001Z 2025-08-18 22:30:46.657 UTC [355] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:30:46.658241918Z 2025-08-18 22:30:46.658 UTC [355] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:30:46.659729501Z 2025-08-18 22:30:46.659 UTC [355] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:31:16.738293001Z 2025-08-18 22:31:16.737 UTC [363] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:31:16.739090585Z 2025-08-18 22:31:16.738 UTC [363] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:31:16.740226835Z 2025-08-18 22:31:16.740 UTC [363] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:31:46.783497460Z 2025-08-18 22:31:46.783 UTC [371] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:31:46.785210335Z 2025-08-18 22:31:46.785 UTC [371] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:31:46.787260626Z 2025-08-18 22:31:46.787 UTC [371] LOG:  disconnection: session time: 0:00:00.004 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:32:16.846971460Z 2025-08-18 22:32:16.846 UTC [379] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:32:16.848192835Z 2025-08-18 22:32:16.848 UTC [379] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:32:16.849461543Z 2025-08-18 22:32:16.849 UTC [379] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:32:46.939491335Z 2025-08-18 22:32:46.938 UTC [387] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:32:46.944020835Z 2025-08-18 22:32:46.942 UTC [387] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:32:46.950237001Z 2025-08-18 22:32:46.950 UTC [387] LOG:  disconnection: session time: 0:00:00.012 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:33:17.006460876Z 2025-08-18 22:33:17.006 UTC [395] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:33:17.007188501Z 2025-08-18 22:33:17.007 UTC [395] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:33:17.008688418Z 2025-08-18 22:33:17.008 UTC [395] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:33:47.070507085Z 2025-08-18 22:33:47.070 UTC [403] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:33:47.071357335Z 2025-08-18 22:33:47.071 UTC [403] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:33:47.073030793Z 2025-08-18 22:33:47.072 UTC [403] LOG:  disconnection: session time: 0:00:00.002 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:34:17.176204460Z 2025-08-18 22:34:17.175 UTC [411] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:34:17.181924543Z 2025-08-18 22:34:17.181 UTC [411] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:34:17.185260168Z 2025-08-18 22:34:17.184 UTC [411] LOG:  disconnection: session time: 0:00:00.009 user=postgres database=postgres host=[local]
+suuupra-postgres  | 2025-08-18T22:34:47.649066252Z 2025-08-18 22:34:47.648 UTC [419] LOG:  connection received: host=[local]
+suuupra-postgres  | 2025-08-18T22:34:47.652941793Z 2025-08-18 22:34:47.652 UTC [419] LOG:  connection authorized: user=postgres database=postgres application_name=pg_isready
+suuupra-postgres  | 2025-08-18T22:34:47.667096960Z 2025-08-18 22:34:47.665 UTC [419] LOG:  disconnection: session time: 0:00:00.017 user=postgres database=postgres host=[local]

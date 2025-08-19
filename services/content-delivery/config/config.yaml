@@ -1,0 +1,110 @@
+cdn:
+  app_name: "Suuupra Content Delivery Network"
+  version: "1.0.0"
+  port: 8013
+  environment: ${NODE_ENV:development}
+
+storage:
+  s3:
+    bucket: ${S3_BUCKET:suuupra-cdn}
+    region: ${AWS_REGION:us-east-1}
+    access_key: ${AWS_ACCESS_KEY:}
+    secret_key: ${AWS_SECRET_KEY:}
+    endpoint: ${S3_ENDPOINT:}  # For MinIO compatibility
+  
+  local:
+    path: ${LOCAL_STORAGE_PATH:/var/cdn-storage}
+    enabled: ${LOCAL_STORAGE_ENABLED:true}
+
+cache:
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    db: 7
+  
+  ttl_seconds:
+    images: 86400      # 24 hours
+    videos: 3600       # 1 hour
+    documents: 7200    # 2 hours
+    default: 1800      # 30 minutes
+  
+  max_size_mb: 100
+  compression_enabled: true
+
+content_types:
+  allowed_types:
+    images: ["jpeg", "jpg", "png", "gif", "webp", "svg"]
+    videos: ["mp4", "webm", "mov", "avi", "mkv"]
+    documents: ["pdf", "doc", "docx", "txt", "md"]
+    audio: ["mp3", "wav", "aac", "flac", "ogg"]
+  
+  max_file_sizes:
+    images: 10    # MB
+    videos: 500   # MB
+    documents: 50 # MB
+    audio: 100    # MB
+
+image_processing:
+  enabled: true
+  formats: ["webp", "jpeg", "png"]
+  
+  sizes:
+    thumbnail: "150x150"
+    small: "300x300"
+    medium: "600x600"
+    large: "1200x1200"
+  
+  quality: 85
+  strip_metadata: true
+
+video_processing:
+  enabled: true
+  ffmpeg_path: ${FFMPEG_PATH:/usr/local/bin/ffmpeg}
+  
+  formats:
+    - name: "360p"
+      resolution: "640x360"
+      bitrate: "800k"
+    - name: "720p"
+      resolution: "1280x720"
+      bitrate: "2500k"
+    - name: "1080p"
+      resolution: "1920x1080"
+      bitrate: "5000k"
+  
+  thumbnail_at_seconds: 5
+
+security:
+  authentication_required: false
+  signed_urls: true
+  url_expiry_hours: 24
+  
+  rate_limiting:
+    upload: 10    # requests per minute
+    download: 100 # requests per minute
+  
+  content_validation: true
+  virus_scanning: false
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:cdn_metadata}
+    username: ${POSTGRES_USER:cdn}
+    password: ${POSTGRES_PASSWORD:cdn123}
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+  
+  access_log:
+    enabled: true
+    log_uploads: true
+    log_downloads: true
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

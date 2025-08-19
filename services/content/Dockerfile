@@ -20,7 +20,11 @@ COPY tsconfig.json ./
 # Development stage
 FROM base AS development
 ENV NODE_ENV=development
-RUN npm ci --include=dev --legacy-peer-deps
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --include=dev --legacy-peer-deps; \
+    else \
+      npm install --include=dev --legacy-peer-deps; \
+    fi
 COPY . .
 RUN chown -R contentservice:nodejs /app
 USER contentservice
@@ -30,7 +34,11 @@ CMD ["npm", "run", "dev"]
 # Build stage
 FROM base AS build
 ENV NODE_ENV=production
-RUN npm ci --include=dev --legacy-peer-deps
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --include=dev --legacy-peer-deps; \
+    else \
+      npm install --include=dev --legacy-peer-deps; \
+    fi
 COPY . .
 RUN npm run build && \
     npm prune --production --legacy-peer-deps && \

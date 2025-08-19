@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -10,8 +10,12 @@ WORKDIR /app
 # Copy go mod files
 COPY go.mod go.sum ./
 
+# Copy proto definitions (needed for local imports) and download dependencies
+# Copy proto early so `go mod download` can resolve local replace/imports
+COPY proto/ ./proto/
+
 # Download dependencies
-RUN go mod download
+RUN go mod download 
 
 # Copy source code
 COPY . .
@@ -20,7 +24,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o payments ./cmd/main.go
 
 # Final stage
-FROM alpine:latest
+FROM alpine:latest AS production
 
 # Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata curl

@@ -1,0 +1,114 @@
+recommendations:
+  app_name: "Suuupra Recommendation Engine"
+  version: "1.0.0"
+  port: 8015
+  environment: ${NODE_ENV:development}
+
+algorithms:
+  collaborative_filtering:
+    enabled: true
+    method: "matrix_factorization"  # matrix_factorization, cosine_similarity
+    factors: 50
+    regularization: 0.1
+  
+  content_based:
+    enabled: true
+    features: ["category", "tags", "difficulty", "duration"]
+    weight_decay: 0.01
+  
+  deep_learning:
+    enabled: true
+    model_type: "neural_collaborative_filtering"
+    embedding_dim: 64
+    hidden_layers: [128, 64, 32]
+
+database:
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    username: ${NEO4J_USERNAME:neo4j}
+    password: ${NEO4J_PASSWORD:neo4j123}
+    
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:recommendations}
+    username: ${POSTGRES_USER:recommendations}
+    password: ${POSTGRES_PASSWORD:recommendations123}
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 15
+
+ml_pipeline:
+  training:
+    schedule_cron: "0 2 * * *"  # Daily at 2 AM
+    min_interactions: 10
+    train_test_split: 0.8
+    
+  inference:
+    batch_size: 1000
+    cache_ttl_hours: 24
+    real_time_updates: true
+
+features:
+  user_features:
+    - age_group
+    - learning_preferences
+    - skill_level
+    - activity_pattern
+    - device_type
+    
+  item_features:
+    - category
+    - difficulty
+    - duration
+    - popularity_score
+    - quality_rating
+    - instructor_rating
+
+personalization:
+  cold_start_strategy: "popular_items"
+  diversity_factor: 0.3
+  novelty_weight: 0.2
+  popularity_boost: 0.1
+  
+  contextual_factors:
+    time_of_day: true
+    day_of_week: true
+    device_type: true
+    location: false
+
+real_time:
+  event_processing: true
+  immediate_updates: true
+  feedback_incorporation: true
+  
+  stream_processing:
+    kafka_topics:
+      - user_interactions
+      - course_completions
+      - ratings_updates
+
+evaluation:
+  metrics:
+    - precision_at_k
+    - recall_at_k
+    - ndcg
+    - diversity
+    - coverage
+  
+  a_b_testing:
+    enabled: true
+    traffic_split: 0.1
+    
+monitoring:
+  model_performance: true
+  recommendation_quality: true
+  user_satisfaction: true
+  
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console

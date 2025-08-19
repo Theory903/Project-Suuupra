@@ -1,0 +1,69 @@
+# Milvus Configuration for Suuupra Platform
+# Vector database for AI/ML features and content embeddings
+
+etcd:
+  endpoints:
+    - etcd:2379
+  rootPath: by-dev
+  
+minio:
+  address: minio
+  port: 9000
+  accessKeyID: minioadmin
+  secretAccessKey: minioadmin123
+  useSSL: false
+  bucketName: "milvus-bucket"
+  rootPath: files
+
+# Storage configuration
+common:
+  defaultIndexType: IVF_FLAT
+  defaultMetricType: L2
+  indexSliceSize: 4
+
+# Performance tuning
+queryCoord:
+  retriesNum: 5
+  retryInterval: 2000
+
+queryNode:
+  stats:
+    publishInterval: 1000
+  segcore:
+    chunkRows: 1024
+
+indexNode:
+  scheduler:
+    buildParallel: 1
+
+rootCoord:
+  minSegmentSizeToEnableIndex: 1024
+  
+dataCoord:
+  segment:
+    maxSize: 512
+    sealProportion: 0.75
+    
+dataNode:
+  dataSync:
+    flowGraph:
+      maxQueueLength: 1024
+      maxParallelism: 1024
+      
+proxy:
+  timeTickInterval: 200
+  msgStream:
+    timeTick:
+      bufSize: 512
+
+log:
+  level: info
+  file:
+    rootPath: /var/lib/milvus/logs
+    maxSize: 300
+    maxAge: 10
+    maxBackups: 20
+    
+# Metrics and monitoring
+metrics:
+  enableProfiling: true

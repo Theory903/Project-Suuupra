@@ -1,0 +1,106 @@
+llm_tutor:
+  app_name: "Suuupra LLM Tutor"
+  version: "1.0.0"
+  port: 8008
+  environment: ${NODE_ENV:development}
+
+model:
+  provider: "openai"  # openai, anthropic, local
+  model_name: ${MODEL_NAME:gpt-4}
+  api_key: ${OPENAI_API_KEY:}
+  base_url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  
+  local_model:
+    model_path: ${LOCAL_MODEL_PATH:/models/}
+    device: ${DEVICE:cpu}  # cpu, cuda, mps
+    max_tokens: 2048
+    temperature: 0.7
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:llm_tutor}
+    username: ${POSTGRES_USER:tutor}
+    password: ${POSTGRES_PASSWORD:tutor123}
+  
+  vector_db:
+    provider: "chromadb"  # chromadb, pinecone, weaviate
+    host: ${VECTOR_DB_HOST:localhost}
+    port: ${VECTOR_DB_PORT:8000}
+    collection_name: "knowledge_base"
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 11
+
+rag:
+  enabled: true
+  chunk_size: 1000
+  chunk_overlap: 200
+  top_k_results: 5
+  
+  embeddings:
+    model: "text-embedding-ada-002"
+    dimension: 1536
+    batch_size: 100
+
+tutoring:
+  max_conversation_length: 50
+  context_window: 4000
+  response_timeout_seconds: 30
+  
+  personality:
+    style: "friendly_expert"
+    explanation_level: "adaptive"
+    encouragement: true
+  
+  subjects:
+    - mathematics
+    - physics
+    - chemistry
+    - computer_science
+    - data_science
+    - machine_learning
+
+content_processing:
+  auto_index: true
+  supported_formats: ["pdf", "txt", "md", "docx"]
+  max_file_size_mb: 50
+  
+  processing_queue:
+    max_concurrent: 5
+    retry_attempts: 3
+
+personalization:
+  learning_analytics: true
+  adaptive_difficulty: true
+  progress_tracking: true
+  
+  recommendation_engine:
+    enabled: true
+    update_interval_hours: 6
+
+safety:
+  content_filtering: true
+  inappropriate_content_detection: true
+  educational_focus_enforcement: true
+  
+  rate_limiting:
+    requests_per_minute: 30
+    tokens_per_hour: 10000
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+  
+  conversation_logging:
+    enabled: true
+    anonymize_pii: true
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

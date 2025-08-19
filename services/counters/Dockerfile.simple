@@ -1,0 +1,29 @@
+FROM golang:1.21-alpine AS builder
+
+RUN apk add --no-cache ca-certificates git
+
+WORKDIR /app
+COPY go_simple.mod go.mod
+COPY simple_server.go .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o counters simple_server.go
+
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates curl && \
+    addgroup -g 1001 -S counters && \
+    adduser -u 1001 -S counters -G counters
+
+WORKDIR /app
+
+COPY --from=builder /app/counters .
+
+RUN chown -R counters:counters /app
+USER counters
+
+EXPOSE 8098
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8098/health || exit 1
+
+CMD ["./counters"]

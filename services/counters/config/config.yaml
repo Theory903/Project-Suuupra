@@ -1,0 +1,60 @@
+counters:
+  app_name: "Suuupra Counter Service"
+  version: "1.0.0"
+  port: 8003
+  environment: ${GO_ENV:development}
+
+redis:
+  cluster:
+    nodes:
+      - ${REDIS_NODE1:localhost:7001}
+      - ${REDIS_NODE2:localhost:7002}
+      - ${REDIS_NODE3:localhost:7003}
+  pool_size: 100
+  min_idle_conns: 10
+  password: ${REDIS_PASSWORD:}
+
+clickhouse:
+  host: ${CLICKHOUSE_HOST:localhost}
+  port: ${CLICKHOUSE_PORT:9000}
+  database: ${CLICKHOUSE_DB:counters}
+  username: ${CLICKHOUSE_USER:counters}
+  password: ${CLICKHOUSE_PASSWORD:counters123}
+  max_open_conns: 20
+
+kafka:
+  brokers: ${KAFKA_BROKERS:localhost:9092}
+  topic: counter-events
+  batch_size: 100
+  flush_interval_ms: 1000
+
+counters:
+  types:
+    - views
+    - likes
+    - shares
+    - downloads
+    - engagement
+  
+  aggregation_windows:
+    - "1m"
+    - "5m"
+    - "1h"
+    - "1d"
+  
+  retention_days: 90
+  batch_write_size: 1000
+
+rate_limiting:
+  max_requests_per_second: 1000
+  burst_capacity: 2000
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: stdout
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"
+  pprof_enabled: true

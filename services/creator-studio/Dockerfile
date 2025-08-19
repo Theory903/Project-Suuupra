@@ -18,11 +18,19 @@ COPY tsconfig*.json ./
 
 # Production dependencies stage
 FROM base AS deps
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --only=production --legacy-peer-deps; \
+    else \
+      npm install --only=production --legacy-peer-deps; \
+    fi && npm cache clean --force
 
 # Build stage
 FROM base AS build
-RUN npm ci --legacy-peer-deps
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --legacy-peer-deps; \
+    else \
+      npm install --legacy-peer-deps; \
+    fi
 COPY . .
 RUN npm run build && \
     npm prune --production

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suuupra Services Comprehensive Test Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 40px; 
+            border-radius: 20px; 
+            margin-bottom: 30px; 
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 3em; margin-bottom: 10px; font-weight: 300; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 20px; 
+            margin-bottom: 40px; 
+        }
+        .stat-card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            text-align: center; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+            transition: transform 0.3s, box-shadow 0.3s; 
+        }
+        .stat-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+        }
+        .stat-value { font-size: 3em; font-weight: bold; margin-bottom: 10px; }
+        .stat-label { color: #666; font-size: 1.1em; }
+        .success { color: #28a745; }
+        .failure { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .charts-section { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 30px; 
+            margin-bottom: 40px; 
+        }
+        .chart-container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+        }
+        .services-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+            gap: 25px; 
+        }
+        .service-card { 
+            background: white; 
+            border-radius: 15px; 
+            padding: 25px; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+            transition: transform 0.3s; 
+            border-left: 5px solid #ddd;
+        }
+        .service-card:hover { transform: translateY(-3px); }
+        .service-card.passed { border-left-color: #28a745; }
+        .service-card.failed { border-left-color: #dc3545; }
+        .service-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+            border-bottom: 2px solid #f0f0f0; 
+        }
+        .service-title { font-size: 1.4em; font-weight: bold; }
+        .service-badge { 
+            background: #e9ecef; 
+            padding: 8px 15px; 
+            border-radius: 20px; 
+            font-size: 0.8em; 
+            font-weight: bold;
+        }
+        .test-progress { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        .test-stat { text-align: center; }
+        .test-stat-value { font-size: 2em; font-weight: bold; }
+        .test-stat-label { font-size: 0.9em; color: #666; }
+        .progress-bar { 
+            width: 100%; 
+            height: 10px; 
+            background: #f0f0f0; 
+            border-radius: 5px; 
+            overflow: hidden; 
+            margin: 15px 0;
+        }
+        .progress-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, #28a745, #20c997); 
+            transition: width 0.5s ease; 
+        }
+        .error-list { margin-top: 15px; }
+        .error-item { 
+            background: #f8d7da; 
+            color: #721c24; 
+            padding: 10px 15px; 
+            border-radius: 8px; 
+            margin-bottom: 8px; 
+            font-size: 0.9em; 
+            border-left: 4px solid #dc3545;
+        }
+        .no-errors { 
+            color: #28a745; 
+            font-style: italic; 
+            text-align: center; 
+            padding: 20px; 
+            background: #d4edda; 
+            border-radius: 8px; 
+        }
+        .section-title { 
+            font-size: 2em; 
+            margin: 40px 0 20px 0; 
+            color: #333; 
+            border-bottom: 3px solid #667eea; 
+            padding-bottom: 10px; 
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-section { grid-template-columns: 1fr; }
+            .services-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Suuupra Services Test Report</h1>
+            <p id="timestamp">Generated on: 2025-08-19T19:48:50.500Z</p>
+        </div>
+        
+        <div class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-value info">21</div>
+                <div class="stat-label">Services Tested</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value success">16</div>
+                <div class="stat-label">Services Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value failure">5</div>
+                <div class="stat-label">Services Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value info">166</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value success">154</div>
+                <div class="stat-label">Tests Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value failure">12</div>
+                <div class="stat-label">Tests Failed</div>
+            </div>
+        </div>
+        
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Services by Status</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Services by Technology</h3>
+                <canvas id="techChart"></canvas>
+            </div>
+        </div>
+        
+        <h2 class="section-title">📋 Service Details</h2>
+        <div class="services-grid" id="services">
+            <!-- Services populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Test results data embedded directly
+        const testResults = {
+            "timestamp": "2025-08-19T19:48:50.500Z",
+            "summary": {
+                "totalServices": 21,
+                "passedServices": 16,
+                "failedServices": 5,
+                "totalTests": 166,
+                "passedTests": 154,
+                "failedTests": 12,
+                "servicesByType": {
+                    "node": { "total": 7, "passed": 4, "failed": 3 },
+                    "python": { "total": 6, "passed": 6, "failed": 0 },
+                    "go": { "total": 5, "passed": 4, "failed": 1 },
+                    "rust": { "total": 1, "passed": 1, "failed": 0 },
+                    "java": { "total": 2, "passed": 1, "failed": 1 }
+                }
+            },
+            "services": {
+                "api-gateway": { "service": "api-gateway", "type": "node", "framework": "fastify", "passed": 6, "failed": 2, "errors": ["API structure not found", "Insufficient documentation"] },
+                "admin": { "service": "admin", "type": "node", "framework": "react", "passed": 8, "failed": 0, "errors": [] },
+                "bank-simulator": { "service": "bank-simulator", "type": "node", "framework": "fastify", "passed": 6, "failed": 2, "errors": ["API structure not found", "Test directory not found"] },
+                "content": { "service": "content", "type": "node", "framework": "express", "passed": 8, "failed": 0, "errors": [] },
+                "content-delivery": { "service": "content-delivery", "type": "node", "framework": "express", "passed": 3, "failed": 4, "errors": ["Source directory not found", "Insufficient documentation", "Infrastructure files missing", "Test directory not found"] },
+                "creator-studio": { "service": "creator-studio", "type": "node", "framework": "react", "passed": 8, "failed": 0, "errors": [] },
+                "live-classes": { "service": "live-classes", "type": "node", "framework": "fastify", "passed": 8, "failed": 0, "errors": [] },
+                "analytics": { "service": "analytics", "type": "python", "framework": "fastapi", "passed": 8, "failed": 0, "errors": [] },
+                "commerce": { "service": "commerce", "type": "python", "framework": "fastapi", "passed": 8, "failed": 0, "errors": [] },
+                "llm-tutor": { "service": "llm-tutor", "type": "python", "framework": "fastapi", "passed": 8, "failed": 0, "errors": [] },
+                "notifications": { "service": "notifications", "type": "python", "framework": "fastapi", "passed": 8, "failed": 0, "errors": [] },
+                "recommendations": { "service": "recommendations", "type": "python", "framework": "fastapi", "passed": 8, "failed": 0, "errors": [] },
+                "vod": { "service": "vod", "type": "python", "framework": "fastapi", "passed": 8, "failed": 0, "errors": [] },
+                "counters": { "service": "counters", "type": "go", "framework": "chi", "passed": 8, "failed": 0, "errors": [] },
+                "live-tracking": { "service": "live-tracking", "type": "rust", "framework": "axum", "passed": 8, "failed": 0, "errors": [] },
+                "mass-live": { "service": "mass-live", "type": "go", "framework": "gin", "passed": 8, "failed": 0, "errors": [] },
+                "payments": { "service": "payments", "type": "go", "framework": "gin", "passed": 8, "failed": 0, "errors": [] },
+                "search-crawler": { "service": "search-crawler", "type": "go", "framework": "gin", "passed": 8, "failed": 0, "errors": [] },
+                "upi-core": { "service": "upi-core", "type": "go", "framework": "grpc", "passed": 4, "failed": 3, "errors": ["Source directory not found", "Infrastructure files missing", "Test directory not found"] },
+                "identity": { "service": "identity", "type": "java", "framework": "spring-boot", "passed": 7, "failed": 1, "errors": ["API structure not found"] },
+                "ledger": { "service": "ledger", "type": "java", "framework": "spring-boot", "passed": 8, "failed": 0, "errors": [] }
+            }
+        };
+
+        // Update timestamp
+        document.getElementById('timestamp').textContent = `Generated on: ${new Date(testResults.timestamp).toLocaleString()}`;
+        
+        // Populate services
+        const servicesContainer = document.getElementById('services');
+        const serviceCards = Object.entries(testResults.services).map(([serviceName, result]) => {
+            const status = result.failed === 0 ? 'passed' : 'failed';
+            const statusIcon = result.failed === 0 ? '✅' : '❌';
+            const totalTests = result.passed + result.failed;
+            const successRate = totalTests > 0 ? Math.round((result.passed / totalTests) * 100) : 0;
+            
+            const errorsList = result.errors.length > 0 ? 
+                result.errors.map(error => `<div class="error-item">${error}</div>`).join('') :
+                '<div class="no-errors">✨ All tests passed! This service is fully compliant.</div>';
+            
+            return `
+                <div class="service-card ${status}">
+                    <div class="service-header">
+                        <div>
+                            <div class="service-title">${statusIcon} ${serviceName}</div>
+                            <div class="service-badge">${result.type}/${result.framework || 'unknown'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-progress">
+                        <div class="test-stat">
+                            <div class="test-stat-value success">${result.passed}</div>
+                            <div class="test-stat-label">Passed</div>
+                        </div>
+                        <div class="test-stat">
+                            <div class="test-stat-value failure">${result.failed}</div>
+                            <div class="test-stat-label">Failed</div>
+                        </div>
+                        <div class="test-stat">
+                            <div class="test-stat-value info">${successRate}%</div>
+                            <div class="test-stat-label">Success Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${successRate}%"></div>
+                    </div>
+                    
+                    <div class="error-list">
+                        <strong>Test Results:</strong>
+                        ${errorsList}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        servicesContainer.innerHTML = serviceCards;
+
+        // Status Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Passed', 'Failed'],
+                datasets: [{
+                    data: [testResults.summary.passedServices, testResults.summary.failedServices],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Technology Chart
+        const techCtx = document.getElementById('techChart').getContext('2d');
+        const techData = testResults.summary.servicesByType;
+        const techLabels = Object.keys(techData);
+        const techCounts = techLabels.map(tech => techData[tech].total);
+        
+        new Chart(techCtx, {
+            type: 'bar',
+            data: {
+                labels: techLabels.map(t => t.toUpperCase()),
+                datasets: [{
+                    label: 'Services',
+                    data: techCounts,
+                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#6f42c1'],
+                    borderWidth: 0,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+vod:
+  app_name: "Suuupra Video on Demand"
+  version: "1.0.0"
+  port: 8017
+  environment: ${NODE_ENV:development}
+
+video_processing:
+  ffmpeg_path: ${FFMPEG_PATH:/usr/local/bin/ffmpeg}
+  
+  encoding_profiles:
+    - name: "240p"
+      resolution: "426x240"
+      bitrate: "400k"
+      fps: 25
+      audio_bitrate: "64k"
+    - name: "480p"
+      resolution: "854x480"
+      bitrate: "1000k"
+      fps: 30
+      audio_bitrate: "128k"
+    - name: "720p"
+      resolution: "1280x720"
+      bitrate: "2500k"
+      fps: 30
+      audio_bitrate: "192k"
+    - name: "1080p"
+      resolution: "1920x1080"
+      bitrate: "5000k"
+      fps: 30
+      audio_bitrate: "256k"
+  
+  adaptive_streaming:
+    enabled: true
+    format: "hls"
+    segment_duration: 6
+    playlist_type: "vod"
+    
+  thumbnails:
+    enabled: true
+    count: 10
+    format: "jpg"
+    quality: 85
+
+storage:
+  input:
+    backend: "s3"
+    bucket: ${S3_INPUT_BUCKET:suuupra-vod-input}
+    
+  output:
+    backend: "s3"
+    bucket: ${S3_OUTPUT_BUCKET:suuupra-vod-output}
+    
+  temp:
+    path: ${TEMP_STORAGE_PATH:/tmp/vod-processing}
+    cleanup_after_hours: 24
+
+cdn:
+  provider: "cloudfront"
+  distribution_id: ${CLOUDFRONT_DISTRIBUTION_ID:}
+  cache_behaviors:
+    videos: 86400  # 24 hours
+    thumbnails: 604800  # 7 days
+    manifests: 60  # 1 minute
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:vod}
+    username: ${POSTGRES_USER:vod}
+    password: ${POSTGRES_PASSWORD:vod123}
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 17
+
+processing_queue:
+  provider: "bull"
+  concurrency: 5
+  max_retries: 3
+  
+  job_types:
+    transcode: "video_transcode"
+    thumbnail: "thumbnail_generation" 
+    upload: "cdn_upload"
+
+content_management:
+  supported_formats:
+    input: ["mp4", "mov", "avi", "mkv", "webm"]
+    output: ["mp4", "webm"]
+  
+  validation:
+    max_file_size_gb: 10
+    max_duration_hours: 8
+    min_resolution: "240p"
+  
+  metadata_extraction: true
+  
+drm:
+  enabled: false
+  provider: "widevine"
+  key_server_url: ${DRM_KEY_SERVER_URL:}
+
+analytics:
+  viewing_metrics: true
+  engagement_tracking: true
+  quality_metrics: true
+  
+  events:
+    - play_start
+    - play_progress
+    - play_complete
+    - quality_change
+    - error_occurred
+
+monitoring:
+  processing_metrics: true
+  playback_metrics: true
+  error_tracking: true
+  
+  alerts:
+    processing_failure_rate: 0.05
+    encoding_time_threshold_minutes: 60
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console

@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upi-core
+  labels:
+    app: upi-core
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: upi-core
+  template:
+    metadata:
+      labels:
+        app: upi-core
+        version: v1
+    spec:
+      containers:
+      - name: upi-core
+        image: suuupra/upi-core:latest
+        ports:
+        - containerPort: 8012
+          name: grpc
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: PORT
+          value: "8012"
+        - name: GRPC_PORT
+          value: "8012"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: upi-core-secrets
+              key: db-host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: upi-core-secrets
+              key: db-password
+        - name: REDIS_HOST
+          value: "redis-service"
+        livenessProbe:
+          grpc:
+            port: 8012
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          grpc:
+            port: 8012
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: upi-core-service
+  labels:
+    app: upi-core
+spec:
+  selector:
+    app: upi-core
+  ports:
+  - name: grpc
+    port: 8012
+    targetPort: 8012
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP

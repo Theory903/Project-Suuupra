@@ -77,16 +77,42 @@ jobs:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
       
       - name: Build Docker image for scanning
+        id: build-scan-image
         run: |
           if [ -f "services/${{ matrix.service }}/Dockerfile" ]; then
-            docker build -t ${{ matrix.service }}:scan services/${{ matrix.service }}/
+            echo "🏗️ Building Docker image for security scanning..."
+            echo "📂 Service: ${{ matrix.service }}"
+            echo "🐳 Image tag: ${{ matrix.service }}:scan"
+            
+            # Build the image with better error handling
+            if docker build -t ${{ matrix.service }}:scan services/${{ matrix.service }}/ ; then
+              echo "✅ Docker image built successfully"
+              
+              # Verify the image exists
+              if docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "${{ matrix.service }}:scan"; then
+                echo "✅ Image verification passed"
+                echo "IMAGE_BUILT=true" >> $GITHUB_ENV
+              else
+                echo "❌ Image verification failed - image not found in docker images list"
+                echo "IMAGE_BUILT=false" >> $GITHUB_ENV
+                exit 1
+              fi
+            else
+              echo "❌ Docker image build failed"
+              echo "IMAGE_BUILT=false" >> $GITHUB_ENV
+              exit 1
+            fi
           else
-            echo "No Dockerfile found for ${{ matrix.service }}, skipping"
+            echo "⏭️ No Dockerfile found for ${{ matrix.service }}, skipping security scan"
+            echo "IMAGE_BUILT=false" >> $GITHUB_ENV
             exit 0
           fi
       
       - name: Run Trivy vulnerability scanner
+        id: trivy-scan
+        if: env.IMAGE_BUILT == 'true'
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: '${{ matrix.service }}:scan'
           format: 'sarif'
@@ -94,16 +120,65 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
       
+      - name: Check Trivy scan results
+        if: always()
+        run: |
+          if [ -f trivy-results.sarif ]; then
+            echo "✅ Trivy SARIF file generated successfully"
+            # Check if file has content
+            if [ -s trivy-results.sarif ]; then
+              echo "📄 SARIF file size: $(stat -f%z trivy-results.sarif 2>/dev/null || stat -c%s trivy-results.sarif)"
+              echo "SARIF_EXISTS=true" >> $GITHUB_ENV
+            else
+              echo "⚠️ SARIF file exists but is empty"
+              echo "SARIF_EXISTS=false" >> $GITHUB_ENV
+            fi
+          else
+            echo "❌ Trivy SARIF file not found"
+            echo "SARIF_EXISTS=false" >> $GITHUB_ENV
+            
+            # Try to run Trivy again with different settings for debugging
+            echo "🔍 Attempting to diagnose Trivy scan issue..."
+            docker images | grep "${{ matrix.service }}:scan" || echo "❌ Scan image not found"
+            
+            # Run Trivy with table output for debugging
+            echo "🔍 Running Trivy with table output for debugging..."
+            trivy image --severity CRITICAL,HIGH --format table "${{ matrix.service }}:scan" || echo "Trivy table scan also failed"
+          fi
+          
+          # Set job outcome based on original Trivy result
+          if [ "${{ steps.trivy-scan.outcome }}" = "failure" ]; then
+            echo "🚨 Trivy scan found critical/high vulnerabilities"
+            echo "TRIVY_FOUND_VULNS=true" >> $GITHUB_ENV
+          else
+            echo "✅ No critical/high vulnerabilities found"
+            echo "TRIVY_FOUND_VULNS=false" >> $GITHUB_ENV
+          fi
+      
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && env.SARIF_EXISTS == 'true'
         with:
           sarif_file: 'trivy-results.sarif'
       
-      - name: Run Grype container scan
+      - name: Fail job if vulnerabilities found
+        if: env.TRIVY_FOUND_VULNS == 'true'
         run: |
+          echo "🚨 Critical or high severity vulnerabilities detected in ${{ matrix.service }}"
+          echo "Please review the security scan results and fix the vulnerabilities before proceeding."
+          exit 1
+      
+      - name: Run Grype container scan
+        if: env.IMAGE_BUILT == 'true'
+        run: |
+          echo "🔍 Running Grype vulnerability scan..."
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-          grype ${{ matrix.service }}:scan --fail-on high
+          if grype ${{ matrix.service }}:scan --fail-on high; then
+            echo "✅ Grype scan passed - no high severity vulnerabilities found"
+          else
+            echo "🚨 Grype scan found high severity vulnerabilities"
+            exit 1
+          fi
 
   # Run tests for each service
   test:

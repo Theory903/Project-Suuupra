@@ -11,7 +11,7 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-        max_recv_msg_size: 67108864  # 64MB
+        max_recv_msg_size_mib: 64  # 64MB
       http:
         endpoint: 0.0.0.0:4318
         cors:
@@ -90,8 +90,6 @@ receivers:
             enabled: true
       disk:
         metrics:
-          system.disk.io.time:
-            enabled: true
           system.disk.operations:
             enabled: true
       filesystem:
@@ -213,7 +211,7 @@ processors:
       new_name: suuupra_request_sli
       operations:
       - action: aggregate_labels
-        aggregation_type: p95
+        aggregation_type: max
         label: quantile
         
     # Transform payment metrics

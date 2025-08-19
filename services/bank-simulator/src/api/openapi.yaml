@@ -1,0 +1,108 @@
+openapi: 3.0.3
+info:
+  title: Bank Simulator API
+  description: Simulates real bank APIs for testing payment flows
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3002
+    description: Development server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+
+  /api/v1/banks:
+    get:
+      summary: List supported banks
+      responses:
+        '200':
+          description: List of banks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bank'
+
+  /api/v1/accounts/{accountId}/balance:
+    get:
+      summary: Get account balance
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+
+  /api/v1/transactions:
+    post:
+      summary: Process transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+      responses:
+        '200':
+          description: Transaction processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+
+components:
+  schemas:
+    Bank:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        ifsc:
+          type: string
+
+    Balance:
+      type: object
+      properties:
+        accountId:
+          type: string
+        balance:
+          type: number
+        currency:
+          type: string
+
+    TransactionRequest:
+      type: object
+      properties:
+        fromAccount:
+          type: string
+        toAccount:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+
+    TransactionResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        status:
+          type: string
+        timestamp:
+          type: string

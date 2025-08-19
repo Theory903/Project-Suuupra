@@ -1,0 +1,77 @@
+live_tracking:
+  app_name: "Suuupra Live Tracking Service"
+  version: "1.0.0"
+  port: 8007
+  environment: ${RUST_ENV:development}
+
+database:
+  postgis:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:live_tracking}
+    username: ${POSTGRES_USER:tracking}
+    password: ${POSTGRES_PASSWORD:tracking123}
+    ssl_mode: ${POSTGRES_SSL_MODE:disable}
+    max_connections: 20
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 10
+  pool_size: 100
+
+tracking:
+  update_interval_ms: 5000
+  geofence_check_interval_ms: 10000
+  location_accuracy_threshold_meters: 50
+  
+  data_retention:
+    raw_locations_days: 7
+    aggregated_data_days: 30
+    analytics_data_days: 90
+
+geospatial:
+  srid: 4326  # WGS84
+  distance_calculation: "haversine"
+  default_radius_meters: 1000
+  
+  clustering:
+    enabled: true
+    min_points: 5
+    epsilon_meters: 100
+
+routing:
+  provider: "osrm"  # osrm, google, mapbox
+  osrm_endpoint: ${OSRM_ENDPOINT:http://localhost:5000}
+  max_waypoints: 25
+  optimize_routes: true
+
+notifications:
+  realtime_updates: true
+  websocket_enabled: true
+  push_notifications: true
+  
+  geofence_alerts:
+    enabled: true
+    buffer_distance_meters: 50
+
+analytics:
+  compute_patterns: true
+  heatmap_generation: true
+  route_optimization: true
+  
+  reporting_intervals:
+    - "1h"
+    - "6h" 
+    - "1d"
+    - "1w"
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: stdout
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

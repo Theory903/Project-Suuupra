@@ -1,0 +1,75 @@
+live_classes:
+  app_name: "Suuupra Live Classes"
+  version: "1.0.0"
+  port: 8005
+  environment: ${NODE_ENV:development}
+
+webrtc:
+  stun_servers:
+    - "stun:stun.l.google.com:19302"
+    - "stun:stun1.l.google.com:19302"
+  
+  turn_servers:
+    - url: ${TURN_SERVER:turn:localhost:3478}
+      username: ${TURN_USERNAME:suuupra}
+      credential: ${TURN_PASSWORD:turnpass123}
+  
+  ice_candidate_timeout_ms: 5000
+  max_participants_per_room: 50
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:live_classes}
+    username: ${POSTGRES_USER:classes}
+    password: ${POSTGRES_PASSWORD:classes123}
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 5
+
+recording:
+  enabled: true
+  storage_path: ${RECORDING_PATH:/var/recordings}
+  max_duration_hours: 4
+  formats: ["mp4", "webm"]
+  quality: "1080p"
+
+streaming:
+  rtmp_port: 1935
+  hls_segment_duration: 6
+  hls_playlist_length: 10
+  adaptive_bitrate: true
+  
+  quality_levels:
+    - name: "360p"
+      resolution: "640x360"
+      bitrate: "800k"
+    - name: "720p"
+      resolution: "1280x720"
+      bitrate: "2500k"
+    - name: "1080p"
+      resolution: "1920x1080"
+      bitrate: "5000k"
+
+chat:
+  max_message_length: 500
+  rate_limit_messages_per_minute: 10
+  moderation_enabled: true
+  profanity_filter: true
+
+authentication:
+  jwt_secret: ${JWT_SECRET:classes-super-secret-key}
+  token_expiry: "4h"
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

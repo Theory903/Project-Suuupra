@@ -1,0 +1,114 @@
+notifications:
+  app_name: "Suuupra Notification Service"
+  version: "1.0.0"
+  port: 8014
+  environment: ${PYTHON_ENV:development}
+
+channels:
+  email:
+    enabled: true
+    smtp:
+      host: ${SMTP_HOST:localhost}
+      port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME:}
+      password: ${SMTP_PASSWORD:}
+      use_tls: true
+    templates_path: "/app/templates/email"
+    
+  push:
+    enabled: true
+    fcm:
+      credentials_path: ${FCM_CREDENTIALS:/app/config/fcm-credentials.json}
+      project_id: ${FCM_PROJECT_ID:suuupra-notifications}
+    
+    apns:
+      enabled: false
+      key_path: ${APNS_KEY_PATH:}
+      key_id: ${APNS_KEY_ID:}
+      team_id: ${APNS_TEAM_ID:}
+  
+  sms:
+    enabled: true
+    provider: "twilio"
+    account_sid: ${TWILIO_ACCOUNT_SID:}
+    auth_token: ${TWILIO_AUTH_TOKEN:}
+    from_number: ${TWILIO_FROM_NUMBER:}
+  
+  websocket:
+    enabled: true
+    max_connections: 100000
+    heartbeat_interval: 30
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:notifications}
+    username: ${POSTGRES_USER:notifications}
+    password: ${POSTGRES_PASSWORD:notifications123}
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 12
+
+queue:
+  provider: "celery"  # celery, rq, dramatiq
+  broker_url: ${CELERY_BROKER_URL:redis://localhost:6379/13}
+  result_backend: ${CELERY_RESULT_BACKEND:redis://localhost:6379/14}
+  
+  workers: 4
+  concurrency: 100
+  max_retries: 3
+  retry_delay: 60
+
+templates:
+  engine: "jinja2"
+  cache_enabled: true
+  auto_reload: false
+  
+  localization:
+    enabled: true
+    default_language: "en"
+    supported_languages: ["en", "hi", "es", "fr"]
+
+delivery:
+  batch_size: 1000
+  rate_limiting:
+    email: 100  # per minute
+    push: 1000   # per minute
+    sms: 50      # per minute
+  
+  retry_policy:
+    max_attempts: 3
+    backoff_factor: 2
+    max_delay: 3600
+
+personalization:
+  enabled: true
+  user_preferences: true
+  optimal_time_delivery: true
+  frequency_capping: true
+
+analytics:
+  track_delivery: true
+  track_opens: true
+  track_clicks: true
+  
+  metrics_retention_days: 90
+  
+  webhooks:
+    enabled: true
+    endpoints:
+      - url: ${WEBHOOK_URL:}
+        events: ["delivered", "opened", "clicked", "failed"]
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

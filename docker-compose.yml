@@ -32,8 +32,7 @@ services:
   api-gateway:
     build:
       context: ./services/api-gateway
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-api-gateway
     restart: unless-stopped
     ports:
@@ -130,8 +129,7 @@ services:
   identity:
     build:
       context: ./services/identity
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-identity
     restart: unless-stopped
     ports:
@@ -215,8 +213,7 @@ services:
   payments:
     build:
       context: ./services/payments
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-payments
     restart: unless-stopped
     ports:
@@ -296,8 +293,7 @@ services:
   commerce:
     build:
       context: ./services/commerce
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-commerce
     restart: unless-stopped
     ports:
@@ -388,8 +384,7 @@ services:
   content-delivery:
     build:
       context: ./services/content-delivery
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-content-delivery
     restart: unless-stopped
     ports:
@@ -441,8 +436,7 @@ services:
   notifications:
     build:
       context: ./services/notifications
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-notifications
     restart: unless-stopped
     ports:
@@ -515,8 +509,7 @@ services:
   ledger:
     build:
       context: ./services/ledger
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-ledger
     restart: unless-stopped
     ports:
@@ -581,8 +574,7 @@ services:
   upi-core:
     build:
       context: ./services/upi-core
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-upi-core
     restart: unless-stopped
     ports:
@@ -642,8 +634,8 @@ services:
   bank-simulator:
     build:
       context: ./services/bank-simulator
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
+      
     container_name: suuupra-bank-simulator
     restart: unless-stopped
     ports:
@@ -697,8 +689,7 @@ services:
   content:
     build:
       context: ./services/content
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-content
     restart: unless-stopped
     ports:
@@ -771,8 +762,7 @@ services:
   live-classes:
     build:
       context: ./services/live-classes
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-live-classes
     restart: unless-stopped
     ports:
@@ -852,8 +842,7 @@ services:
   vod:
     build:
       context: ./services/vod
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-vod
     restart: unless-stopped
     ports:
@@ -921,8 +910,7 @@ services:
   mass-live:
     build:
       context: ./services/mass-live
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-mass-live
     restart: unless-stopped
     ports:
@@ -1002,8 +990,7 @@ services:
   creator-studio:
     build:
       context: ./services/creator-studio
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-creator-studio
     restart: unless-stopped
     ports:
@@ -1086,8 +1073,7 @@ services:
   search-crawler:
     build:
       context: ./services/search-crawler
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-search-crawler
     restart: unless-stopped
     ports:
@@ -1168,8 +1154,7 @@ services:
   recommendations:
     build:
       context: ./services/recommendations
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-recommendations
     restart: unless-stopped
     ports:
@@ -1255,8 +1240,7 @@ services:
   llm-tutor:
     build:
       context: ./services/llm-tutor
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-llm-tutor
     restart: unless-stopped
     ports:
@@ -1363,8 +1347,7 @@ services:
   analytics:
     build:
       context: ./services/analytics
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-analytics
     restart: unless-stopped
     ports:
@@ -1457,8 +1440,7 @@ services:
   counters:
     build:
       context: ./services/counters
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-counters
     restart: unless-stopped
     ports:
@@ -1535,8 +1517,7 @@ services:
   live-tracking:
     build:
       context: ./services/live-tracking
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-live-tracking
     restart: unless-stopped
     ports:
@@ -1630,8 +1611,7 @@ services:
   admin:
     build:
       context: ./services/admin
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.simple
     container_name: suuupra-admin
     restart: unless-stopped
     ports:

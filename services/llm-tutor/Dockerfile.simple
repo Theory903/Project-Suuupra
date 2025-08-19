@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd -r llm-tutor && useradd -r -g llm-tutor llm-tutor
+
+WORKDIR /app
+
+COPY simple_server.py ./simple_server.py
+
+RUN chown -R llm-tutor:llm-tutor /app
+USER llm-tutor
+
+EXPOSE 8096
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8096/health || exit 1
+
+CMD ["python", "simple_server.py"]

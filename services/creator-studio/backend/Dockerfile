@@ -17,18 +17,30 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci --only=production --legacy-peer-deps; \
+    else \
+      npm install --only=production --legacy-peer-deps; \
+    fi && npm cache clean --force
 
 # Development stage
 FROM base AS development
-RUN npm ci
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 COPY . .
 EXPOSE 8089
 CMD ["npm", "run", "dev"]
 
 # Build stage
 FROM base AS build
-RUN npm ci
+RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 COPY . .
 RUN npm run build
 

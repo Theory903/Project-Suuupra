@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: Suuupra API Gateway
+  description: Central API Gateway for Suuupra microservices platform
+  version: 1.0.0
+  contact:
+    name: Suuupra Team
+    email: dev@suuupra.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.suuupra.com
+    description: Production server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the API Gateway
+      responses:
+        '200':
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/v1/auth:
+    post:
+      summary: Authenticate user
+      description: Proxy authentication requests to identity service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+
+  /api/v1/gateway/status:
+    get:
+      summary: Gateway status
+      description: Returns detailed status of all connected services
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Gateway status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                        url:
+                          type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

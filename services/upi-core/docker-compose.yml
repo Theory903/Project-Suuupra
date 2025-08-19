@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  upi-core:
+    build: .
+    ports:
+      - "8012:8012"
+      - "9090:9090"
+    environment:
+      - PORT=8012
+      - GRPC_PORT=8012
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=upi_core
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - upi-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=upi_core
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - upi-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6382:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - upi-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  upi-network:
+    driver: bridge

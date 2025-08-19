@@ -1,5 +1,5 @@
 # Multi-stage build for Go application with FFmpeg
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git gcc musl-dev
@@ -19,7 +19,7 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
 
 # Production stage with FFmpeg
-FROM alpine:3.18
+FROM alpine:3.18 AS production
 
 # Install runtime dependencies including FFmpeg
 RUN apk add --no-cache \

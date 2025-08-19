@@ -1,0 +1,29 @@
+FROM golang:1.21-alpine AS builder
+
+RUN apk add --no-cache ca-certificates git
+
+WORKDIR /app
+COPY go_simple.mod go.mod
+COPY simple_server.go .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o live-tracking simple_server.go
+
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates curl && \
+    addgroup -g 1001 -S live-tracking && \
+    adduser -u 1001 -S live-tracking -G live-tracking
+
+WORKDIR /app
+
+COPY --from=builder /app/live-tracking .
+
+RUN chown -R live-tracking:live-tracking /app
+USER live-tracking
+
+EXPOSE 8099
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8099/health || exit 1
+
+CMD ["./live-tracking"]

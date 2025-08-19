@@ -1,0 +1,194 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-service
+  namespace: suuupra
+  labels:
+    app: content-service
+    version: v1
+    component: content
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: content-service
+  template:
+    metadata:
+      labels:
+        app: content-service
+        version: v1
+        component: content
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8004"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: content-service
+        image: suuupra/content-service:latest
+        ports:
+        - containerPort: 8004
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8004"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: content-secrets
+              key: mongodb-uri
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: port
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: content-secrets
+              key: jwt-secret
+        - name: S3_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: content-config
+              key: s3-bucket
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: content-config
+              key: aws-region
+        - name: ELASTICSEARCH_URL
+          valueFrom:
+            secretKeyRef:
+              name: content-secrets
+              key: elasticsearch-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8004
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: temp-storage
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: content-config
+      - name: temp-storage
+        emptyDir: {}
+      imagePullSecrets:
+      - name: regcred
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: content-service
+  namespace: suuupra
+  labels:
+    app: content-service
+spec:
+  selector:
+    app: content-service
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8004
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-config
+  namespace: suuupra
+data:
+  s3-bucket: "suuupra-content"
+  aws-region: "us-east-1"
+  max-file-size: "100MB"
+  supported-formats: "mp4,webm,pdf,jpg,png"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: content-secrets
+  namespace: suuupra
+type: Opaque
+data:
+  mongodb-uri: bW9uZ29kYjovL2NvbnRlbnRfdXNlcjpjb250ZW50X3Bhc3MxMjNAbW9uZ29kYi1zZXJ2aWNlOjI3MDE3L2NvbnRlbnRfZGI=
+  jwt-secret: Y29udGVudC1zdXBlci1zZWNyZXQta2V5LXRoYXQtc2hvdWxkLWJlLXZlcnktbG9uZw==
+  elasticsearch-url: aHR0cDovL2VsYXN0aWNzZWFyY2gtc2VydmljZTo5MjAw
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: content-service-hpa
+  namespace: suuupra
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: content-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: content-service-pdb
+  namespace: suuupra
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: content-service

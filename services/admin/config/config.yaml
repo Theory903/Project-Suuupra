@@ -1,0 +1,48 @@
+admin:
+  app_name: "Suuupra Admin Dashboard"
+  version: "1.0.0"
+  port: 3001
+  environment: ${NODE_ENV:development}
+
+database:
+  host: ${POSTGRES_HOST:localhost}
+  port: ${POSTGRES_PORT:5432}
+  database: ${POSTGRES_DB:suuupra_admin}
+  username: ${POSTGRES_USER:admin}
+  password: ${POSTGRES_PASSWORD:admin123}
+  pool:
+    min: 2
+    max: 10
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 2
+
+authentication:
+  jwt_secret: ${JWT_SECRET:admin-super-secret-key}
+  token_expiry: "24h"
+  refresh_token_expiry: "7d"
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"
+  jaeger_endpoint: ${JAEGER_ENDPOINT:http://localhost:14268/api/traces}
+
+security:
+  cors_origin: ${CORS_ORIGIN:*}
+  rate_limit:
+    max_requests: 100
+    window_minutes: 15
+  
+features:
+  user_management: true
+  content_moderation: true
+  analytics_dashboard: true
+  system_monitoring: true

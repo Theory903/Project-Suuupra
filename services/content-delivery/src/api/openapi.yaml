@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: Content Delivery Network API
+  description: CDN service for serving static and media content
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3004
+    description: Development server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+
+  /api/v1/content/{contentId}:
+    get:
+      summary: Serve content by ID
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content served successfully
+        '404':
+          description: Content not found
+
+  /api/v1/upload:
+    post:
+      summary: Upload content to CDN
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Content uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contentId:
+                    type: string
+                  url:
+                    type: string
+                  size:
+                    type: integer
+
+  /api/v1/cache/invalidate:
+    post:
+      summary: Invalidate cache for content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contentId:
+                  type: string
+      responses:
+        '200':
+          description: Cache invalidated

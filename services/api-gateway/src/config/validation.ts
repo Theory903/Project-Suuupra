@@ -1,6 +1,6 @@
 import Ajv, { JSONSchemaType, ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
-import { GatewayConfig, RouteConfig, ServiceConfig, RateLimitPolicy, CircuitBreakerPolicy, AuthPolicy } from '../types/gateway';
+import { GatewayConfig, RouteConfig, RateLimitPolicy, CircuitBreakerPolicy, AuthPolicy } from '../types/gateway';
 
 // Schema validation setup
 const ajv = new Ajv({ 
@@ -42,53 +42,34 @@ export const SUPPORTED_VERSIONS: ConfigVersion[] = [
 const rateLimitPolicySchema: JSONSchemaType<RateLimitPolicy> = {
   type: 'object',
   properties: {
-    enabled: { type: 'boolean' },
-    requests: { type: 'number', minimum: 1, maximum: 1000000 },
-    window: { type: 'number', minimum: 1, maximum: 86400 },
-    burst: { type: 'number', minimum: 1, maximum: 10000, nullable: true },
+    enabled: { type: 'boolean', nullable: true },
+    tokensPerInterval: { type: 'number', minimum: 1, maximum: 1000000, nullable: true },
+    intervalMs: { type: 'number', minimum: 1, maximum: 86400000, nullable: true },
+    burstMultiplier: { type: 'number', minimum: 1, maximum: 10000, nullable: true },
     keys: {
       type: 'array',
       items: {
         type: 'string',
-        enum: ['ip', 'user', 'api-key', 'route', 'tenant']
+        enum: ['ip', 'user', 'tenant', 'route']
       },
       minItems: 1,
-      maxItems: 5
-    },
-    skipOnError: { type: 'boolean', nullable: true }
+      maxItems: 4,
+      nullable: true
+    }
   },
-  required: ['enabled', 'requests', 'window', 'keys'],
+  required: [],
   additionalProperties: false
 };
 
 const circuitBreakerPolicySchema: JSONSchemaType<CircuitBreakerPolicy> = {
   type: 'object',
   properties: {
-    enabled: { type: 'boolean' },
-    failureThreshold: { type: 'number', minimum: 1, maximum: 100 },
-    timeoutMs: { type: 'number', minimum: 100, maximum: 60000 },
-    resetTimeoutMs: { type: 'number', minimum: 1000, maximum: 300000 },
-    monitoringPeriodMs: { type: 'number', minimum: 1000, maximum: 300000, nullable: true },
-    fallbackResponse: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', minimum: 200, maximum: 599 },
-        body: { type: 'string' },
-        headers: {
-          type: 'object',
-          patternProperties: {
-            '^[a-zA-Z0-9-_]+$': { type: 'string' }
-          },
-          additionalProperties: false,
-          nullable: true
-        }
-      },
-      required: ['statusCode', 'body'],
-      additionalProperties: false,
-      nullable: true
-    }
+    enabled: { type: 'boolean', nullable: true },
+    timeoutMs: { type: 'number', minimum: 100, maximum: 60000, nullable: true },
+    errorThresholdPercentage: { type: 'number', minimum: 1, maximum: 100, nullable: true },
+    resetTimeoutMs: { type: 'number', minimum: 1000, maximum: 300000, nullable: true }
   },
-  required: ['enabled', 'failureThreshold', 'timeoutMs', 'resetTimeoutMs'],
+  required: [],
   additionalProperties: false
 };
 

@@ -1,0 +1,25 @@
+FROM eclipse-temurin:17-jdk AS builder
+
+WORKDIR /app
+COPY src/main/java/SimpleServer.java .
+RUN javac SimpleServer.java
+
+FROM eclipse-temurin:17-jre
+
+RUN apt-get update && apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd -r ledger && useradd -r -g ledger ledger
+
+WORKDIR /app
+
+COPY --from=builder /app/SimpleServer.class .
+
+RUN chown -R ledger:ledger /app
+USER ledger
+
+EXPOSE 8086
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8086/health || exit 1
+
+CMD ["java", "SimpleServer"]

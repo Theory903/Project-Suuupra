@@ -1,0 +1,86 @@
+bank_simulator:
+  app_name: "Suuupra Bank Simulator"
+  version: "1.0.0"
+  port: 8011
+  environment: ${NODE_ENV:development}
+
+database:
+  postgres:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DB:bank_simulator}
+    username: ${POSTGRES_USER:bankuser}
+    password: ${POSTGRES_PASSWORD:bankpass123}
+    pool:
+      min: 5
+      max: 20
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  db: 6
+
+simulation:
+  banks:
+    - code: "HDFC"
+      name: "HDFC Bank"
+      response_time_ms: 200
+      success_rate: 0.98
+    - code: "ICICI"
+      name: "ICICI Bank"
+      response_time_ms: 150
+      success_rate: 0.97
+    - code: "SBI"
+      name: "State Bank of India"
+      response_time_ms: 300
+      success_rate: 0.95
+    - code: "AXIS"
+      name: "Axis Bank"
+      response_time_ms: 180
+      success_rate: 0.96
+
+accounts:
+  initial_balance_range:
+    min: 1000
+    max: 100000
+  
+  transaction_limits:
+    daily_limit: 200000
+    per_transaction_limit: 50000
+  
+  generate_test_accounts: 1000
+
+transactions:
+  processing_delay_ms: 100
+  failure_scenarios:
+    insufficient_funds: 0.05
+    network_error: 0.02
+    bank_maintenance: 0.01
+  
+  fraud_detection:
+    enabled: true
+    suspicious_amount_threshold: 25000
+    velocity_check_enabled: true
+
+upi:
+  supported_apps:
+    - "paytm"
+    - "phonepe"
+    - "googlepay"
+    - "amazonpay"
+    - "bhim"
+  
+  validation_rules:
+    upi_id_pattern: "^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$"
+    max_amount: 100000
+    min_amount: 1
+
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  output: console
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

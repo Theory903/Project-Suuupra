@@ -1,0 +1,1548 @@
+time="2025-08-19T16:40:34+05:30" level=warning msg="/Users/abhishekjha/Documents/Project-Suuupra/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+#1 [internal] load local bake definitions
+#1 reading from stdin 12.26kB done
+#1 DONE 0.0s
+
+#2 [recommendations internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.34kB done
+#2 DONE 0.0s
+
+#3 [vod internal] load build definition from Dockerfile
+#3 transferring dockerfile: 1.43kB done
+#3 DONE 0.0s
+
+#4 [bank-simulator internal] load build definition from Dockerfile
+#4 transferring dockerfile: 1.88kB done
+#4 DONE 0.0s
+
+#5 [identity internal] load build definition from Dockerfile
+#5 transferring dockerfile: 2.17kB done
+#5 DONE 0.0s
+
+#6 [mass-live internal] load build definition from Dockerfile
+#6 transferring dockerfile: 1.22kB done
+#6 DONE 0.0s
+
+#7 [commerce internal] load build definition from Dockerfile
+#7 transferring dockerfile: 1.56kB done
+#7 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#7 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 24)
+#7 DONE 0.0s
+
+#8 [creator-studio internal] load build definition from Dockerfile
+#8 transferring dockerfile: 1.64kB done
+#8 DONE 0.0s
+
+#9 [live-tracking internal] load build definition from Dockerfile
+#9 transferring dockerfile: 2.27kB done
+#9 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#9 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 31)
+#9 DONE 0.0s
+
+#10 [search-crawler internal] load build definition from Dockerfile
+#10 transferring dockerfile: 1.06kB done
+#10 DONE 0.0s
+
+#11 [upi-core internal] load build definition from Dockerfile
+#11 transferring dockerfile: 1.26kB done
+#11 DONE 0.1s
+
+#12 [ledger internal] load build definition from Dockerfile
+#12 transferring dockerfile: 974B done
+#12 DONE 0.1s
+
+#13 [live-classes internal] load build definition from Dockerfile
+#13 transferring dockerfile: 1.80kB done
+#13 DONE 0.1s
+
+#14 [payments internal] load build definition from Dockerfile
+#14 transferring dockerfile: 1.33kB done
+#14 DONE 0.1s
+
+#15 [llm-tutor internal] load build definition from Dockerfile
+#15 transferring dockerfile: 1.78kB done
+#15 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#15 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 28)
+#15 DONE 0.1s
+
+#16 [content internal] load build definition from Dockerfile
+#16 transferring dockerfile: 2.87kB done
+#16 DONE 0.1s
+
+#17 [notifications internal] load build definition from Dockerfile
+#17 transferring dockerfile: 2.49kB done
+#17 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#17 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 26)
+#17 DONE 0.1s
+
+#18 [analytics internal] load build definition from Dockerfile
+#18 transferring dockerfile: 2.44kB done
+#18 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#18 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 26)
+#18 DONE 0.1s
+
+#19 [api-gateway internal] load build definition from Dockerfile
+#19 transferring dockerfile: 2.68kB done
+#19 DONE 0.1s
+
+#20 [counters internal] load build definition from Dockerfile
+#20 transferring dockerfile: 2.06kB done
+#20 DONE 0.1s
+
+#21 [admin internal] load build definition from Dockerfile
+#21 transferring dockerfile: 1.59kB done
+#21 DONE 0.1s
+
+#22 [content-delivery internal] load build definition from Dockerfile
+#22 transferring dockerfile: 570B done
+#22 DONE 0.1s
+
+#23 [creator-studio internal] load metadata for docker.io/library/node:20-alpine
+#23 DONE 0.0s
+
+#24 [counters internal] load metadata for docker.io/library/alpine:3.18
+#24 DONE 0.0s
+
+#25 [content internal] load .dockerignore
+#25 transferring context: 2B done
+#25 DONE 0.0s
+
+#26 [api-gateway internal] load .dockerignore
+#26 transferring context: 2B done
+#26 DONE 0.0s
+
+#27 [live-classes internal] load .dockerignore
+#27 transferring context: 2B done
+#27 DONE 0.0s
+
+#28 [creator-studio internal] load .dockerignore
+#28 transferring context: 2B done
+#28 DONE 0.0s
+
+#29 [bank-simulator internal] load .dockerignore
+#29 transferring context: 2B done
+#29 DONE 0.0s
+
+#30 [content internal] load build context
+#30 DONE 0.0s
+
+#31 [admin internal] load .dockerignore
+#31 transferring context: 2B done
+#31 DONE 0.0s
+
+#32 [creator-studio internal] load build context
+#32 DONE 0.0s
+
+#33 [api-gateway internal] load build context
+#33 DONE 0.0s
+
+#34 [content-delivery internal] load .dockerignore
+#34 transferring context: 2B done
+#34 DONE 0.0s
+
+#35 [bank-simulator internal] load build context
+#35 DONE 0.0s
+
+#36 [content-delivery base 1/6] FROM docker.io/library/node:20-alpine@sha256:df02558528d3d3d0d621f112e232611aecfee7cbc654f6b375765f72bb262799
+#36 resolve docker.io/library/node:20-alpine@sha256:df02558528d3d3d0d621f112e232611aecfee7cbc654f6b375765f72bb262799
+#36 resolve docker.io/library/node:20-alpine@sha256:df02558528d3d3d0d621f112e232611aecfee7cbc654f6b375765f72bb262799 0.0s done
+#36 CACHED
+
+#37 [content-delivery internal] load build context
+#37 transferring context: 63B done
+#37 DONE 0.0s
+
+#38 [content-delivery build 1/3] WORKDIR /app
+#38 CACHED
+
+#39 [analytics internal] load metadata for docker.io/library/python:3.11-slim
+#39 ...
+
+#36 [live-classes base 1/6] FROM docker.io/library/node:20-alpine@sha256:df02558528d3d3d0d621f112e232611aecfee7cbc654f6b375765f72bb262799
+#36 resolve docker.io/library/node:20-alpine@sha256:df02558528d3d3d0d621f112e232611aecfee7cbc654f6b375765f72bb262799 0.0s done
+#36 CACHED
+
+#40 [admin internal] load build context
+#40 transferring context: 1.38kB 0.5s done
+#40 DONE 0.5s
+
+#41 [live-classes internal] load build context
+#41 transferring context: 4.58kB 0.0s done
+#41 DONE 0.1s
+
+#42 [counters internal] load metadata for docker.io/library/golang:1.23-alpine
+#42 ...
+
+#43 [content-delivery build 2/3] COPY package*.json ./
+#43 DONE 0.9s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#44 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#44 DONE 0.0s
+
+#45 [auth] library/alpine:pull token for registry-1.docker.io
+#45 DONE 0.0s
+
+#46 [auth] library/golang:pull token for registry-1.docker.io
+#46 DONE 0.0s
+
+#47 [auth] library/python:pull token for registry-1.docker.io
+#47 DONE 0.0s
+
+#48 [auth] library/rust:pull token for registry-1.docker.io
+#48 DONE 0.0s
+
+#49 [auth] library/debian:pull token for registry-1.docker.io
+#49 DONE 0.0s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#50 [live-tracking internal] load metadata for docker.io/library/debian:bookworm-slim
+#50 DONE 4.2s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#39 [notifications internal] load metadata for docker.io/library/python:3.11-slim
+#39 DONE 4.3s
+
+#42 [search-crawler internal] load metadata for docker.io/library/golang:1.23-alpine
+#42 DONE 4.3s
+
+#51 [payments internal] load metadata for docker.io/library/alpine:latest
+#51 DONE 4.3s
+
+#52 [ledger internal] load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+#52 DONE 4.3s
+
+#53 [live-tracking internal] load metadata for docker.io/library/rust:1.75-slim
+#53 DONE 4.3s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#54 [identity internal] load metadata for docker.io/library/eclipse-temurin:17-jdk
+#54 DONE 4.4s
+
+#55 [ledger internal] load metadata for docker.io/library/eclipse-temurin:21-jdk-alpine
+#55 DONE 4.4s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#56 [identity internal] load metadata for docker.io/library/eclipse-temurin:17-jre
+#56 DONE 4.5s
+
+#57 [recommendations internal] load .dockerignore
+#57 transferring context: 2B 0.0s done
+#57 DONE 0.2s
+
+#58 [counters internal] load .dockerignore
+#58 transferring context: 2B 0.0s done
+#58 DONE 0.3s
+
+#59 [recommendations internal] load build context
+#59 DONE 0.0s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#60 [llm-tutor internal] load .dockerignore
+#60 transferring context: 2B done
+#60 DONE 0.5s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#61 [analytics internal] load .dockerignore
+#61 transferring context: 2B 0.0s done
+#61 DONE 0.7s
+
+#62 [counters internal] load build context
+#62 DONE 0.0s
+
+#63 [llm-tutor builder 1/6] FROM docker.io/library/python:3.11-slim@sha256:1d6131b5d479888b43200645e03a78443c7157efbdb730e6b48129740727c312
+#63 resolve docker.io/library/python:3.11-slim@sha256:1d6131b5d479888b43200645e03a78443c7157efbdb730e6b48129740727c312 0.3s done
+#63 DONE 0.4s
+
+#64 [commerce internal] load .dockerignore
+#64 transferring context: 2B done
+#64 DONE 0.8s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#65 [vod internal] load .dockerignore
+#65 transferring context: 2B done
+#65 DONE 0.8s
+
+#66 [mass-live internal] load .dockerignore
+#66 transferring context: 2B 0.0s done
+#66 DONE 0.9s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#67 [upi-core internal] load .dockerignore
+#67 transferring context: 2B 0.0s done
+#67 DONE 1.0s
+
+#68 [counters builder 1/7] FROM docker.io/library/golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f
+#68 resolve docker.io/library/golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f 0.3s done
+#68 DONE 0.4s
+
+#69 [notifications internal] load .dockerignore
+#69 transferring context: 2B 0.0s done
+#69 DONE 1.1s
+
+#70 [counters production 1/8] FROM docker.io/library/alpine:3.18@sha256:de0eb0b3f2a47ba1eb89389859a9bd88b28e82f5826b6969ad604979713c2d4f
+#70 resolve docker.io/library/alpine:3.18@sha256:de0eb0b3f2a47ba1eb89389859a9bd88b28e82f5826b6969ad604979713c2d4f 0.3s done
+#70 DONE 0.4s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#71 [search-crawler internal] load .dockerignore
+#71 transferring context: 2B 0.0s done
+#71 DONE 1.1s
+
+#72 [live-tracking internal] load .dockerignore
+#72 transferring context: 2B 0.0s done
+#72 DONE 1.1s
+
+#73 [payments internal] load .dockerignore
+#73 transferring context: 2B 0.0s done
+#73 DONE 1.2s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#74 [bank-simulator base 2/2] RUN apk add --no-cache openssl libc6-compat
+#74 1.156 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#74 1.877 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#74 4.268 (1/4) Installing musl-obstack (1.2.3-r2)
+#74 4.311 (2/4) Installing libucontext (1.3.2-r0)
+#74 4.333 (3/4) Installing gcompat (1.1.0-r4)
+#74 4.374 (4/4) Installing openssl (3.5.1-r0)
+#74 4.669 Executing busybox-1.37.0-r18.trigger
+#74 4.899 OK: 11 MiB in 22 packages
+#74 DONE 5.4s
+
+#75 [ledger internal] load .dockerignore
+#75 transferring context: 2B 0.1s done
+#75 DONE 1.1s
+
+#63 [llm-tutor builder 1/6] FROM docker.io/library/python:3.11-slim@sha256:1d6131b5d479888b43200645e03a78443c7157efbdb730e6b48129740727c312
+#63 CACHED
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#63 [notifications builder 1/6] FROM docker.io/library/python:3.11-slim@sha256:1d6131b5d479888b43200645e03a78443c7157efbdb730e6b48129740727c312
+#63 resolve docker.io/library/python:3.11-slim@sha256:1d6131b5d479888b43200645e03a78443c7157efbdb730e6b48129740727c312 0.3s done
+#63 CACHED
+
+#70 [counters production 1/8] FROM docker.io/library/alpine:3.18@sha256:de0eb0b3f2a47ba1eb89389859a9bd88b28e82f5826b6969ad604979713c2d4f
+#70 resolve docker.io/library/alpine:3.18@sha256:de0eb0b3f2a47ba1eb89389859a9bd88b28e82f5826b6969ad604979713c2d4f 0.3s done
+#70 CACHED
+
+#76 [live-tracking internal] load build context
+#76 DONE 0.0s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#77 [ledger internal] load build context
+#77 DONE 0.0s
+
+#68 [search-crawler builder 1/7] FROM docker.io/library/golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f
+#68 resolve docker.io/library/golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f 0.3s done
+#68 CACHED
+
+#78 [identity internal] load .dockerignore
+#78 transferring context: 2B 0.0s done
+#78 DONE 1.2s
+
+#79 [identity internal] load build context
+#79 DONE 0.0s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#59 [recommendations internal] load build context
+#59 transferring context: 1.54kB 0.1s done
+#59 DONE 0.4s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#62 [counters internal] load build context
+#62 transferring context: 1.43kB 0.1s done
+#62 DONE 0.5s
+
+#80 [llm-tutor internal] load build context
+#80 transferring context: 4.65kB 0.1s done
+#80 DONE 0.5s
+
+#81 [upi-core internal] load build context
+#81 transferring context: 1.70kB 0.0s done
+#81 DONE 0.5s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#82 [mass-live internal] load build context
+#82 transferring context: 3.67kB 0.1s done
+#82 DONE 0.6s
+
+#83 [commerce internal] load build context
+#83 transferring context: 4.66kB 0.1s done
+#83 DONE 0.6s
+
+#84 [notifications internal] load build context
+#84 transferring context: 1.35kB 0.1s done
+#84 DONE 0.5s
+
+#85 [vod internal] load build context
+#85 transferring context: 2.17kB 0.1s done
+#85 DONE 0.7s
+
+#86 [analytics internal] load build context
+#86 transferring context: 1.45kB 0.1s done
+#86 DONE 0.7s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#87 [search-crawler internal] load build context
+#87 transferring context: 1.73kB 0.1s done
+#87 DONE 0.7s
+
+#88 [payments internal] load build context
+#88 transferring context: 8.98kB 0.1s done
+#88 DONE 0.7s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#89 [identity builder 1/7] FROM docker.io/library/eclipse-temurin:17-jdk@sha256:6eca72bb4cd5fb8cd215f2579a4dfffd24b0f47effb6c868b7e92b7f0422fa9f
+#89 resolve docker.io/library/eclipse-temurin:17-jdk@sha256:6eca72bb4cd5fb8cd215f2579a4dfffd24b0f47effb6c868b7e92b7f0422fa9f 1.0s done
+#89 DONE 1.3s
+
+#90 [ledger production 1/5] FROM docker.io/library/eclipse-temurin:21-jre-alpine@sha256:4ca7eff3ab0ef9b41f5fefa35efaeda9ed8d26e161e1192473b24b3a6c348aef
+#90 resolve docker.io/library/eclipse-temurin:21-jre-alpine@sha256:4ca7eff3ab0ef9b41f5fefa35efaeda9ed8d26e161e1192473b24b3a6c348aef 1.1s done
+#90 CACHED
+
+#91 [live-tracking builder 1/8] FROM docker.io/library/rust:1.75-slim@sha256:70c2a016184099262fd7cee46f3d35fec3568c45c62f87e37f7f665f766b1f74
+#91 resolve docker.io/library/rust:1.75-slim@sha256:70c2a016184099262fd7cee46f3d35fec3568c45c62f87e37f7f665f766b1f74 1.2s done
+#91 CACHED
+
+#92 [search-crawler production 1/6] FROM docker.io/library/alpine:latest@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+#92 resolve docker.io/library/alpine:latest@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 1.3s done
+#92 CACHED
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#93 [ledger builder 1/7] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:df8ce8302ed2ed1690ef490c633981b07e752b373b5fdf796960fb2eb0d640ea
+#93 resolve docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:df8ce8302ed2ed1690ef490c633981b07e752b373b5fdf796960fb2eb0d640ea 1.2s done
+#93 CACHED
+
+#94 [live-tracking production 1/8] FROM docker.io/library/debian:bookworm-slim@sha256:b1a741487078b369e78119849663d7f1a5341ef2768798f7b7406c4240f86aef
+#94 resolve docker.io/library/debian:bookworm-slim@sha256:b1a741487078b369e78119849663d7f1a5341ef2768798f7b7406c4240f86aef 1.2s done
+#94 CACHED
+
+#95 [identity production 1/6] FROM docker.io/library/eclipse-temurin:17-jre@sha256:3579917f5d48055c2d88b302b59dc809c28dcab8ba9bd8805446b5b46c0d9e49
+#95 resolve docker.io/library/eclipse-temurin:17-jre@sha256:3579917f5d48055c2d88b302b59dc809c28dcab8ba9bd8805446b5b46c0d9e49 1.0s done
+#95 CACHED
+
+#96 [identity builder 2/7] WORKDIR /app
+#96 CACHED
+
+#97 [bank-simulator builder 1/6] WORKDIR /app
+#97 DONE 1.7s
+
+#76 [live-tracking internal] load build context
+#76 transferring context: 1.43kB 0.1s done
+#76 DONE 0.2s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#77 [ledger internal] load build context
+#77 transferring context: 2.83kB 0.1s done
+#77 DONE 0.3s
+
+#79 [identity internal] load build context
+#79 transferring context: 14.01kB 0.1s done
+#79 DONE 0.4s
+
+#98 [identity builder 3/7] COPY .mvn/ .mvn/
+#98 ...
+
+#99 [content base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init tini &&     rm -rf /var/cache/apk/*
+#99 1.125 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#99 1.973 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#99 4.998 v3.22.1-248-g8352d582fdd [https://dl-cdn.alpinelinux.org/alpine/v3.22/main]
+#99 4.998 v3.22.1-252-gdc0cbb07945 [https://dl-cdn.alpinelinux.org/alpine/v3.22/community]
+#99 4.998 OK: 26159 distinct packages available
+#99 5.863 (1/3) Upgrading busybox (1.37.0-r18 -> 1.37.0-r19)
+#99 6.358 Executing busybox-1.37.0-r19.post-upgrade
+#99 6.577 (2/3) Upgrading busybox-binsh (1.37.0-r18 -> 1.37.0-r19)
+#99 6.605 (3/3) Upgrading ssl_client (1.37.0-r18 -> 1.37.0-r19)
+#99 6.674 Executing busybox-1.37.0-r19.trigger
+#99 6.696 OK: 10 MiB in 18 packages
+#99 6.883 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#99 7.308 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#99 9.768 (1/2) Installing dumb-init (1.2.5-r3)
+#99 ...
+
+#30 [content internal] load build context
+#30 ...
+
+#32 [creator-studio internal] load build context
+#32 ...
+
+#98 [identity builder 3/7] COPY .mvn/ .mvn/
+#98 DONE 2.7s
+
+#32 [creator-studio internal] load build context
+#32 ...
+
+#100 [admin base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init curl &&     rm -rf /var/cache/apk/*
+#100 1.092 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#100 1.863 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#100 4.264 v3.22.1-248-g8352d582fdd [https://dl-cdn.alpinelinux.org/alpine/v3.22/main]
+#100 4.264 v3.22.1-252-gdc0cbb07945 [https://dl-cdn.alpinelinux.org/alpine/v3.22/community]
+#100 4.264 OK: 26159 distinct packages available
+#100 5.636 (1/3) Upgrading busybox (1.37.0-r18 -> 1.37.0-r19)
+#100 6.054 Executing busybox-1.37.0-r19.post-upgrade
+#100 6.418 (2/3) Upgrading busybox-binsh (1.37.0-r18 -> 1.37.0-r19)
+#100 6.438 (3/3) Upgrading ssl_client (1.37.0-r18 -> 1.37.0-r19)
+#100 6.473 Executing busybox-1.37.0-r19.trigger
+#100 6.535 OK: 10 MiB in 18 packages
+#100 6.617 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#100 6.866 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#100 8.849 (1/10) Installing brotli-libs (1.1.0-r2)
+#100 9.522 (2/10) Installing c-ares (1.34.5-r0)
+#100 9.642 (3/10) Installing libunistring (1.3-r0)
+#100 10.14 (4/10) Installing libidn2 (2.3.7-r0)
+#100 10.27 (5/10) Installing nghttp2-libs (1.65.0-r0)
+#100 10.31 (6/10) Installing libpsl (0.21.5-r3)
+#100 10.39 (7/10) Installing zstd-libs (1.5.7-r0)
+#100 ...
+
+#101 [creator-studio base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init curl ffmpeg &&     rm -rf /var/cache/apk/*
+#101 1.096 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#101 1.910 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#101 4.295 v3.22.1-248-g8352d582fdd [https://dl-cdn.alpinelinux.org/alpine/v3.22/main]
+#101 4.295 v3.22.1-252-gdc0cbb07945 [https://dl-cdn.alpinelinux.org/alpine/v3.22/community]
+#101 4.295 OK: 26159 distinct packages available
+#101 5.557 (1/3) Upgrading busybox (1.37.0-r18 -> 1.37.0-r19)
+#101 6.212 Executing busybox-1.37.0-r19.post-upgrade
+#101 6.455 (2/3) Upgrading busybox-binsh (1.37.0-r18 -> 1.37.0-r19)
+#101 6.469 (3/3) Upgrading ssl_client (1.37.0-r18 -> 1.37.0-r19)
+#101 6.540 Executing busybox-1.37.0-r19.trigger
+#101 6.561 OK: 10 MiB in 18 packages
+#101 6.671 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#101 7.043 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#101 10.07 (1/118) Installing brotli-libs (1.1.0-r2)
+#101 ...
+
+#102 [api-gateway production  2/10] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init tini curl &&     rm -rf /var/cache/apk/*
+#102 1.165 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#102 1.949 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#102 4.479 v3.22.1-248-g8352d582fdd [https://dl-cdn.alpinelinux.org/alpine/v3.22/main]
+#102 4.480 v3.22.1-252-gdc0cbb07945 [https://dl-cdn.alpinelinux.org/alpine/v3.22/community]
+#102 4.480 OK: 26159 distinct packages available
+#102 5.757 (1/3) Upgrading busybox (1.37.0-r18 -> 1.37.0-r19)
+#102 6.352 Executing busybox-1.37.0-r19.post-upgrade
+#102 6.554 (2/3) Upgrading busybox-binsh (1.37.0-r18 -> 1.37.0-r19)
+#102 6.573 (3/3) Upgrading ssl_client (1.37.0-r18 -> 1.37.0-r19)
+#102 6.617 Executing busybox-1.37.0-r19.trigger
+#102 6.637 OK: 10 MiB in 18 packages
+#102 6.843 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#102 7.194 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#102 9.572 (1/11) Installing brotli-libs (1.1.0-r2)
+#102 10.18 (2/11) Installing c-ares (1.34.5-r0)
+#102 10.29 (3/11) Installing libunistring (1.3-r0)
+#102 ...
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 0.666 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#103 1.409 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#103 3.861 (1/133) Installing libSvtAv1Enc (2.3.0-r0)
+#103 4.666 (2/133) Installing aom-libs (3.12.1-r0)
+#103 5.804 (3/133) Installing libxau (1.0.12-r0)
+#103 5.804 (4/133) Installing libmd (1.1.0-r0)
+#103 5.824 (5/133) Installing libbsd (0.12.2-r0)
+#103 5.853 (6/133) Installing libxdmcp (1.1.5-r1)
+#103 5.863 (7/133) Installing libxcb (1.17.0-r0)
+#103 5.957 (8/133) Installing libx11 (1.8.11-r0)
+#103 6.263 (9/133) Installing hwdata-pci (0.395-r0)
+#103 6.449 (10/133) Installing libpciaccess (0.18.1-r0)
+#103 6.471 (11/133) Installing libdrm (2.4.124-r0)
+#103 6.709 (12/133) Installing libxext (1.3.6-r2)
+#103 6.768 (13/133) Installing libxfixes (6.0.1-r4)
+#103 6.786 (14/133) Installing libffi (3.4.8-r0)
+#103 6.835 (15/133) Installing wayland-libs-client (1.23.1-r3)
+#103 6.878 (16/133) Installing libva (2.22.0-r1)
+#103 7.023 (17/133) Installing libvdpau (1.5-r4)
+#103 7.118 (18/133) Installing ffmpeg-libavutil (6.1.2-r2)
+#103 7.377 (19/133) Installing libdav1d (1.5.1-r0)
+#103 7.787 (20/133) Installing openexr-libiex (3.3.2-r0)
+#103 7.919 (21/133) Installing openexr-libilmthread (3.3.2-r0)
+#103 8.033 (22/133) Installing imath (3.1.12-r0)
+#103 8.246 (23/133) Installing libdeflate (1.23-r0)
+#103 8.319 (24/133) Installing openexr-libopenexrcore (3.3.2-r0)
+#103 8.745 (25/133) Installing openexr-libopenexr (3.3.2-r0)
+#103 9.067 (26/133) Installing brotli-libs (1.1.0-r2)
+#103 9.701 (27/133) Installing giflib (5.2.2-r1)
+#103 9.747 (28/133) Installing libhwy (1.0.7-r1)
+#103 9.859 (29/133) Installing libjpeg-turbo (3.1.0-r0)
+#103 10.05 (30/133) Installing lcms2 (2.16-r0)
+#103 10.27 (31/133) Installing libpng (1.6.47-r0)
+#103 10.34 (32/133) Installing libjxl (0.10.3-r2)
+#103 ...
+
+#104 [live-classes production 2/9] RUN apk add --no-cache ffmpeg && rm -rf /var/cache/apk/*
+#104 0.689 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#104 1.411 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#104 3.601 (1/109) Installing libSvtAv1Enc (2.3.0-r0)
+#104 4.191 (2/109) Installing aom-libs (3.12.1-r0)
+#104 4.953 (3/109) Installing libxau (1.0.12-r0)
+#104 4.990 (4/109) Installing libmd (1.1.0-r0)
+#104 5.017 (5/109) Installing libbsd (0.12.2-r0)
+#104 5.206 (6/109) Installing libxdmcp (1.1.5-r1)
+#104 5.247 (7/109) Installing libxcb (1.17.0-r0)
+#104 5.297 (8/109) Installing libx11 (1.8.11-r0)
+#104 5.875 (9/109) Installing hwdata-pci (0.395-r0)
+#104 5.982 (10/109) Installing libpciaccess (0.18.1-r0)
+#104 6.000 (11/109) Installing libdrm (2.4.124-r0)
+#104 6.096 (12/109) Installing libxext (1.3.6-r2)
+#104 6.118 (13/109) Installing libxfixes (6.0.1-r4)
+#104 6.129 (14/109) Installing libffi (3.4.8-r0)
+#104 6.153 (15/109) Installing wayland-libs-client (1.23.1-r3)
+#104 6.187 (16/109) Installing libva (2.22.0-r1)
+#104 6.229 (17/109) Installing libvdpau (1.5-r4)
+#104 6.257 (18/109) Installing ffmpeg-libavutil (6.1.2-r2)
+#104 6.455 (19/109) Installing libdav1d (1.5.1-r0)
+#104 6.823 (20/109) Installing openexr-libiex (3.3.2-r0)
+#104 6.972 (21/109) Installing openexr-libilmthread (3.3.2-r0)
+#104 7.026 (22/109) Installing imath (3.1.12-r0)
+#104 7.156 (23/109) Installing libdeflate (1.23-r0)
+#104 7.222 (24/109) Installing openexr-libopenexrcore (3.3.2-r0)
+#104 7.788 (25/109) Installing openexr-libopenexr (3.3.2-r0)
+#104 8.094 (26/109) Installing brotli-libs (1.1.0-r2)
+#104 8.314 (27/109) Installing giflib (5.2.2-r1)
+#104 8.340 (28/109) Installing libhwy (1.0.7-r1)
+#104 8.405 (29/109) Installing libjpeg-turbo (3.1.0-r0)
+#104 8.596 (30/109) Installing lcms2 (2.16-r0)
+#104 8.710 (31/109) Installing libpng (1.6.47-r0)
+#104 9.048 (32/109) Installing libjxl (0.10.3-r2)
+#104 9.200 (33/109) Installing lame-libs (3.100-r5)
+#104 9.702 (34/109) Installing opus (1.5.2-r1)
+#104 9.868 (35/109) Installing rav1e-libs (0.7.1-r0)
+#104 10.23 (36/109) Installing libgomp (14.2.0-r6)
+#104 10.34 (37/109) Installing soxr (0.1.3-r7)
+#104 10.38 (38/109) Installing ffmpeg-libswresample (6.1.2-r2)
+#104 10.42 (39/109) Installing libogg (1.3.5-r5)
+#104 10.49 (40/109) Installing libtheora (1.1.1-r18)
+#104 ...
+
+#105 [content-delivery build 3/3] RUN npm install --only=production
+#105 3.886 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#105 ...
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#99 [content base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init tini &&     rm -rf /var/cache/apk/*
+#99 10.13 (2/2) Installing tini (0.19.0-r3)
+#99 10.73 Executing busybox-1.37.0-r19.trigger
+#99 10.80 OK: 11 MiB in 20 packages
+#99 DONE 11.5s
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#100 [admin base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init curl &&     rm -rf /var/cache/apk/*
+#100 10.65 (8/10) Installing libcurl (8.14.1-r1)
+#100 10.80 (9/10) Installing curl (8.14.1-r1)
+#100 10.91 (10/10) Installing dumb-init (1.2.5-r3)
+#100 10.98 Executing busybox-1.37.0-r19.trigger
+#100 11.06 OK: 15 MiB in 28 packages
+#100 DONE 11.6s
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#106 [identity builder 4/7] COPY mvnw pom.xml ./
+#106 DONE 1.6s
+
+#35 [bank-simulator internal] load build context
+#35 transferring context: 2.93MB 11.8s
+#35 ...
+
+#107 [commerce production 2/8] RUN groupadd -r commerce && useradd -r -g commerce commerce
+#107 DONE 8.2s
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#108 [bank-simulator runner  2/11] RUN addgroup --system --gid 1001 nodejs
+#108 DONE 7.7s
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#109 [content base 3/6] RUN addgroup -g 1001 -S nodejs &&     adduser -S contentservice -u 1001 -G nodejs
+#109 DONE 3.6s
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#110 [api-gateway base 3/6] RUN addgroup -g 1001 -S nodejs &&     adduser -S gateway -u 1001 -G nodejs
+#110 DONE 3.9s
+
+#35 [bank-simulator internal] load build context
+#35 ...
+
+#111 [counters production 2/8] RUN apk --no-cache add     ca-certificates     tzdata     curl     && rm -rf /var/cache/apk/*
+#111 4.028 fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/main/aarch64/APKINDEX.tar.gz
+#111 6.138 fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/community/aarch64/APKINDEX.tar.gz
+#111 ...
+
+#112 [notifications production 2/8] RUN apt-get update && apt-get install -y     libpq5     curl     && rm -rf /var/lib/apt/lists/*     && groupadd -r notifications     && useradd -r -g notifications notifications
+#112 8.534 Hit:1 http://deb.debian.org/debian trixie InRelease
+#112 8.647 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#112 9.175 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#112 9.731 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#112 ...
+
+#113 [admin base 3/6] RUN addgroup -g 1001 -S nodejs &&     adduser -S admin -u 1001 -G nodejs
+#113 DONE 4.1s
+
+#102 [content production  2/10] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init tini curl &&     rm -rf /var/cache/apk/*
+#102 10.76 (4/11) Installing libidn2 (2.3.7-r0)
+#102 10.84 (5/11) Installing nghttp2-libs (1.65.0-r0)
+#102 10.93 (6/11) Installing libpsl (0.21.5-r3)
+#102 10.99 (7/11) Installing zstd-libs (1.5.7-r0)
+#102 11.50 (8/11) Installing libcurl (8.14.1-r1)
+#102 13.43 (9/11) Installing curl (8.14.1-r1)
+#102 14.44 (10/11) Installing dumb-init (1.2.5-r3)
+#102 15.09 (11/11) Installing tini (0.19.0-r3)
+#102 15.32 Executing busybox-1.37.0-r19.trigger
+#102 15.36 OK: 16 MiB in 29 packages
+#102 DONE 15.8s
+
+#114 [content base 4/6] WORKDIR /app
+#114 DONE 0.6s
+
+#115 [commerce builder 2/5] RUN apt-get update && apt-get install -y     gcc     g++     && rm -rf /var/lib/apt/lists/*
+#115 5.260 Hit:1 http://deb.debian.org/debian trixie InRelease
+#115 5.403 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#115 5.508 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#115 5.739 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#115 ...
+
+#116 [notifications builder 2/5] RUN apt-get update && apt-get install -y     build-essential     curl     git     libpq-dev     && rm -rf /var/lib/apt/lists/*
+#116 5.220 Hit:1 http://deb.debian.org/debian trixie InRelease
+#116 5.403 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#116 5.520 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#116 5.737 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#116 ...
+
+#117 [mass-live production 2/6] RUN apk add --no-cache     ca-certificates     ffmpeg     tzdata     curl     && rm -rf /var/cache/apk/*
+#117 4.026 fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/main/aarch64/APKINDEX.tar.gz
+#117 5.603 fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/community/aarch64/APKINDEX.tar.gz
+#117 ...
+
+#118 [counters builder 2/7] RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
+#118 6.036 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#118 7.798 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#118 ...
+
+#119 [llm-tutor production 2/7] RUN apt-get update && apt-get install -y     libpq5     libsndfile1     ffmpeg     curl     && rm -rf /var/lib/apt/lists/*     && groupadd -r appuser     && useradd -r -g appuser appuser
+#119 5.374 Hit:1 http://deb.debian.org/debian trixie InRelease
+#119 5.450 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#119 5.586 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#119 5.779 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#119 ...
+
+#120 [bank-simulator runner  3/11] RUN adduser --system --uid 1001 bankapp
+#120 DONE 1.4s
+
+#121 [mass-live builder 2/7] RUN apk add --no-cache git gcc musl-dev
+#121 2.106 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#121 2.546 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#121 4.754 (1/24) Installing libgcc (14.2.0-r6)
+#121 5.534 (2/24) Installing jansson (2.14.1-r0)
+#121 5.605 (3/24) Installing libstdc++ (14.2.0-r6)
+#121 7.870 (4/24) Installing zstd-libs (1.5.7-r0)
+#121 9.420 (5/24) Installing binutils (2.44-r2)
+#121 ...
+
+#122 [api-gateway base 4/6] WORKDIR /app
+#122 DONE 0.7s
+
+#123 [admin base 4/6] WORKDIR /app
+#123 DONE 0.7s
+
+#124 [llm-tutor builder 2/5] RUN apt-get update && apt-get install -y     build-essential     curl     git     libpq-dev     libsndfile1-dev     ffmpeg     && rm -rf /var/lib/apt/lists/*
+#124 5.260 Hit:1 http://deb.debian.org/debian trixie InRelease
+#124 5.436 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#124 5.625 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#124 5.780 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#124 ...
+
+#125 [vod base 2/5] RUN apt-get update && apt-get install -y     ffmpeg     curl     build-essential     && rm -rf /var/lib/apt/lists/*
+#125 5.844 Hit:1 http://deb.debian.org/debian trixie InRelease
+#125 5.862 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#125 6.138 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#125 6.277 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#125 ...
+
+#126 [admin base 5/6] COPY package*.json ./
+#126 DONE 0.2s
+
+#127 [recommendations production 2/6] RUN apt-get update && apt-get install -y     libpq5     curl     && rm -rf /var/lib/apt/lists/* &&     groupadd -r recommendations &&     useradd -r -g recommendations recommendations
+#127 5.270 Hit:1 http://deb.debian.org/debian trixie InRelease
+#127 5.446 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#127 5.553 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#127 5.780 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#127 ...
+
+#128 [analytics production 2/8] RUN apt-get update && apt-get install -y     libpq5     curl     && rm -rf /var/lib/apt/lists/*     && groupadd -r analytics     && useradd -r -g analytics analytics
+#128 5.228 Hit:1 http://deb.debian.org/debian trixie InRelease
+#128 5.423 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#128 5.548 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#128 5.737 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#128 ...
+
+#129 [admin base 6/6] COPY tsconfig*.json ./
+#129 DONE 0.2s
+
+#130 [search-crawler builder 2/7] RUN apk add --no-cache git ca-certificates tzdata
+#130 6.280 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#130 8.587 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#130 ...
+
+#131 [recommendations builder 2/6] RUN apt-get update && apt-get install -y     build-essential     curl     git     libpq-dev     && rm -rf /var/lib/apt/lists/*
+#131 5.410 Hit:1 http://deb.debian.org/debian trixie InRelease
+#131 5.436 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#131 5.611 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#131 5.957 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#131 ...
+
+#132 [vod production 2/8] RUN apt-get update && apt-get install -y     ffmpeg     curl     && rm -rf /var/lib/apt/lists/*
+#132 6.384 Hit:1 http://deb.debian.org/debian trixie InRelease
+#132 6.415 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#132 8.149 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#132 8.697 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#132 ...
+
+#133 [api-gateway production 3/8] RUN addgroup -g 1001 -S nodejs &&     adduser -S gateway -u 1001 -G nodejs
+#133 DONE 1.4s
+
+#134 [content production  3/10] RUN addgroup -g 1001 -S nodejs &&     adduser -S contentservice -u 1001 -G nodejs
+#134 DONE 1.4s
+
+#135 [live-tracking builder 2/8] RUN apt-get update && apt-get install -y     pkg-config     libssl-dev     libpq-dev     curl     && rm -rf /var/lib/apt/lists/*
+#135 7.990 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+#135 8.383 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+#135 8.753 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+#135 9.072 Get:4 http://deb.debian.org/debian bookworm/main arm64 Packages [8693 kB]
+#135 ...
+
+#136 [ledger production 2/5] RUN apk add --no-cache curl &&     addgroup -g 1001 -S ledger &&     adduser -u 1001 -S ledger -G ledger
+#136 4.797 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#136 5.666 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#136 9.712 (1/6) Installing c-ares (1.34.5-r0)
+#136 ...
+
+#137 [ledger builder 2/7] RUN apk add --no-cache maven curl
+#137 7.831 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#137 8.864 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#137 ...
+
+#138 [live-tracking production 2/8] RUN apt-get update && apt-get install -y     libssl3     libpq5     ca-certificates     curl     && rm -rf /var/lib/apt/lists/*
+#138 8.352 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+#138 8.878 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+#138 9.392 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+#138 10.01 Get:4 http://deb.debian.org/debian bookworm/main arm64 Packages [8693 kB]
+#138 ...
+
+#139 [payments production 2/7] RUN apk --no-cache add ca-certificates tzdata curl
+#139 4.671 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#139 7.196 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#139 ...
+
+#140 [api-gateway production 4/8] WORKDIR /app
+#140 DONE 0.6s
+
+#141 [identity production 2/6] RUN apt-get update && apt-get upgrade -y &&     apt-get install -y curl dumb-init &&     rm -rf /var/lib/apt/lists/*
+#141 ...
+
+#142 [upi-core production 2/6] RUN apk --no-cache add ca-certificates tzdata
+#142 6.430 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#142 8.173 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#142 ...
+
+#143 [content production  4/10] WORKDIR /app
+#143 DONE 0.9s
+
+#33 [api-gateway internal] load build context
+#33 transferring context: 3.41MB 17.5s
+#33 ...
+
+#144 [search-crawler production 2/5] RUN apk --no-cache add ca-certificates tzdata curl &&     addgroup -g 1001 -S crawler &&     adduser -u 1001 -S crawler -G crawler
+#144 5.291 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#144 7.402 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#144 ...
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#32 [creator-studio internal] load build context
+#32 transferring context: 1.91MB 17.9s done
+#32 DONE 18.8s
+
+#35 [bank-simulator internal] load build context
+#35 transferring context: 3.34MB 18.0s done
+#35 DONE 18.9s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#145 [bank-simulator builder 2/6] COPY package.json package-lock.json* ./
+#145 DONE 0.3s
+
+#30 [content internal] load build context
+#30 ...
+
+#101 [creator-studio base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init curl ffmpeg &&     rm -rf /var/cache/apk/*
+#101 10.80 (2/118) Installing c-ares (1.34.5-r0)
+#101 10.93 (3/118) Installing libunistring (1.3-r0)
+#101 13.46 (4/118) Installing libidn2 (2.3.7-r0)
+#101 14.41 (5/118) Installing nghttp2-libs (1.65.0-r0)
+#101 15.40 (6/118) Installing libpsl (0.21.5-r3)
+#101 15.97 (7/118) Installing zstd-libs (1.5.7-r0)
+#101 19.27 (8/118) Installing libcurl (8.14.1-r1)
+#101 ...
+
+#146 [identity builder 5/7] RUN ./mvnw dependency:go-offline -B
+#146 3.978 --2025-08-19 11:10:51--  https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar
+#146 4.364 Resolving repo.maven.apache.org (repo.maven.apache.org)... 151.101.0.215, 151.101.192.215, 151.101.64.215, ...
+#146 4.568 Connecting to repo.maven.apache.org (repo.maven.apache.org)|151.101.0.215|:443... connected.
+#146 5.020 HTTP request sent, awaiting response... 200 OK
+#146 5.148 Length: 62547 (61K) [application/java-archive]
+#146 5.148 Saving to: ‘/app/.mvn/wrapper/maven-wrapper.jar’
+#146 5.149 
+#146 5.149      0K .......... .......... .......... .......... .......... 81%  300K 0s
+#146 5.316     50K .......... .                                          100% 1.23M=0.2s
+#146 5.325 
+#146 5.325 2025-08-19 11:10:53 (348 KB/s) - ‘/app/.mvn/wrapper/maven-wrapper.jar’ saved [62547/62547]
+#146 5.325 
+#146 ...
+
+#30 [content internal] load build context
+#30 ...
+
+#104 [live-classes production 2/9] RUN apk add --no-cache ffmpeg && rm -rf /var/cache/apk/*
+#104 10.89 (41/109) Installing libvorbis (1.3.7-r2)
+#104 11.43 (42/109) Installing libvpx (1.15.0-r0)
+#104 17.54 (43/109) Installing libsharpyuv (1.5.0-r0)
+#104 17.74 (44/109) Installing libwebp (1.5.0-r0)
+#104 19.24 (45/109) Installing libwebpmux (1.5.0-r0)
+#104 19.92 (46/109) Installing x264-libs (0.164.3108-r0)
+#104 ...
+
+#30 [content internal] load build context
+#30 ...
+
+#105 [content-delivery build 3/3] RUN npm install --only=production
+#105 21.47 
+#105 21.47 added 69 packages, and audited 70 packages in 18s
+#105 21.47 
+#105 21.47 14 packages are looking for funding
+#105 21.47   run `npm fund` for details
+#105 21.47 
+#105 21.47 found 0 vulnerabilities
+#105 21.47 npm notice
+#105 21.47 npm notice New major version of npm available! 10.8.2 -> 11.5.2
+#105 21.47 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+#105 21.47 npm notice To update run: npm install -g npm@11.5.2
+#105 21.47 npm notice
+#105 DONE 21.6s
+
+#30 [content internal] load build context
+#30 ...
+
+#147 [content-delivery production 2/4] COPY --from=build /app/node_modules ./node_modules
+#147 DONE 0.2s
+
+#30 [content internal] load build context
+#30 ...
+
+#148 [content-delivery production 3/4] COPY package*.json ./
+#148 DONE 0.1s
+
+#30 [content internal] load build context
+#30 ...
+
+#149 [content-delivery production 4/4] COPY server.js ./
+#149 DONE 0.0s
+
+#30 [content internal] load build context
+#30 ...
+
+#150 [content-delivery] exporting to image
+#150 exporting layers 0.2s done
+#150 exporting manifest sha256:6e2fc1e555c501ade2ed9b6828d5ffc4987ec4dbb1ebdbee208768757e91e8ad 0.0s done
+#150 exporting config sha256:42b92ae22da03a3e755d2f7e58613dbd70710adbc362dd4e1cf9edb30fbbf695 done
+#150 exporting attestation manifest sha256:623be5f65459aba6e1bb2215871a685bea51cfa554e9f21365d98b6fd898d616 0.0s done
+#150 exporting manifest list sha256:715a3a7338999a7ce86b05dfaefaea2afb005f8951d5ffe1a20a99fec568894a done
+#150 naming to docker.io/library/project-suuupra-content-delivery:latest done
+#150 unpacking to docker.io/library/project-suuupra-content-delivery:latest 0.2s done
+#150 DONE 0.5s
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 13.08 (33/133) Installing lame-libs (3.100-r5)
+#103 13.85 (34/133) Installing opus (1.5.2-r1)
+#103 15.86 (35/133) Installing rav1e-libs (0.7.1-r0)
+#103 21.38 (36/133) Installing libgomp (14.2.0-r6)
+#103 22.79 (37/133) Installing soxr (0.1.3-r7)
+#103 ...
+
+#30 [content internal] load build context
+#30 transferring context: 6.48MB 22.8s done
+#30 DONE 23.6s
+
+#151 [content base 5/6] COPY package*.json ./
+#151 DONE 0.2s
+
+#152 [content-delivery] resolving provenance for metadata file
+#152 DONE 0.0s
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#153 [content base 6/6] COPY tsconfig.json ./
+#153 DONE 0.0s
+
+#154 [commerce production 3/8] RUN apt-get update && apt-get install -y     curl     && rm -rf /var/lib/apt/lists/*
+#154 2.107 Hit:1 http://deb.debian.org/debian trixie InRelease
+#154 2.361 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.1 kB]
+#154 2.825 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#154 3.182 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9604 kB]
+#154 ...
+
+#33 [api-gateway internal] load build context
+#33 ...
+
+#111 [counters production 2/8] RUN apk --no-cache add     ca-certificates     tzdata     curl     && rm -rf /var/cache/apk/*
+#111 10.54 (1/9) Installing ca-certificates (20241121-r1)
+#111 12.92 (2/9) Installing brotli-libs (1.0.9-r14)
+#111 17.75 (3/9) Installing libunistring (1.1-r1)
+#111 ...
+
+#117 [mass-live production 2/6] RUN apk add --no-cache     ca-certificates     ffmpeg     tzdata     curl     && rm -rf /var/cache/apk/*
+#117 10.69 (1/104) Installing ca-certificates (20241121-r1)
+#117 12.10 (2/104) Installing brotli-libs (1.0.9-r14)
+#117 15.62 (3/104) Installing libunistring (1.1-r1)
+#117 ...
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 24.64 (38/133) Installing ffmpeg-libswresample (6.1.2-r2)
+#103 ...
+
+#155 [admin production 1/5] RUN apk add --no-cache curl && rm -rf /var/cache/apk/*
+#155 1.833 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/aarch64/APKINDEX.tar.gz
+#155 4.443 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/aarch64/APKINDEX.tar.gz
+#155 ...
+
+#156 [admin deps 1/1] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --only=production --legacy-peer-deps;     else       npm install --only=production --legacy-peer-deps;     fi && npm cache clean --force
+#156 2.240 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#156 ...
+
+#157 [admin build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --legacy-peer-deps;     else       npm install --legacy-peer-deps;     fi
+#157 ...
+
+#136 [ledger production 2/5] RUN apk add --no-cache curl &&     addgroup -g 1001 -S ledger &&     adduser -u 1001 -S ledger -G ledger
+#136 11.23 (2/6) Installing nghttp2-libs (1.65.0-r0)
+#136 11.65 (3/6) Installing libpsl (0.21.5-r3)
+#136 12.00 (4/6) Installing zstd-libs (1.5.7-r0)
+#136 14.21 (5/6) Installing libcurl (8.14.1-r1)
+#136 19.50 (6/6) Installing curl (8.14.1-r1)
+#136 ...
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 27.10 (39/133) Installing libogg (1.3.5-r5)
+#103 27.54 (40/133) Installing libtheora (1.1.1-r18)
+#103 ...
+
+#158 [bank-simulator builder 3/6] RUN npm install --legacy-peer-deps
+#158 6.373 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#158 7.386 npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+#158 8.971 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#158 9.374 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#158 9.522 npm warn deprecated gauge@3.0.2: This package is no longer supported.
+#158 ...
+
+#136 [ledger production 2/5] RUN apk add --no-cache curl &&     addgroup -g 1001 -S ledger &&     adduser -u 1001 -S ledger -G ledger
+#136 22.28 Executing busybox-1.37.0-r18.trigger
+#136 22.28 OK: 44 MiB in 78 packages
+#136 ...
+
+#144 [search-crawler production 2/5] RUN apk --no-cache add ca-certificates tzdata curl &&     addgroup -g 1001 -S crawler &&     adduser -u 1001 -S crawler -G crawler
+#144 12.52 (1/11) Installing ca-certificates (20250619-r0)
+#144 14.27 (2/11) Installing brotli-libs (1.1.0-r2)
+#144 22.47 (3/11) Installing c-ares (1.34.5-r0)
+#144 ...
+
+#118 [counters builder 2/7] RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
+#118 23.24 (1/25) Installing libgcc (14.2.0-r6)
+#118 23.67 (2/25) Installing jansson (2.14.1-r0)
+#118 24.37 (3/25) Installing libstdc++ (14.2.0-r6)
+#118 ...
+
+#136 [ledger production 2/5] RUN apk add --no-cache curl &&     addgroup -g 1001 -S ledger &&     adduser -u 1001 -S ledger -G ledger
+#136 DONE 23.1s
+
+#159 [ledger production 3/5] WORKDIR /app
+#159 DONE 0.1s
+
+#137 [ledger builder 2/7] RUN apk add --no-cache maven curl
+#137 23.17 (1/26) Installing c-ares (1.34.5-r0)
+#137 ...
+
+#33 [api-gateway internal] load build context
+#33 transferring context: 3.54MB 30.3s done
+#33 DONE 30.9s
+
+#160 [api-gateway base 5/6] COPY package*.json ./
+#160 DONE 0.3s
+
+#158 [bank-simulator builder 3/6] RUN npm install --legacy-peer-deps
+#158 11.36 npm warn deprecated acorn-import-assertions@1.9.0: package has been renamed to acorn-import-attributes
+#158 11.68 npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+#158 11.71 npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+#158 ...
+
+#161 [api-gateway base 6/6] COPY tsconfig.json ./
+#161 DONE 0.1s
+
+#130 [search-crawler builder 2/7] RUN apk add --no-cache git ca-certificates tzdata
+#130 15.86 (1/13) Installing brotli-libs (1.1.0-r2)
+#130 22.97 (2/13) Installing c-ares (1.34.5-r0)
+#130 23.66 (3/13) Installing libunistring (1.3-r0)
+#130 ...
+
+#162 [api-gateway build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --only=production --legacy-peer-deps;     else       npm install --only=production --legacy-peer-deps;     fi && npm cache clean --force
+#162 0.290 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#162 ...
+
+#101 [creator-studio base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init curl ffmpeg &&     rm -rf /var/cache/apk/*
+#101 22.64 (9/118) Installing curl (8.14.1-r1)
+#101 29.95 (10/118) Installing dumb-init (1.2.5-r3)
+#101 31.05 (11/118) Installing libSvtAv1Enc (2.3.0-r0)
+#101 ...
+
+#144 [search-crawler production 2/5] RUN apk --no-cache add ca-certificates tzdata curl &&     addgroup -g 1001 -S crawler &&     adduser -u 1001 -S crawler -G crawler
+#144 24.28 (4/11) Installing libunistring (1.3-r0)
+#144 ...
+
+#163 [content build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --include=dev --legacy-peer-deps;     else       npm install --include=dev --legacy-peer-deps;     fi
+#163 ...
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 30.95 (41/133) Installing libvorbis (1.3.7-r2)
+#103 ...
+
+#137 [ledger builder 2/7] RUN apk add --no-cache maven curl
+#137 29.87 (2/26) Installing nghttp2-libs (1.65.0-r0)
+#137 ...
+
+#141 [identity production 2/6] RUN apt-get update && apt-get upgrade -y &&     apt-get install -y curl dumb-init &&     rm -rf /var/lib/apt/lists/*
+#141 21.11 Get:1 http://ports.ubuntu.com/ubuntu-ports noble InRelease [256 kB]
+#141 ...
+
+#142 [upi-core production 2/6] RUN apk --no-cache add ca-certificates tzdata
+#142 30.52 (1/2) Installing ca-certificates (20250619-r0)
+#142 33.32 (2/2) Installing tzdata (2025b-r0)
+#142 34.75 Executing busybox-1.37.0-r18.trigger
+#142 34.76 Executing ca-certificates-20250619-r0.trigger
+#142 34.78 OK: 8 MiB in 18 packages
+#142 DONE 35.5s
+
+#158 [bank-simulator builder 3/6] RUN npm install --legacy-peer-deps
+#158 19.54 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+#158 19.56 npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+#158 21.49 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#158 21.66 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#158 22.34 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#158 22.99 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#158 ...
+
+#164 [upi-core production 3/6] RUN addgroup -g 1001 -S upicore &&     adduser -u 1001 -S upicore -G upicore
+#164 DONE 0.2s
+
+#165 [upi-core production 4/6] WORKDIR /app
+#165 DONE 0.0s
+
+#104 [live-classes production 2/9] RUN apk add --no-cache ffmpeg && rm -rf /var/cache/apk/*
+#104 40.40 (47/109) Installing numactl (2.0.18-r0)
+#104 40.86 (48/109) Installing x265-libs (3.6-r0)
+#104 ...
+
+#117 [mass-live production 2/6] RUN apk add --no-cache     ca-certificates     ffmpeg     tzdata     curl     && rm -rf /var/cache/apk/*
+#117 30.35 (4/104) Installing libidn2 (2.3.4-r1)
+#117 32.77 (5/104) Installing nghttp2-libs (1.57.0-r0)
+#117 34.48 (6/104) Installing libpsl (0.21.5-r0)
+#117 34.93 (7/104) Installing libcurl (8.12.1-r0)
+#117 ...
+
+#158 [bank-simulator builder 3/6] RUN npm install --legacy-peer-deps
+#158 26.26 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#158 ...
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 37.19 (42/133) Installing libvpx (1.15.0-r0)
+#103 ...
+
+#130 [search-crawler builder 2/7] RUN apk add --no-cache git ca-certificates tzdata
+#130 41.19 (4/13) Installing libidn2 (2.3.7-r0)
+#130 42.24 (5/13) Installing nghttp2-libs (1.65.0-r0)
+#130 42.98 (6/13) Installing libpsl (0.21.5-r3)
+#130 43.40 (7/13) Installing zstd-libs (1.5.7-r0)
+#130 ...
+
+#137 [ledger builder 2/7] RUN apk add --no-cache maven curl
+#137 32.88 (3/26) Installing libpsl (0.21.5-r3)
+#137 33.52 (4/26) Installing libcurl (8.14.1-r1)
+#137 40.04 (5/26) Installing curl (8.14.1-r1)
+#137 41.38 (6/26) Installing java-common (1.0-r0)
+#137 41.42 (7/26) Installing java-cacerts (1.1-r0)
+#137 41.50 (8/26) Installing openjdk21-jre-headless (21.0.8_p9-r0)
+#137 ...
+
+#162 [api-gateway build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --only=production --legacy-peer-deps;     else       npm install --only=production --legacy-peer-deps;     fi && npm cache clean --force
+#162 17.58 
+#162 17.58 added 365 packages, and audited 366 packages in 17s
+#162 17.58 
+#162 17.58 44 packages are looking for funding
+#162 17.58   run `npm fund` for details
+#162 17.59 
+#162 17.59 2 low severity vulnerabilities
+#162 17.59 
+#162 17.59 To address all issues, run:
+#162 17.59   npm audit fix
+#162 17.59 
+#162 17.59 Run `npm audit` for details.
+#162 17.59 npm notice
+#162 17.59 npm notice New major version of npm available! 10.8.2 -> 11.5.2
+#162 17.59 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+#162 17.59 npm notice To update run: npm install -g npm@11.5.2
+#162 17.59 npm notice
+#162 17.69 npm warn using --force Recommended protections disabled.
+#162 DONE 18.9s
+
+#144 [search-crawler production 2/5] RUN apk --no-cache add ca-certificates tzdata curl &&     addgroup -g 1001 -S crawler &&     adduser -u 1001 -S crawler -G crawler
+#144 40.97 (5/11) Installing libidn2 (2.3.7-r0)
+#144 41.87 (6/11) Installing nghttp2-libs (1.65.0-r0)
+#144 42.34 (7/11) Installing libpsl (0.21.5-r3)
+#144 42.65 (8/11) Installing zstd-libs (1.5.7-r0)
+#144 ...
+
+#111 [counters production 2/8] RUN apk --no-cache add     ca-certificates     tzdata     curl     && rm -rf /var/cache/apk/*
+#111 35.03 (4/9) Installing libidn2 (2.3.4-r1)
+#111 40.62 (5/9) Installing nghttp2-libs (1.57.0-r0)
+#111 41.55 (6/9) Installing libpsl (0.21.5-r0)
+#111 42.10 (7/9) Installing libcurl (8.12.1-r0)
+#111 ...
+
+#166 [api-gateway build 2/3] COPY . .
+#166 ...
+
+#139 [payments production 2/7] RUN apk --no-cache add ca-certificates tzdata curl
+#139 35.98 (1/11) Installing ca-certificates (20250619-r0)
+#139 40.16 (2/11) Installing brotli-libs (1.1.0-r2)
+#139 45.68 (3/11) Installing c-ares (1.34.5-r0)
+#139 ...
+
+#111 [counters production 2/8] RUN apk --no-cache add     ca-certificates     tzdata     curl     && rm -rf /var/cache/apk/*
+#111 46.37 (8/9) Installing curl (8.12.1-r0)
+#111 ...
+
+#117 [mass-live production 2/6] RUN apk add --no-cache     ca-certificates     ffmpeg     tzdata     curl     && rm -rf /var/cache/apk/*
+#117 41.03 (8/104) Installing curl (8.12.1-r0)
+#117 42.68 (9/104) Installing sdl2 (2.26.5-r0)
+#117 49.79 (10/104) Installing svt-av1-libs (1.6.0-r0)
+#117 ...
+
+#157 [admin build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --legacy-peer-deps;     else       npm install --legacy-peer-deps;     fi
+#157 39.31 npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+#157 40.97 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#157 41.42 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#157 41.63 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#157 ...
+
+#118 [counters builder 2/7] RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
+#118 43.23 (4/25) Installing zstd-libs (1.5.7-r0)
+#118 47.91 (5/25) Installing binutils (2.44-r2)
+#118 ...
+
+#157 [admin build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --legacy-peer-deps;     else       npm install --legacy-peer-deps;     fi
+#157 42.24 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+#157 42.58 npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+#157 45.89 npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+#157 ...
+
+#166 [api-gateway build 2/3] COPY . .
+#166 DONE 13.7s
+
+#111 [counters production 2/8] RUN apk --no-cache add     ca-certificates     tzdata     curl     && rm -rf /var/cache/apk/*
+#111 58.36 (9/9) Installing tzdata (2025b-r0)
+#111 ...
+
+#156 [admin deps 1/1] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --only=production --legacy-peer-deps;     else       npm install --only=production --legacy-peer-deps;     fi && npm cache clean --force
+#156 45.46 npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+#156 47.51 
+#156 47.51 added 173 packages, and audited 174 packages in 45s
+#156 47.51 
+#156 47.51 15 packages are looking for funding
+#156 47.51   run `npm fund` for details
+#156 47.51 
+#156 47.51 found 0 vulnerabilities
+#156 47.51 npm notice
+#156 47.51 npm notice New major version of npm available! 10.8.2 -> 11.5.2
+#156 47.51 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+#156 47.51 npm notice To update run: npm install -g npm@11.5.2
+#156 47.51 npm notice
+#156 47.63 npm warn using --force Recommended protections disabled.
+#156 DONE 49.4s
+
+#157 [admin build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --legacy-peer-deps;     else       npm install --legacy-peer-deps;     fi
+#157 47.73 
+#157 47.73 added 511 packages, and audited 512 packages in 46s
+#157 47.73 
+#157 47.73 65 packages are looking for funding
+#157 47.73   run `npm fund` for details
+#157 47.73 
+#157 47.73 2 moderate severity vulnerabilities
+#157 47.73 
+#157 47.73 To address all issues, run:
+#157 47.73   npm audit fix
+#157 47.73 
+#157 47.73 Run `npm audit` for details.
+#157 47.73 npm notice
+#157 47.73 npm notice New major version of npm available! 10.8.2 -> 11.5.2
+#157 47.73 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+#157 47.73 npm notice To update run: npm install -g npm@11.5.2
+#157 47.73 npm notice
+#157 DONE 49.4s
+
+#155 [admin production 1/5] RUN apk add --no-cache curl && rm -rf /var/cache/apk/*
+#155 49.25 OK: 15 MiB in 28 packages
+#155 DONE 49.4s
+
+#167 [admin build 2/3] COPY . .
+#167 DONE 0.6s
+
+#168 [admin production 2/5] COPY --from=deps --chown=admin:nodejs /app/node_modules ./node_modules
+#168 DONE 2.5s
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 65.10 (43/133) Installing libsharpyuv (1.5.0-r0)
+#103 65.38 (44/133) Installing libwebp (1.5.0-r0)
+#103 67.14 (45/133) Installing libwebpmux (1.5.0-r0)
+#103 67.38 (46/133) Installing x264-libs (0.164.3108-r0)
+#103 ...
+
+#111 [counters production 2/8] RUN apk --no-cache add     ca-certificates     tzdata     curl     && rm -rf /var/cache/apk/*
+#111 63.49 Executing busybox-1.36.1-r7.trigger
+#111 63.52 Executing ca-certificates-20241121-r1.trigger
+#111 63.61 OK: 15 MiB in 24 packages
+#111 DONE 63.9s
+
+#169 [admin build 3/3] RUN npm run build &&     npm prune --production
+#169 0.958 
+#169 0.958 > @suuupra/admin-service@1.0.0 build
+#169 0.958 > tsc
+#169 0.958 
+#169 2.468 src/index.ts(14,21): error TS6133: 'req' is declared but its value is never read.
+#169 2.468 src/index.ts(24,22): error TS6133: 'req' is declared but its value is never read.
+#169 2.468 src/index.ts(33,15): error TS6133: 'req' is declared but its value is never read.
+#169 2.468 src/main.tsx(1,19): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+#169 2.468 src/main.tsx(2,22): error TS2307: Cannot find module 'react-dom/client' or its corresponding type declarations.
+#169 2.468 src/main.tsx(3,31): error TS2307: Cannot find module 'react-router-dom' or its corresponding type declarations.
+#169 2.468 src/main.tsx(4,50): error TS2307: Cannot find module '@tanstack/react-query' or its corresponding type declarations.
+#169 2.468 src/main.tsx(5,36): error TS2307: Cannot find module '@tanstack/react-query-devtools' or its corresponding type declarations.
+#169 2.468 src/main.tsx(6,45): error TS2307: Cannot find module '@chakra-ui/react' or its corresponding type declarations.
+#169 2.468 src/main.tsx(7,30): error TS2307: Cannot find module './contexts/AuthContext' or its corresponding type declarations.
+#169 2.468 src/main.tsx(8,38): error TS2307: Cannot find module './contexts/NotificationContext' or its corresponding type declarations.
+#169 2.468 src/main.tsx(9,17): error TS2307: Cannot find module './App' or its corresponding type declarations.
+#169 2.468 src/main.tsx(100,15): error TS7006: Parameter 'failureCount' implicitly has an 'any' type.
+#169 2.468 src/main.tsx(115,3): error TS2584: Cannot find name 'document'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'.
+#169 2.468 src/main.tsx(115,38): error TS2304: Cannot find name 'HTMLElement'.
+#169 2.468 src/main.tsx(119,3): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(120,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(121,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(122,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(123,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(124,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(125,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(129,52): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+#169 2.468 src/main.tsx(138,10): error TS2307: Cannot find module './utils/reportWebVitals' or its corresponding type declarations.
+#169 2.468 src/main.tsx(139,22): error TS7006: Parameter 'metric' implicitly has an 'any' type.
+#169 ERROR: process "/bin/sh -c npm run build &&     npm prune --production" did not complete successfully: exit code: 2
+
+#170 [counters production 3/8] RUN addgroup -g 1001 -S counters &&     adduser -S counters -u 1001 -G counters
+#170 ...
+
+#116 [notifications builder 2/5] RUN apt-get update && apt-get install -y     build-essential     curl     git     libpq-dev     && rm -rf /var/lib/apt/lists/*
+#116 CANCELED
+
+#119 [llm-tutor production 2/7] RUN apt-get update && apt-get install -y     libpq5     libsndfile1     ffmpeg     curl     && rm -rf /var/lib/apt/lists/*     && groupadd -r appuser     && useradd -r -g appuser appuser
+#119 CANCELED
+
+#144 [search-crawler production 2/5] RUN apk --no-cache add ca-certificates tzdata curl &&     addgroup -g 1001 -S crawler &&     adduser -u 1001 -S crawler -G crawler
+#144 57.82 (9/11) Installing libcurl (8.14.1-r1)
+#144 60.28 (10/11) Installing curl (8.14.1-r1)
+#144 61.46 (11/11) Installing tzdata (2025b-r0)
+#144 CANCELED
+
+#130 [payments builder 2/7] RUN apk add --no-cache git ca-certificates tzdata
+#130 59.58 (8/13) Installing libcurl (8.14.1-r1)
+#130 62.21 (9/13) Installing libexpat (2.7.1-r0)
+#130 62.90 (10/13) Installing pcre2 (10.43-r1)
+#130 CANCELED
+
+#139 [payments production 2/7] RUN apk --no-cache add ca-certificates tzdata curl
+#139 55.00 (4/11) Installing libunistring (1.3-r0)
+#139 CANCELED
+
+#146 [identity builder 5/7] RUN ./mvnw dependency:go-offline -B
+#146 CANCELED
+
+#112 [notifications production 2/8] RUN apt-get update && apt-get install -y     libpq5     curl     && rm -rf /var/lib/apt/lists/*     && groupadd -r notifications     && useradd -r -g notifications notifications
+#112 CANCELED
+
+#101 [creator-studio base 2/6] RUN apk update && apk upgrade &&     apk add --no-cache dumb-init curl ffmpeg &&     rm -rf /var/cache/apk/*
+#101 CANCELED
+
+#121 [mass-live builder 2/7] RUN apk add --no-cache git gcc musl-dev
+#121 59.60 (6/24) Installing libgomp (14.2.0-r6)
+#121 60.20 (7/24) Installing libatomic (14.2.0-r6)
+#121 60.32 (8/24) Installing gmp (6.3.0-r3)
+#121 61.33 (9/24) Installing isl26 (0.26-r1)
+#121 CANCELED
+
+#138 [live-tracking production 2/8] RUN apt-get update && apt-get install -y     libssl3     libpq5     ca-certificates     curl     && rm -rf /var/lib/apt/lists/*
+#138 CANCELED
+
+#127 [recommendations production 2/6] RUN apt-get update && apt-get install -y     libpq5     curl     && rm -rf /var/lib/apt/lists/* &&     groupadd -r recommendations &&     useradd -r -g recommendations recommendations
+#127 CANCELED
+
+#141 [identity production 2/6] RUN apt-get update && apt-get upgrade -y &&     apt-get install -y curl dumb-init &&     rm -rf /var/lib/apt/lists/*
+#141 58.64 Get:2 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease [126 kB]
+#141 61.41 Get:3 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease [126 kB]
+#141 CANCELED
+
+#131 [recommendations builder 2/6] RUN apt-get update && apt-get install -y     build-essential     curl     git     libpq-dev     && rm -rf /var/lib/apt/lists/*
+#131 CANCELED
+
+#104 [live-classes production 2/9] RUN apk add --no-cache ffmpeg && rm -rf /var/cache/apk/*
+#104 CANCELED
+
+#103 [live-classes base 2/6] RUN apk add --no-cache     python3     make     g++     ffmpeg     && rm -rf /var/cache/apk/*
+#103 CANCELED
+
+#124 [llm-tutor builder 2/5] RUN apt-get update && apt-get install -y     build-essential     curl     git     libpq-dev     libsndfile1-dev     ffmpeg     && rm -rf /var/lib/apt/lists/*
+#124 CANCELED
+
+#137 [ledger builder 2/7] RUN apk add --no-cache maven curl
+#137 CANCELED
+
+#128 [analytics production 2/8] RUN apt-get update && apt-get install -y     libpq5     curl     && rm -rf /var/lib/apt/lists/*     && groupadd -r analytics     && useradd -r -g analytics analytics
+#128 CANCELED
+
+#125 [vod base 2/5] RUN apt-get update && apt-get install -y     ffmpeg     curl     build-essential     && rm -rf /var/lib/apt/lists/*
+#125 CANCELED
+
+#171 [api-gateway build 3/3] RUN npm run build &&     npm prune --production
+#171 2.187 
+#171 2.187 > api-gateway@1.0.0 build
+#171 2.187 > tsc -p .
+#171 2.187 
+#171 ...
+
+#132 [vod production 2/8] RUN apt-get update && apt-get install -y     ffmpeg     curl     && rm -rf /var/lib/apt/lists/*
+#132 CANCELED
+
+#117 [mass-live production 2/6] RUN apk add --no-cache     ca-certificates     ffmpeg     tzdata     curl     && rm -rf /var/cache/apk/*
+#117 CANCELED
+
+#135 [live-tracking builder 2/8] RUN apt-get update && apt-get install -y     pkg-config     libssl-dev     libpq-dev     curl     && rm -rf /var/lib/apt/lists/*
+#135 CANCELED
+
+#115 [commerce builder 2/5] RUN apt-get update && apt-get install -y     gcc     g++     && rm -rf /var/lib/apt/lists/*
+#115 CANCELED
+
+#171 [api-gateway build 3/3] RUN npm run build &&     npm prune --production
+#171 CANCELED
+
+#154 [commerce production 3/8] RUN apt-get update && apt-get install -y     curl     && rm -rf /var/lib/apt/lists/*
+#154 CANCELED
+
+#118 [counters builder 2/7] RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
+#118 CANCELED
+
+#158 [bank-simulator builder 3/6] RUN npm install --legacy-peer-deps
+#158 CANCELED
+
+#163 [content build 1/3] RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then       npm ci --include=dev --legacy-peer-deps;     else       npm install --include=dev --legacy-peer-deps;     fi
+#163 CANCELED
+
+#170 [counters production 3/8] RUN addgroup -g 1001 -S counters &&     adduser -S counters -u 1001 -G counters
+#170 DONE 1.9s
+------
+ > [admin build 3/3] RUN npm run build &&     npm prune --production:
+2.468 src/main.tsx(119,3): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(120,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(121,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(122,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(123,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(124,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(125,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(129,52): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+2.468 src/main.tsx(138,10): error TS2307: Cannot find module './utils/reportWebVitals' or its corresponding type declarations.
+2.468 src/main.tsx(139,22): error TS7006: Parameter 'metric' implicitly has an 'any' type.
+------
+Dockerfile:35
+
+--------------------
+
+  34 |     COPY . .
+
+  35 | >>> RUN npm run build && \
+
+  36 | >>>     npm prune --production
+
+  37 |     
+
+--------------------
+
+target admin: failed to solve: process "/bin/sh -c npm run build &&     npm prune --production" did not complete successfully: exit code: 2
+
+
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/913ss6kiymejt7f0i63f4lvde
+

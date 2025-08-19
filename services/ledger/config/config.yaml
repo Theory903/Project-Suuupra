@@ -1,0 +1,50 @@
+ledger:
+  app_name: "Suuupra Ledger Service"
+  version: "1.0.0"
+  port: 8009
+  environment: ${NODE_ENV:development}
+
+database:
+  mysql:
+    host: ${MYSQL_HOST:localhost}
+    port: ${MYSQL_PORT:3306}
+    database: ${MYSQL_DATABASE:ledger}
+    username: ${MYSQL_USER:ledger}
+    password: ${MYSQL_PASSWORD:ledger123}
+    pool:
+      min: 5
+      max: 20
+      acquire_timeout: 60000
+
+double_entry:
+  enabled: true
+  auto_balance_check: true
+  journal_entry_validation: true
+  
+accounts:
+  chart_of_accounts:
+    assets: "1000-1999"
+    liabilities: "2000-2999"
+    equity: "3000-3999"
+    revenue: "4000-4999"
+    expenses: "5000-5999"
+
+reconciliation:
+  auto_reconcile: true
+  batch_size: 1000
+  schedule_cron: "0 0 2 * * *"  # Daily at 2 AM
+  tolerance_amount: 0.01
+
+audit:
+  enabled: true
+  log_all_transactions: true
+  retention_days: 2555  # 7 years for compliance
+  
+compliance:
+  pci_dss: true
+  sox_compliance: true
+  audit_trail: true
+
+monitoring:
+  health_check_path: "/health"
+  metrics_path: "/metrics"

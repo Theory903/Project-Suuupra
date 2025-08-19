@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -13,11 +13,12 @@ import (
 )
 
 // InitTracer initializes OpenTelemetry tracing
-func InitTracer(serviceName, jaegerEndpoint string) (func(), error) {
-	// Create Jaeger exporter
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
+func InitTracer(serviceName, otlpEndpoint string) (func(), error) {
+	// Create OTLP gRPC exporter
+	ctx := context.Background()
+	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(otlpEndpoint), otlptracegrpc.WithInsecure())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create jaeger exporter: %w", err)
+		return nil, fmt.Errorf("failed to create otlp exporter: %w", err)
 	}
 
 	// Create resource

@@ -1,5 +1,5 @@
 # Multi-stage build for optimized production image
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Install git and ca-certificates
 RUN apk add --no-cache git ca-certificates tzdata
@@ -19,8 +19,8 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o upi-core cmd/server/main.go
 
-# Final stage
-FROM alpine:latest
+# Final stage  
+FROM alpine:latest AS production
 
 # Install ca-certificates for SSL/TLS
 RUN apk --no-cache add ca-certificates tzdata

@@ -1,0 +1,21 @@
+{
+  "name": "suuupra-jwks-server",
+  "version": "1.0.0",
+  "description": "JSON Web Key Set (JWKS) server for Suuupra platform JWT validation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "jwks",
+    "jwt",
+    "authentication",
+    "security"
+  ],
+  "author": "Suuupra Platform",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

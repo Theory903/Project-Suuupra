@@ -1,0 +1,534 @@
+{
+  "timestamp": "2025-08-19T19:48:50.500Z",
+  "summary": {
+    "totalServices": 21,
+    "passedServices": 16,
+    "failedServices": 5,
+    "totalTests": 166,
+    "passedTests": 154,
+    "failedTests": 12,
+    "servicesByType": {
+      "node": {
+        "total": 7,
+        "passed": 4,
+        "failed": 3
+      },
+      "python": {
+        "total": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      "go": {
+        "total": 5,
+        "passed": 4,
+        "failed": 1
+      },
+      "rust": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "java": {
+        "total": 2,
+        "passed": 1,
+        "failed": 1
+      }
+    },
+    "servicesByStatus": {
+      "passed": [
+        "admin",
+        "content",
+        "creator-studio",
+        "live-classes",
+        "analytics",
+        "commerce",
+        "llm-tutor",
+        "notifications",
+        "recommendations",
+        "vod",
+        "counters",
+        "live-tracking",
+        "mass-live",
+        "payments",
+        "search-crawler",
+        "ledger"
+      ],
+      "failed": [
+        "api-gateway",
+        "bank-simulator",
+        "content-delivery",
+        "upi-core",
+        "identity"
+      ]
+    }
+  },
+  "services": {
+    "api-gateway": {
+      "service": "api-gateway",
+      "type": "node",
+      "framework": "fastify",
+      "port": 3000,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": false,
+        "documentation": false,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 6,
+      "failed": 2,
+      "errors": [
+        "API structure not found",
+        "Insufficient documentation"
+      ],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.489Z"
+    },
+    "admin": {
+      "service": "admin",
+      "type": "node",
+      "framework": "react",
+      "port": 3001,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.494Z"
+    },
+    "bank-simulator": {
+      "service": "bank-simulator",
+      "type": "node",
+      "framework": "fastify",
+      "port": 3002,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": false,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": false
+      },
+      "passed": 6,
+      "failed": 2,
+      "errors": [
+        "API structure not found",
+        "Test directory not found"
+      ],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.494Z"
+    },
+    "content": {
+      "service": "content",
+      "type": "node",
+      "framework": "express",
+      "port": 3003,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.495Z"
+    },
+    "content-delivery": {
+      "service": "content-delivery",
+      "type": "node",
+      "framework": "express",
+      "port": 3004,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": false,
+        "documentation": false,
+        "infrastructure": false,
+        "testDirectory": false
+      },
+      "passed": 3,
+      "failed": 4,
+      "errors": [
+        "Source directory not found",
+        "Insufficient documentation",
+        "Infrastructure files missing",
+        "Test directory not found"
+      ],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.495Z"
+    },
+    "creator-studio": {
+      "service": "creator-studio",
+      "type": "node",
+      "framework": "react",
+      "port": 3005,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.496Z"
+    },
+    "live-classes": {
+      "service": "live-classes",
+      "type": "node",
+      "framework": "fastify",
+      "port": 3006,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.496Z"
+    },
+    "analytics": {
+      "service": "analytics",
+      "type": "python",
+      "framework": "fastapi",
+      "port": 8001,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.496Z"
+    },
+    "commerce": {
+      "service": "commerce",
+      "type": "python",
+      "framework": "fastapi",
+      "port": 8002,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.496Z"
+    },
+    "llm-tutor": {
+      "service": "llm-tutor",
+      "type": "python",
+      "framework": "fastapi",
+      "port": 8003,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.497Z"
+    },
+    "notifications": {
+      "service": "notifications",
+      "type": "python",
+      "framework": "fastapi",
+      "port": 8004,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.497Z"
+    },
+    "recommendations": {
+      "service": "recommendations",
+      "type": "python",
+      "framework": "fastapi",
+      "port": 8005,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.497Z"
+    },
+    "vod": {
+      "service": "vod",
+      "type": "python",
+      "framework": "fastapi",
+      "port": 8006,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.498Z"
+    },
+    "counters": {
+      "service": "counters",
+      "type": "go",
+      "framework": "chi",
+      "port": 8101,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.498Z"
+    },
+    "live-tracking": {
+      "service": "live-tracking",
+      "type": "rust",
+      "framework": "axum",
+      "port": 8102,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    },
+    "mass-live": {
+      "service": "mass-live",
+      "type": "go",
+      "framework": "gin",
+      "port": 8103,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    },
+    "payments": {
+      "service": "payments",
+      "type": "go",
+      "framework": "gin",
+      "port": 8104,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    },
+    "search-crawler": {
+      "service": "search-crawler",
+      "type": "go",
+      "framework": "gin",
+      "port": 8105,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    },
+    "upi-core": {
+      "service": "upi-core",
+      "type": "go",
+      "framework": "grpc",
+      "port": 8106,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": false,
+        "documentation": true,
+        "infrastructure": false,
+        "testDirectory": false
+      },
+      "passed": 4,
+      "failed": 3,
+      "errors": [
+        "Source directory not found",
+        "Infrastructure files missing",
+        "Test directory not found"
+      ],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    },
+    "identity": {
+      "service": "identity",
+      "type": "java",
+      "framework": "spring-boot",
+      "port": 8201,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": false,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 7,
+      "failed": 1,
+      "errors": [
+        "API structure not found"
+      ],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    },
+    "ledger": {
+      "service": "ledger",
+      "type": "java",
+      "framework": "spring-boot",
+      "port": 8202,
+      "tests": {
+        "directoryExists": true,
+        "mainFileExists": true,
+        "configExists": true,
+        "sourceStructure": true,
+        "apiStructure": true,
+        "documentation": true,
+        "infrastructure": true,
+        "testDirectory": true
+      },
+      "passed": 8,
+      "failed": 0,
+      "errors": [],
+      "status": "tested",
+      "timestamp": "2025-08-19T19:48:50.499Z"
+    }
+  },
+  "metadata": {
+    "testDuration": "~5 minutes",
+    "testTypes": [
+      "Structure",
+      "Configuration",
+      "Source Code",
+      "Documentation",
+      "Infrastructure"
+    ],
+    "coverage": "Service architecture and setup validation"
+  }
+}
