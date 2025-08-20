@@ -21,13 +21,11 @@ async def get_current_user(
     """
     Get current authenticated user from JWT token.
     
-    This is a simplified implementation. In production, you would:
-    1. Verify JWT signature against JWKS
-    2. Validate issuer, audience, expiration
-    3. Extract user claims and roles
+    Validates JWT token with Identity Service and extracts user claims.
     """
-    # TODO: Implement proper JWT validation
-    # For now, return a mock user for development
+    import httpx
+    import os
+    
     token = credentials.credentials
     
     if not token:
@@ -37,13 +35,54 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Mock user data - replace with actual JWT parsing
-    return {
-        "sub": "user-123",  # User ID
-        "email": "user@example.com",
-        "roles": ["customer", "admin"],
-        "session_id": "session-456",
-    }
+    try:
+        # Get JWT secret from environment
+        jwt_secret = os.getenv('JWT_SECRET', 'dev_jwt_secret_key_change_in_production')
+        
+        # Validate JWT token using python-jose
+        from jose import jwt as jose_jwt
+        payload = jose_jwt.decode(
+            token, 
+            jwt_secret, 
+            algorithms=['HS256']
+        )
+        
+        # Validate with Identity Service
+        identity_service_url = os.getenv('IDENTITY_SERVICE_URL', 'http://localhost:8081')
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            try:
+                response = await client.get(
+                    f"{identity_service_url}/api/v1/users/{payload['sub']}/validate",
+                    headers={"Authorization": f"Bearer {token}"}
+                )
+                if response.status_code != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token validation failed with Identity Service"
+                    )
+            except httpx.RequestError:
+                # If Identity Service is down, proceed with JWT validation only
+                # This provides graceful degradation
+                pass
+        
+        return {
+            "sub": payload.get("sub"),
+            "email": payload.get("email"),
+            "roles": payload.get("roles", []),
+            "session_id": payload.get("sid"),
+            "mfa_level": payload.get("mfa_level", 0),
+        }
+        
+    except jose_jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+    except jose_jwt.JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token: {str(e)}"
+        )
 
 
 async def get_current_admin_user(

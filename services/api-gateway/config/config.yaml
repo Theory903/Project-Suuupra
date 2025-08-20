@@ -26,7 +26,7 @@ services:
     retries: 2
   
   identity:
-    url: ${IDENTITY_SERVICE_URL:http://localhost:8080}
+    url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
     timeout_ms: 3000
     retries: 3
   

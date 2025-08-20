@@ -194,7 +194,7 @@ class EnhancedTestOrchestrator {
 
     async testDocumentation(serviceName, serviceConfig, result) {
         const servicePath = path.join(__dirname, 'services', serviceName);
-        const docFiles = ['README.md', 'TODO.md', 'docs/', 'src/api/openapi.yaml'];
+        const docFiles = ['README.md', 'docs/', 'src/api/openapi.yaml', 'API.md'];
         
         let docsFound = [];
         for (const docFile of docFiles) {

@@ -2,7 +2,12 @@ FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /app
 COPY src/main/java/SimpleServer.java .
-RUN javac SimpleServer.java
+
+# Download PostgreSQL JDBC driver
+ADD https://jdbc.postgresql.org/download/postgresql-42.7.2.jar postgresql-42.7.2.jar
+
+# Compile with PostgreSQL driver in classpath
+RUN javac -cp postgresql-42.7.2.jar SimpleServer.java
 
 FROM eclipse-temurin:17-jre
 
@@ -13,6 +18,7 @@ RUN apt-get update && apt-get install -y curl && \
 WORKDIR /app
 
 COPY --from=builder /app/*.class .
+COPY --from=builder /app/*.jar .
 
 RUN chown -R identity:identity /app
 USER identity
@@ -22,4 +28,4 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8081/health || exit 1
 
-CMD ["java", "SimpleServer"]
+CMD ["java", "-cp", ".:postgresql-42.7.2.jar", "SimpleServer"]

@@ -496,11 +496,55 @@ export class WebSocketService {
         return true;
       }
 
-      // TODO: Check if user owns the content
-      // const content = await Content.findById(contentId);
-      // return content && content.createdBy === user.userId;
-      
-      return true; // Allow for now
+      // Check if user owns the content
+      try {
+        const contentQuery = `
+          SELECT created_by, status, visibility 
+          FROM content 
+          WHERE content_id = $1
+        `;
+        
+        const contentResult = await this.db.query(contentQuery, [contentId]);
+        
+        if (contentResult.rows.length === 0) {
+          this.contextLogger.warn('Content not found for upload access check', {
+            contentId,
+            userId: user.userId
+          });
+          return false;
+        }
+        
+        const content = contentResult.rows[0];
+        
+        // Check if user owns the content
+        if (content.created_by === user.userId) {
+          return true;
+        }
+        
+        // Check if content is in a collaborative workspace
+        const collaboratorQuery = `
+          SELECT role 
+          FROM content_collaborators 
+          WHERE content_id = $1 AND user_id = $2 AND status = 'active'
+        `;
+        
+        const collaboratorResult = await this.db.query(collaboratorQuery, [contentId, user.userId]);
+        
+        if (collaboratorResult.rows.length > 0) {
+          const role = collaboratorResult.rows[0].role;
+          // Allow upload if user has editor or admin role on the content
+          return ['editor', 'admin'].includes(role);
+        }
+        
+        return false;
+        
+      } catch (error) {
+        this.contextLogger.error('Database error during upload access check', error as Error, {
+          contentId,
+          userId: user.userId
+        });
+        return false;
+      }
     } catch (error) {
       this.contextLogger.error('Failed to verify upload access', error as Error, {
         contentId,

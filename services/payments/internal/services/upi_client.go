@@ -45,24 +45,24 @@ func (c *UPIClient) Close() error {
 
 // UPIPaymentRequest represents a UPI payment request
 type UPIPaymentRequest struct {
-	PaymentID       uuid.UUID
-	PayerVPA        string
-	PayeeVPA        string
-	Amount          decimal.Decimal
-	Currency        string
-	Description     string
-	MerchantID      string
-	TransactionRef  string
+	PaymentID      uuid.UUID
+	PayerVPA       string
+	PayeeVPA       string
+	Amount         decimal.Decimal
+	Currency       string
+	Description    string
+	MerchantID     string
+	TransactionRef string
 }
 
 // UPIPaymentResponse represents a UPI payment response
 type UPIPaymentResponse struct {
-	Success           bool
-	TransactionID     string
-	Status            string
-	FailureCode       *string
-	FailureMessage    *string
-	ProcessedAt       time.Time
+	Success        bool
+	TransactionID  string
+	Status         string
+	FailureCode    *string
+	FailureMessage *string
+	ProcessedAt    time.Time
 }
 
 // ProcessPayment processes a payment through UPI Core
@@ -79,15 +79,15 @@ func (c *UPIClient) ProcessPayment(ctx context.Context, req UPIPaymentRequest) (
 
 	// Create gRPC request
 	grpcReq := &pb.TransactionRequest{
-		TransactionId:   req.PaymentID.String(),
-		PayerVpa:        req.PayerVPA,
-		PayeeVpa:        req.PayeeVPA,
-		AmountPaisa:     req.Amount.IntPart() * 100, // Convert to paisa
-		Type:            pb.TransactionType_TRANSACTION_TYPE_P2M,
-		Reference:       req.Description,
-		PayerBankCode:   "HDFC", // This should be resolved from VPA
-		PayeeBankCode:   "ICICI", // This should be resolved from VPA
-		InitiatedAt:     timestamppb.Now(),
+		TransactionId: req.PaymentID.String(),
+		PayerVpa:      req.PayerVPA,
+		PayeeVpa:      req.PayeeVPA,
+		AmountPaisa:   req.Amount.IntPart() * 100, // Convert to paisa
+		Type:          pb.TransactionType_TRANSACTION_TYPE_P2M,
+		Reference:     req.Description,
+		PayerBankCode: "HDFC",  // This should be resolved from VPA
+		PayeeBankCode: "ICICI", // This should be resolved from VPA
+		InitiatedAt:   timestamppb.Now(),
 	}
 
 	// Call UPI Core service
@@ -95,9 +95,9 @@ func (c *UPIClient) ProcessPayment(ctx context.Context, req UPIPaymentRequest) (
 	if err != nil {
 		log.WithError(err).Error("Failed to call UPI Core service")
 		return &UPIPaymentResponse{
-			Success: false,
-			Status:  models.PaymentStatusFailed,
-			FailureCode: func() *string { s := "UPI_SERVICE_ERROR"; return &s }(),
+			Success:        false,
+			Status:         models.PaymentStatusFailed,
+			FailureCode:    func() *string { s := "UPI_SERVICE_ERROR"; return &s }(),
 			FailureMessage: func() *string { s := err.Error(); return &s }(),
 		}, nil
 	}
@@ -151,6 +151,21 @@ type UPIRefundResponse struct {
 	ProcessedAt     time.Time
 }
 
+// UPIRefundStatusRequest represents a refund status check request
+type UPIRefundStatusRequest struct {
+	RefundReference string
+	RefundID        uuid.UUID
+}
+
+// UPIRefundStatusResponse represents a refund status check response
+type UPIRefundStatusResponse struct {
+	Success        bool
+	Status         string
+	FailureCode    *string
+	FailureMessage *string
+	ProcessedAt    *time.Time
+}
+
 // ProcessRefund processes a refund through UPI Core
 func (c *UPIClient) ProcessRefund(ctx context.Context, req UPIRefundRequest) (*UPIRefundResponse, error) {
 	log := c.logger.WithFields(logrus.Fields{
@@ -163,18 +178,43 @@ func (c *UPIClient) ProcessRefund(ctx context.Context, req UPIRefundRequest) (*U
 
 	log.Info("Processing UPI refund")
 
-	// TODO: Implement actual gRPC call to UPI Core service
-	// This is a mock implementation for now
-	
-	// Simulate processing time
-	time.Sleep(200 * time.Millisecond)
+	// Create gRPC refund request
+	grpcReq := &pb.RefundRequest{
+		RefundId:      req.RefundID.String(),
+		TransactionId: req.TransactionID,
+		AmountPaisa:   req.Amount.IntPart() * 100, // Convert to paisa
+		Reason:        req.Reason,
+		InitiatedAt:   timestamppb.Now(),
+	}
 
-	// Mock response - in real implementation, this would come from UPI Core
+	// Call UPI Core service for refund processing
+	grpcResp, err := c.client.ProcessRefund(ctx, grpcReq)
+	if err != nil {
+		log.WithError(err).Error("Failed to call UPI Core service for refund")
+		return &UPIRefundResponse{
+			Success:        false,
+			Status:         models.RefundStatusFailed,
+			FailureCode:    func() *string { s := "UPI_REFUND_SERVICE_ERROR"; return &s }(),
+			FailureMessage: func() *string { s := err.Error(); return &s }(),
+			ProcessedAt:    time.Now(),
+		}, nil
+	}
+
+	// Convert gRPC response to our response format
 	response := &UPIRefundResponse{
-		Success:         true, // Mock success for now
-		RefundReference: fmt.Sprintf("REF_%s_%d", req.RefundID.String()[:8], time.Now().Unix()),
-		Status:          models.RefundStatusSucceeded,
-		ProcessedAt:     time.Now(),
+		Success:         grpcResp.Status == pb.RefundStatus_REFUND_STATUS_SUCCESS,
+		RefundReference: grpcResp.RefundRrn,
+		ProcessedAt:     grpcResp.ProcessedAt.AsTime(),
+	}
+
+	if response.Success {
+		response.Status = models.RefundStatusSucceeded
+	} else {
+		response.Status = models.RefundStatusFailed
+		if grpcResp.ErrorCode != "" {
+			response.FailureCode = &grpcResp.ErrorCode
+			response.FailureMessage = &grpcResp.ErrorMessage
+		}
 	}
 
 	if response.Success {
@@ -194,18 +234,55 @@ func (c *UPIClient) CheckPaymentStatus(ctx context.Context, transactionID string
 	log := c.logger.WithField("transaction_id", transactionID)
 	log.Info("Checking UPI payment status")
 
-	// TODO: Implement actual gRPC call to UPI Core service
-	// This is a mock implementation for now
-
-	// Mock response
-	response := &UPIPaymentResponse{
-		Success:       true,
-		TransactionID: transactionID,
-		Status:        models.PaymentStatusSucceeded,
-		ProcessedAt:   time.Now(),
+	// Create gRPC status check request
+	grpcReq := &pb.StatusCheckRequest{
+		TransactionId: transactionID,
 	}
 
-	log.WithField("status", response.Status).Info("UPI payment status retrieved")
+	// Call UPI Core service for status check
+	grpcResp, err := c.client.CheckTransactionStatus(ctx, grpcReq)
+	if err != nil {
+		log.WithError(err).Error("Failed to call UPI Core service for status check")
+		return &UPIPaymentResponse{
+			Success:        false,
+			Status:         models.PaymentStatusFailed,
+			FailureCode:    func() *string { s := "UPI_STATUS_SERVICE_ERROR"; return &s }(),
+			FailureMessage: func() *string { s := err.Error(); return &s }(),
+		}, nil
+	}
+
+	// Convert gRPC response to our response format
+	response := &UPIPaymentResponse{
+		Success:       grpcResp.Status == pb.TransactionStatus_TRANSACTION_STATUS_SUCCESS,
+		TransactionID: transactionID,
+		ProcessedAt:   grpcResp.ProcessedAt.AsTime(),
+	}
+
+	// Map UPI Core status to our internal status
+	switch grpcResp.Status {
+	case pb.TransactionStatus_TRANSACTION_STATUS_SUCCESS:
+		response.Status = models.PaymentStatusSucceeded
+	case pb.TransactionStatus_TRANSACTION_STATUS_PENDING:
+		response.Status = models.PaymentStatusPending
+	case pb.TransactionStatus_TRANSACTION_STATUS_FAILED:
+		response.Status = models.PaymentStatusFailed
+		if grpcResp.ErrorCode != "" {
+			response.FailureCode = &grpcResp.ErrorCode
+			response.FailureMessage = &grpcResp.ErrorMessage
+		}
+	case pb.TransactionStatus_TRANSACTION_STATUS_EXPIRED:
+		response.Status = models.PaymentStatusExpired
+	default:
+		response.Status = models.PaymentStatusFailed
+		failureMsg := "Unknown transaction status"
+		response.FailureMessage = &failureMsg
+	}
+
+	log.WithFields(logrus.Fields{
+		"status":  response.Status,
+		"success": response.Success,
+	}).Info("UPI payment status retrieved")
+
 	return response, nil
 }
 
@@ -214,17 +291,101 @@ func (c *UPIClient) ValidateVPA(ctx context.Context, vpa string) (bool, error) {
 	log := c.logger.WithField("vpa", vpa)
 	log.Info("Validating VPA")
 
-	// TODO: Implement actual gRPC call to UPI Core service
-	// This is a mock implementation for now
-
-	// Simple validation logic (in real implementation, this would be more sophisticated)
+	// Basic format validation first
 	if len(vpa) < 6 || !contains(vpa, "@") {
-		log.Warn("VPA validation failed")
-		return false, nil
+		log.Warn("VPA validation failed: invalid format")
+		return false, fmt.Errorf("invalid VPA format")
 	}
 
-	log.Info("VPA validation successful")
-	return true, nil
+	// Create gRPC VPA validation request
+	grpcReq := &pb.VpaValidationRequest{
+		Vpa: vpa,
+	}
+
+	// Call UPI Core service for VPA validation
+	grpcResp, err := c.client.ValidateVpa(ctx, grpcReq)
+	if err != nil {
+		log.WithError(err).Error("Failed to call UPI Core service for VPA validation")
+		// Fall back to basic validation if service is unavailable
+		return len(vpa) >= 6 && contains(vpa, "@"), nil
+	}
+
+	// Check validation result
+	isValid := grpcResp.IsValid
+
+	if isValid {
+		log.WithFields(logrus.Fields{
+			"bank_code": grpcResp.BankCode,
+			"bank_name": grpcResp.BankName,
+		}).Info("VPA validation successful")
+	} else {
+		log.WithField("error_message", grpcResp.ErrorMessage).Warn("VPA validation failed")
+	}
+
+	return isValid, nil
+}
+
+// CheckRefundStatus checks the status of a UPI refund
+func (c *UPIClient) CheckRefundStatus(ctx context.Context, req UPIRefundStatusRequest) (*UPIRefundStatusResponse, error) {
+	log := c.logger.WithFields(logrus.Fields{
+		"refund_reference": req.RefundReference,
+		"refund_id":        req.RefundID,
+	})
+
+	log.Info("Checking UPI refund status")
+
+	// Create gRPC refund status check request
+	grpcReq := &pb.RefundStatusRequest{
+		RefundReference: req.RefundReference,
+	}
+
+	// Call UPI Core service for refund status check
+	grpcResp, err := c.client.CheckRefundStatus(ctx, grpcReq)
+	if err != nil {
+		log.WithError(err).Error("Failed to call UPI Core service for refund status check")
+		return &UPIRefundStatusResponse{
+			Success:        false,
+			Status:         models.RefundStatusFailed,
+			FailureCode:    func() *string { s := "UPI_REFUND_STATUS_SERVICE_ERROR"; return &s }(),
+			FailureMessage: func() *string { s := err.Error(); return &s }(),
+		}, nil
+	}
+
+	// Convert gRPC response to our response format
+	response := &UPIRefundStatusResponse{
+		Success: grpcResp.Status != pb.RefundStatus_REFUND_STATUS_FAILED,
+	}
+
+	// Map UPI Core refund status to our internal status
+	switch grpcResp.Status {
+	case pb.RefundStatus_REFUND_STATUS_SUCCESS:
+		response.Status = models.RefundStatusSucceeded
+		if grpcResp.ProcessedAt != nil {
+			processedAt := grpcResp.ProcessedAt.AsTime()
+			response.ProcessedAt = &processedAt
+		}
+	case pb.RefundStatus_REFUND_STATUS_PENDING:
+		response.Status = models.RefundStatusPending
+	case pb.RefundStatus_REFUND_STATUS_PROCESSING:
+		response.Status = models.RefundStatusProcessing
+	case pb.RefundStatus_REFUND_STATUS_FAILED:
+		response.Status = models.RefundStatusFailed
+		if grpcResp.ErrorCode != "" {
+			response.FailureCode = &grpcResp.ErrorCode
+			response.FailureMessage = &grpcResp.ErrorMessage
+		}
+	default:
+		response.Status = models.RefundStatusFailed
+		failureMsg := "Unknown refund status"
+		response.FailureMessage = &failureMsg
+	}
+
+	log.WithFields(logrus.Fields{
+		"status":  response.Status,
+		"success": response.Success,
+	}).Info("UPI refund status retrieved")
+
+	return response, nil
 }
 
 // contains checks if a string contains a substring

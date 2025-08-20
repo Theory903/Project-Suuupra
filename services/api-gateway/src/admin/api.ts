@@ -424,8 +424,56 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
       isActive?: boolean;
     };
 
-    // TODO: Implement updateApiKey function in apiKeys.ts
-    reply.status(501).send({ error: 'API key updates not yet implemented' });
+    try {
+      // Validate input
+      if (scopes && !Array.isArray(scopes)) {
+        return reply.status(400).send({ error: 'Scopes must be an array' });
+      }
+      
+      if (metadata && typeof metadata !== 'object') {
+        return reply.status(400).send({ error: 'Metadata must be an object' });
+      }
+      
+      // Import the updateApiKey function (assuming it exists or needs to be created)
+      const { updateApiKey } = await import('../services/apiKeys');
+      
+      const updatedKey = await updateApiKey(keyId, {
+        scopes: scopes || undefined,
+        metadata: metadata || undefined,
+        isActive: isActive !== undefined ? isActive : undefined,
+        updatedBy: userId,
+        updatedAt: new Date().toISOString()
+      });
+      
+      if (!updatedKey) {
+        return reply.status(404).send({ error: 'API key not found' });
+      }
+      
+      // Log the update for audit purposes
+      const auditLog = {
+        action: 'api_key_updated',
+        keyId: keyId,
+        updatedBy: userId,
+        changes: { scopes, metadata, isActive },
+        timestamp: new Date().toISOString()
+      };
+      
+      // Store audit log (this would typically go to a dedicated audit service)
+      logger.info('API key updated', auditLog);
+      
+      reply.send({
+        message: 'API key updated successfully',
+        keyId: updatedKey.keyId,
+        updatedAt: updatedKey.updatedAt
+      });
+      
+    } catch (error) {
+      logger.error('Failed to update API key', { keyId, userId, error: error.message });
+      reply.status(500).send({ 
+        error: 'Internal server error', 
+        details: error.message 
+      });
+    }
   });
 
   // Revoke API key

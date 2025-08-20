@@ -1,20 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-// TODO: Properly type QueryEvent and LogEvent from Prisma client
-// import { QueryEvent, LogEvent } from '@prisma/client/runtime/library'; // Import specific event types
+// Import specific event types from Prisma client runtime
+import type { Prisma } from '@prisma/client';
 
-interface QueryEvent {
-  timestamp: Date;
-  query: string;
-  params: string;
-  duration: number;
-}
-
-interface LogEvent {
-  timestamp: Date;
-  message: string;
-  target: string;
-  level: string;
-}
+// Use Prisma's built-in event types
+type QueryEvent = Prisma.QueryEvent;
+type LogEvent = Prisma.LogEvent;
 
 import { config } from './index';
 import logger from '../utils/logger';

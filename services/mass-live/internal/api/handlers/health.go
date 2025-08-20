@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -72,7 +73,7 @@ func (h *HealthHandler) Health(c *gin.Context) {
 	response := HealthResponse{
 		Status:    overallStatus,
 		Timestamp: time.Now(),
-		Version:   "1.0.0", // TODO: Get from build info
+		Version:   getBuildVersion(), // Get from build info
 		Uptime:    time.Since(ServiceStartTime).String(),
 		Checks:    checks,
 	}
@@ -133,4 +134,23 @@ func (h *HealthHandler) Live(c *gin.Context) {
 		"alive":     true,
 		"timestamp": time.Now(),
 	})
+}
+
+// getBuildVersion retrieves version from environment or build info
+func getBuildVersion() string {
+	// Try to get version from environment variable first
+	if version := os.Getenv("BUILD_VERSION"); version != "" {
+		return version
+	}
+
+	// Try to get from build tags or git info (would be set at build time)
+	if version := os.Getenv("GIT_COMMIT"); version != "" {
+		if len(version) >= 8 {
+			return version[:8] // Short commit hash
+		}
+		return version
+	}
+
+	// Fallback to default version
+	return "1.0.0"
 }

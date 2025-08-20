@@ -18,7 +18,9 @@ if str(current_dir) not in sys.path:
 
 import structlog
 import uvicorn
-from fastapi import FastAPI
+import json
+import time
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_client import make_asgi_app
@@ -107,8 +109,109 @@ def create_app() -> FastAPI:
     
     @app.get("/ready")
     async def readiness_check():
-        # TODO: Add actual readiness checks for database, redis, etc.
-        return {"status": "ready", "service": "commerce"}
+        # Implement actual readiness checks for database, redis, etc.
+        import asyncio
+        import asyncpg
+        import aioredis
+        import httpx
+        import os
+        from contextlib import asynccontextmanager
+        
+        checks = {}
+        is_ready = True
+        
+        # Check database connection
+        try:
+            db_url = os.getenv('DATABASE_URL')
+            if db_url:
+                async with asyncpg.connect(db_url) as conn:
+                    await conn.fetchval('SELECT 1')
+                checks['database'] = 'ok'
+            else:
+                checks['database'] = 'not_configured'
+                is_ready = False
+        except Exception as e:
+            checks['database'] = f'error: {str(e)}'
+            is_ready = False
+        
+        # Check Redis connection
+        try:
+            redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+            redis_client = aioredis.from_url(redis_url)
+            await redis_client.ping()
+            await redis_client.close()
+            checks['redis'] = 'ok'
+        except Exception as e:
+            checks['redis'] = f'error: {str(e)}'
+            is_ready = False
+        
+        # Check payments service connectivity
+        try:
+            payments_url = os.getenv('PAYMENTS_SERVICE_URL', 'http://localhost:8083')
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f'{payments_url}/health')
+                if response.status_code == 200:
+                    checks['payments_service'] = 'ok'
+                else:
+                    checks['payments_service'] = f'unhealthy: status {response.status_code}'
+                    is_ready = False
+        except Exception as e:
+            checks['payments_service'] = f'unreachable: {str(e)}'
+            is_ready = False
+        
+        # Check notifications service connectivity
+        try:
+            notifications_url = os.getenv('NOTIFICATIONS_SERVICE_URL', 'http://localhost:8087')
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f'{notifications_url}/health')
+                if response.status_code == 200:
+                    checks['notifications_service'] = 'ok'
+                else:
+                    checks['notifications_service'] = f'unhealthy: status {response.status_code}'
+        except Exception as e:
+            checks['notifications_service'] = f'unreachable: {str(e)}'
+        
+        # Check inventory service connectivity (if configured)
+        try:
+            inventory_url = os.getenv('INVENTORY_SERVICE_URL')
+            if inventory_url:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.get(f'{inventory_url}/health')
+                    if response.status_code == 200:
+                        checks['inventory_service'] = 'ok'
+                    else:
+                        checks['inventory_service'] = f'unhealthy: status {response.status_code}'
+            else:
+                checks['inventory_service'] = 'not_configured'
+        except Exception as e:
+            checks['inventory_service'] = f'unreachable: {str(e)}'
+        
+        # Check shipping service connectivity (if configured)
+        try:
+            shipping_url = os.getenv('SHIPPING_SERVICE_URL')
+            if shipping_url:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.get(f'{shipping_url}/health')
+                    if response.status_code == 200:
+                        checks['shipping_service'] = 'ok'
+                    else:
+                        checks['shipping_service'] = f'unhealthy: status {response.status_code}'
+            else:
+                checks['shipping_service'] = 'not_configured'
+        except Exception as e:
+            checks['shipping_service'] = f'unreachable: {str(e)}'
+        
+        status_code = 200 if is_ready else 503
+        return Response(
+            content=json.dumps({
+                "status": "ready" if is_ready else "not_ready",
+                "service": "commerce", 
+                "checks": checks,
+                "timestamp": time.time()
+            }),
+            status_code=status_code,
+            media_type="application/json"
+        )
     
     return app
 

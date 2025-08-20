@@ -311,8 +311,65 @@ async def change_password(
                 detail="Current password is incorrect"
             )
         
-        # TODO: Update password in database
-        # This would require implementing password update functionality
+        # Update password in database
+        import bcrypt
+        from sqlalchemy import update
+        from ...infrastructure.database import get_session
+        from ...domain.models.user import User
+        
+        # Hash new password
+        salt = bcrypt.gensalt()
+        hashed_new_password = bcrypt.hashpw(request.new_password.encode('utf-8'), salt)
+        
+        # Update password in database
+        async with get_session() as session:
+            try:
+                # Update user password
+                stmt = update(User).where(
+                    User.user_id == auth_context.user_id
+                ).values(
+                    password_hash=hashed_new_password.decode('utf-8'),
+                    password_changed_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                
+                result = await session.execute(stmt)
+                await session.commit()
+                
+                if result.rowcount == 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="User not found"
+                    )
+                
+                # Log security event
+                await session.execute(
+                    """
+                    INSERT INTO security_events (
+                        user_id, event_type, event_data, ip_address, user_agent, created_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6)
+                    """,
+                    [
+                        auth_context.user_id,
+                        'password_changed',
+                        json.dumps({"method": "api", "timestamp": datetime.utcnow().isoformat()}),
+                        request.headers.get('x-forwarded-for', request.client.host),
+                        request.headers.get('user-agent'),
+                        datetime.utcnow()
+                    ]
+                )
+                await session.commit()
+                
+            except HTTPException:
+                await session.rollback()
+                raise
+            except Exception as e:
+                await session.rollback()
+                logger.error("Database error during password update", error=str(e))
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to update password"
+                )
         
         logger.info(
             "Password changed",

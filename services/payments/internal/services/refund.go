@@ -41,9 +41,9 @@ func NewRefundService(
 
 // CreateRefundRequest represents a refund creation request
 type CreateRefundRequest struct {
-	PaymentID uuid.UUID       `json:"payment_id" binding:"required"`
-	Amount    decimal.Decimal `json:"amount" binding:"required"`
-	Reason    string          `json:"reason"`
+	PaymentID uuid.UUID              `json:"payment_id" binding:"required"`
+	Amount    decimal.Decimal        `json:"amount" binding:"required"`
+	Reason    string                 `json:"reason"`
 	Metadata  map[string]interface{} `json:"metadata"`
 }
 
@@ -68,7 +68,7 @@ func (s *RefundService) CreateRefund(ctx context.Context, req CreateRefundReques
 		Preload("PaymentIntent").
 		Where("id = ?", req.PaymentID).
 		First(&payment).Error
-	
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("payment not found")
@@ -98,7 +98,7 @@ func (s *RefundService) CreateRefund(ctx context.Context, req CreateRefundReques
 		}).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&existingRefundsTotal).Error
-	
+
 	if err != nil {
 		log.WithError(err).Error("Failed to calculate existing refunds")
 		return nil, fmt.Errorf("failed to calculate existing refunds: %w", err)
@@ -214,7 +214,7 @@ func (s *RefundService) GetRefund(ctx context.Context, id uuid.UUID) (*models.Re
 		Preload("Payment.PaymentIntent").
 		Where("id = ?", id).
 		First(&refund).Error
-	
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("refund not found")
@@ -232,7 +232,7 @@ func (s *RefundService) GetRefundsByPayment(ctx context.Context, paymentID uuid.
 		Where("payment_id = ?", paymentID).
 		Order("created_at DESC").
 		Find(&refunds).Error
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get refunds: %w", err)
 	}
@@ -261,40 +261,83 @@ func (s *RefundService) CheckRefundStatus(ctx context.Context, refundID uuid.UUI
 
 	log.Info("Checking refund status with payment rail")
 
-	// TODO: Implement actual status check with UPI Core
-	// For now, we'll simulate status check logic
-	
-	// In a real implementation, you would call the UPI Core service to check status
-	// This is a mock implementation
-	now := time.Now()
-	if refund.CreatedAt.Add(5 * time.Minute).Before(now) {
-		// Simulate that refunds complete after 5 minutes
-		refund.Status = models.RefundStatusSucceeded
-		refund.ProcessedAt = &now
-		
-		err := s.db.WithContext(ctx).Save(refund).Error
-		if err != nil {
-			log.WithError(err).Error("Failed to update refund status")
-			return nil, fmt.Errorf("failed to update refund status: %w", err)
+	// Check refund status with UPI Core service
+	if refund.RefundReference != "" {
+		// Create status check request for UPI Core
+		statusReq := UPIRefundStatusRequest{
+			RefundReference: refund.RefundReference,
+			RefundID:        refund.ID,
 		}
 
-		log.Info("Refund status updated to succeeded")
-		
-		// Post to ledger if not already done
-		if refund.Payment != nil {
-			if err := s.ledgerService.PostRefundTransaction(ctx, refund, refund.Payment); err != nil {
-				log.WithError(err).Error("Failed to post refund to ledger")
-			}
+		// Call UPI Core service to get current status
+		upiResp, err := s.upiClient.CheckRefundStatus(ctx, statusReq)
+		if err != nil {
+			log.WithError(err).Warn("Failed to check refund status with UPI Core, keeping current status")
+			return refund, nil
 		}
-		
-		// Trigger webhook
-		if refund.Payment != nil && refund.Payment.PaymentIntent != nil {
-			go s.webhookService.TriggerWebhook(
-				context.Background(),
-				refund.Payment.PaymentIntent.MerchantID,
-				"refund.succeeded",
-				refund,
-			)
+
+		// Update refund status based on UPI Core response
+		statusChanged := false
+		if upiResp.Status != refund.Status {
+			log.WithFields(logrus.Fields{
+				"old_status": refund.Status,
+				"new_status": upiResp.Status,
+			}).Info("Refund status changed")
+
+			refund.Status = upiResp.Status
+			statusChanged = true
+
+			if upiResp.ProcessedAt != nil {
+				refund.ProcessedAt = upiResp.ProcessedAt
+			}
+
+			if upiResp.FailureCode != nil {
+				refund.FailureCode = upiResp.FailureCode
+			}
+
+			if upiResp.FailureMessage != nil {
+				refund.FailureMessage = upiResp.FailureMessage
+			}
+
+			refund.UpdatedAt = time.Now()
+		}
+
+		// Save status changes if any
+		if statusChanged {
+			if err := s.db.WithContext(ctx).Save(refund).Error; err != nil {
+				log.WithError(err).Error("Failed to update refund status")
+				return nil, fmt.Errorf("failed to update refund status: %w", err)
+			}
+
+			// Handle status change side effects
+			if refund.Status == models.RefundStatusSucceeded {
+				// Post to ledger if not already done
+				if refund.Payment != nil {
+					if err := s.ledgerService.PostRefundTransaction(ctx, refund, refund.Payment); err != nil {
+						log.WithError(err).Error("Failed to post refund to ledger")
+					}
+				}
+
+				// Trigger success webhook
+				if refund.Payment != nil && refund.Payment.PaymentIntent != nil {
+					go s.webhookService.TriggerWebhook(
+						context.Background(),
+						refund.Payment.PaymentIntent.MerchantID,
+						"refund.succeeded",
+						refund,
+					)
+				}
+			} else if refund.Status == models.RefundStatusFailed {
+				// Trigger failure webhook
+				if refund.Payment != nil && refund.Payment.PaymentIntent != nil {
+					go s.webhookService.TriggerWebhook(
+						context.Background(),
+						refund.Payment.PaymentIntent.MerchantID,
+						"refund.failed",
+						refund,
+					)
+				}
+			}
 		}
 	}
 
@@ -316,7 +359,7 @@ func (s *RefundService) CancelRefund(ctx context.Context, refundID uuid.UUID) (*
 		Preload("Payment.PaymentIntent").
 		Where("id = ?", refundID).
 		First(&refund).Error
-	
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("refund not found")

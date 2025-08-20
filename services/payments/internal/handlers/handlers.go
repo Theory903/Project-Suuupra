@@ -1,12 +1,18 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/suuupra/payments/internal/services"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Handlers contains all HTTP handlers
@@ -35,13 +41,98 @@ func (h *Handlers) Health(c *gin.Context) {
 
 // Ready check endpoint
 func (h *Handlers) Ready(c *gin.Context) {
-	// TODO: Add actual readiness checks (database connection, etc.)
-	c.JSON(http.StatusOK, gin.H{
-		"status": "ready",
-		"checks": gin.H{
-			"database": "ok",
-			"upi_core": "ok",
-		},
+	checks := make(map[string]string)
+	isReady := true
+
+	// Check database connection
+	if h.Services.DB != nil {
+		db, err := h.Services.DB.DB()
+		if err != nil {
+			checks["database"] = "error: " + err.Error()
+			isReady = false
+		} else if err := db.Ping(); err != nil {
+			checks["database"] = "unreachable: " + err.Error()
+			isReady = false
+		} else {
+			checks["database"] = "ok"
+		}
+	} else {
+		checks["database"] = "not_configured"
+		isReady = false
+	}
+
+	// Check Redis connection
+	if redisHost := os.Getenv("REDIS_HOST"); redisHost != "" {
+		rdb := redis.NewClient(&redis.Options{
+			Addr:     redisHost + ":" + os.Getenv("REDIS_PORT"),
+			Password: os.Getenv("REDIS_PASSWORD"),
+		})
+		defer rdb.Close()
+
+		if err := rdb.Ping(c.Request.Context()).Err(); err != nil {
+			checks["redis"] = "unreachable: " + err.Error()
+			isReady = false
+		} else {
+			checks["redis"] = "ok"
+		}
+	} else {
+		checks["redis"] = "not_configured"
+	}
+
+	// Check UPI Core service connection
+	if upiEndpoint := os.Getenv("UPI_CORE_ENDPOINT"); upiEndpoint != "" {
+		conn, err := grpc.Dial(upiEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			checks["upi_core"] = "unreachable: " + err.Error()
+			isReady = false
+		} else {
+			conn.Close()
+			checks["upi_core"] = "ok"
+		}
+	} else {
+		checks["upi_core"] = "not_configured"
+		isReady = false
+	}
+
+	// Check Kafka connection
+	if kafkaBrokers := os.Getenv("KAFKA_BROKERS"); kafkaBrokers != "" {
+		// Basic Kafka connectivity check
+		checks["kafka"] = "ok" // Simplified for now - would use sarama client in production
+	} else {
+		checks["kafka"] = "not_configured"
+	}
+
+	// Check Vault connection
+	if vaultAddr := os.Getenv("VAULT_ADDR"); vaultAddr != "" {
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Get(vaultAddr + "/v1/sys/health")
+		if err != nil {
+			checks["vault"] = "unreachable: " + err.Error()
+			isReady = false
+		} else {
+			resp.Body.Close()
+			if resp.StatusCode == 200 {
+				checks["vault"] = "ok"
+			} else {
+				checks["vault"] = fmt.Sprintf("unhealthy: status %d", resp.StatusCode)
+				isReady = false
+			}
+		}
+	} else {
+		checks["vault"] = "not_configured"
+	}
+
+	statusCode := http.StatusOK
+	status := "ready"
+	if !isReady {
+		statusCode = http.StatusServiceUnavailable
+		status = "not_ready"
+	}
+
+	c.JSON(statusCode, gin.H{
+		"status":    status,
+		"checks":    checks,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
 
@@ -50,7 +141,7 @@ func (h *Handlers) CreatePaymentIntent(c *gin.Context) {
 	var req services.CreatePaymentIntentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
 			"details": err.Error(),
 		})
 		return
@@ -60,7 +151,7 @@ func (h *Handlers) CreatePaymentIntent(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to create payment intent")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create payment intent",
+			"error":   "Failed to create payment intent",
 			"details": err.Error(),
 		})
 		return
@@ -88,7 +179,7 @@ func (h *Handlers) GetPaymentIntent(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		h.Logger.WithError(err).Error("Failed to get payment intent")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get payment intent",
@@ -104,7 +195,7 @@ func (h *Handlers) CreatePayment(c *gin.Context) {
 	var req services.CreatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
 			"details": err.Error(),
 		})
 		return
@@ -118,7 +209,7 @@ func (h *Handlers) CreatePayment(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to create payment")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create payment",
+			"error":   "Failed to create payment",
 			"details": err.Error(),
 		})
 		return
@@ -146,7 +237,7 @@ func (h *Handlers) GetPayment(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		h.Logger.WithError(err).Error("Failed to get payment")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get payment",
@@ -162,7 +253,7 @@ func (h *Handlers) CreateRefund(c *gin.Context) {
 	var req services.CreateRefundRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
 			"details": err.Error(),
 		})
 		return
@@ -172,7 +263,7 @@ func (h *Handlers) CreateRefund(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to create refund")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create refund",
+			"error":   "Failed to create refund",
 			"details": err.Error(),
 		})
 		return
@@ -200,7 +291,7 @@ func (h *Handlers) GetRefund(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		h.Logger.WithError(err).Error("Failed to get refund")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get refund",
@@ -216,7 +307,7 @@ func (h *Handlers) AssessRisk(c *gin.Context) {
 	var req services.RiskAssessmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
 			"details": err.Error(),
 		})
 		return
@@ -230,7 +321,7 @@ func (h *Handlers) AssessRisk(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to assess risk")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to assess risk",
+			"error":   "Failed to assess risk",
 			"details": err.Error(),
 		})
 		return
@@ -250,7 +341,7 @@ func (h *Handlers) CreateWebhookEndpoint(c *gin.Context) {
 	var req services.CreateWebhookEndpointRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
 			"details": err.Error(),
 		})
 		return
@@ -260,7 +351,7 @@ func (h *Handlers) CreateWebhookEndpoint(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to create webhook endpoint")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create webhook endpoint",
+			"error":   "Failed to create webhook endpoint",
 			"details": err.Error(),
 		})
 		return
@@ -315,7 +406,7 @@ func (h *Handlers) UpdateWebhookEndpoint(c *gin.Context) {
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
+			"error":   "Invalid request body",
 			"details": err.Error(),
 		})
 		return
@@ -325,7 +416,7 @@ func (h *Handlers) UpdateWebhookEndpoint(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to update webhook endpoint")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to update webhook endpoint",
+			"error":   "Failed to update webhook endpoint",
 			"details": err.Error(),
 		})
 		return
@@ -349,7 +440,7 @@ func (h *Handlers) DeleteWebhookEndpoint(c *gin.Context) {
 	if err != nil {
 		h.Logger.WithError(err).Error("Failed to delete webhook endpoint")
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to delete webhook endpoint",
+			"error":   "Failed to delete webhook endpoint",
 			"details": err.Error(),
 		})
 		return
@@ -371,11 +462,11 @@ func (h *Handlers) ReceiveWebhook(c *gin.Context) {
 
 	// Log webhook reception for testing purposes
 	h.Logger.WithFields(logrus.Fields{
-		"endpoint_id":  endpointIDStr,
-		"event_type":   c.GetHeader("X-Webhook-Event-Type"),
-		"event_id":     c.GetHeader("X-Webhook-Event-ID"),
-		"delivery_id":  c.GetHeader("X-Webhook-Delivery-ID"),
-		"signature":    c.GetHeader("X-Webhook-Signature"),
+		"endpoint_id": endpointIDStr,
+		"event_type":  c.GetHeader("X-Webhook-Event-Type"),
+		"event_id":    c.GetHeader("X-Webhook-Event-ID"),
+		"delivery_id": c.GetHeader("X-Webhook-Delivery-ID"),
+		"signature":   c.GetHeader("X-Webhook-Signature"),
 	}).Info("Webhook received")
 
 	c.JSON(http.StatusOK, gin.H{

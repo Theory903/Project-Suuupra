@@ -280,8 +280,10 @@ class OrderService:
         Returns:
             List of order summaries
         """
-        # TODO: Implement with read models for better performance
-        # For now, this is a placeholder that would need a proper query implementation
+        # Implement with read models for better performance
+        import asyncpg
+        import os
+        from typing import List, Dict, Any
         
         logger.info(
             "Getting customer orders",
@@ -290,8 +292,76 @@ class OrderService:
             offset=offset,
         )
         
-        # This would typically query a read model/projection
-        # For now, return empty list
+        try:
+            # Connect to read replica database for better performance
+            read_db_url = os.getenv('READ_DATABASE_URL', os.getenv('DATABASE_URL'))
+            
+            async with asyncpg.connect(read_db_url) as conn:
+                # Query order summaries with optimized read model
+                query = """
+                    SELECT 
+                        o.order_id,
+                        o.customer_id,
+                        o.status,
+                        o.total_amount,
+                        o.currency,
+                        o.created_at,
+                        o.updated_at,
+                        COUNT(oi.item_id) as item_count,
+                        p.status as payment_status
+                    FROM orders o
+                    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+                    LEFT JOIN payments p ON o.payment_id = p.payment_id
+                    WHERE o.customer_id = $1
+                    GROUP BY o.order_id, o.customer_id, o.status, o.total_amount, 
+                             o.currency, o.created_at, o.updated_at, p.status
+                    ORDER BY o.created_at DESC
+                    LIMIT $2 OFFSET $3
+                """
+                
+                rows = await conn.fetch(query, customer_id, limit, offset)
+                
+                orders = []
+                for row in rows:
+                    order_summary = {
+                        "order_id": str(row['order_id']),
+                        "customer_id": str(row['customer_id']),
+                        "status": row['status'],
+                        "total_amount": float(row['total_amount']),
+                        "currency": row['currency'],
+                        "item_count": row['item_count'],
+                        "payment_status": row['payment_status'],
+                        "created_at": row['created_at'].isoformat(),
+                        "updated_at": row['updated_at'].isoformat(),
+                    }
+                    orders.append(order_summary)
+                
+                # Get total count for pagination
+                count_query = "SELECT COUNT(*) FROM orders WHERE customer_id = $1"
+                total_count = await conn.fetchval(count_query, customer_id)
+                
+                return {
+                    "orders": orders,
+                    "total_count": total_count,
+                    "page_info": {
+                        "limit": limit,
+                        "offset": offset,
+                        "has_more": (offset + limit) < total_count
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(
+                "Failed to get customer orders",
+                customer_id=customer_id,
+                error=str(e)
+            )
+            # Return empty result on error
+            return {
+                "orders": [],
+                "total_count": 0,
+                "page_info": {"limit": limit, "offset": offset, "has_more": False}
+            }
         return []
     
     async def _publish_order_created_event(

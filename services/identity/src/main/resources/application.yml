@@ -7,9 +7,9 @@ spring:
   cache:
     type: simple
   datasource:
-    url: jdbc:postgresql://localhost:5432/identity
-    username: identity
-    password: identity
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:identity}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres123}
   jpa:
     hibernate:
       ddl-auto: none
@@ -21,8 +21,8 @@ spring:
     out-of-order: true
     validate-on-migrate: false
   redis:
-    host: localhost
-    port: 6379
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
 
 # KMS settings (activate profile aws-kms to use AWS KMS)
 kms:

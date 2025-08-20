@@ -3,8 +3,11 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,8 +20,28 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// TODO: Implement proper origin checking
-		return true
+		// Implement proper origin checking
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return false
+		}
+
+		// Allow origins from environment variable or default localhost
+		allowedOrigins := map[string]bool{
+			"http://localhost:3000":   true, // Frontend dev server
+			"http://localhost:3001":   true, // Admin frontend
+			"https://suuupra.com":     true, // Production domain
+			"https://app.suuupra.com": true, // App domain
+		}
+
+		// Check environment for additional allowed origins
+		if customOrigins := os.Getenv("ALLOWED_ORIGINS"); customOrigins != "" {
+			for _, customOrigin := range strings.Split(customOrigins, ",") {
+				allowedOrigins[strings.TrimSpace(customOrigin)] = true
+			}
+		}
+
+		return allowedOrigins[origin]
 	},
 }
 
@@ -33,12 +56,13 @@ type Hub struct {
 }
 
 type Client struct {
-	hub      *Hub
-	conn     *websocket.Conn
-	send     chan []byte
-	userID   string
-	streamID string
-	role     string
+	hub            *Hub
+	conn           *websocket.Conn
+	send           chan []byte
+	userID         string
+	streamID       string
+	role           string
+	currentQuality string
 }
 
 type Message struct {
@@ -270,7 +294,52 @@ func (c *Client) handleMessage(msg Message) {
 }
 
 func (c *Client) handleChatMessage(msg Message) {
-	// TODO: Implement chat moderation and filtering
+	// Implement chat moderation and filtering
+
+	// Extract message content
+	content, ok := msg.Data["content"].(string)
+	if !ok || content == "" {
+		return
+	}
+
+	// Basic content filtering
+	if len(content) > 500 {
+		// Message too long
+		c.sendModerationError("Message too long (max 500 characters)")
+		return
+	}
+
+	// Profanity/spam filtering (simplified)
+	bannedWords := []string{"spam", "scam", "fake", "hack", "cheat"}
+	lowerContent := strings.ToLower(content)
+	for _, word := range bannedWords {
+		if strings.Contains(lowerContent, word) {
+			c.sendModerationError("Message contains inappropriate content")
+			return
+		}
+	}
+
+	// Rate limiting per user (max 5 messages per minute)
+	ctx := context.Background()
+	rateLimitKey := fmt.Sprintf("chat_rate_limit:%s", c.userID)
+
+	// Check current rate limit
+	currentCount, _ := c.hub.redisClient.Incr(ctx, rateLimitKey).Result()
+	if currentCount == 1 {
+		// Set expiry on first message
+		c.hub.redisClient.Expire(ctx, rateLimitKey, time.Minute)
+	}
+
+	if currentCount > 5 {
+		c.sendModerationError("Rate limit exceeded (max 5 messages per minute)")
+		return
+	}
+
+	// Add timestamp and user info to message
+	enrichedMsg := msg
+	enrichedMsg.Data["timestamp"] = time.Now().Unix()
+	enrichedMsg.Data["user_id"] = c.userID
+	enrichedMsg.UserID = c.userID
 
 	// Store chat message in Redis
 	ctx := context.Background()
@@ -310,10 +379,99 @@ func (c *Client) handleViewerCountRequest(msg Message) {
 }
 
 func (c *Client) handleQualityChange(msg Message) {
-	// TODO: Implement quality change logic
+	// Implement quality change logic
+
+	quality, ok := msg.Data["quality"].(string)
+	if !ok {
+		c.sendError("Invalid quality parameter")
+		return
+	}
+
+	// Validate quality options
+	validQualities := map[string]bool{
+		"1080p": true,
+		"720p":  true,
+		"480p":  true,
+		"360p":  true,
+		"auto":  true,
+	}
+
+	if !validQualities[quality] {
+		c.sendError("Invalid quality. Supported: 1080p, 720p, 480p, 360p, auto")
+		return
+	}
+
+	ctx := context.Background()
+
+	// Remove user from old quality group
+	if c.currentQuality != "" {
+		oldQualityKey := fmt.Sprintf("stream_quality:%s:%s", c.streamID, c.currentQuality)
+		c.hub.redisClient.SRem(ctx, oldQualityKey, c.userID)
+	}
+
+	// Add user to new quality group
+	newQualityKey := fmt.Sprintf("stream_quality:%s:%s", c.streamID, quality)
+	c.hub.redisClient.SAdd(ctx, newQualityKey, c.userID)
+
+	// Update client's current quality
+	c.currentQuality = quality
+
+	// Send quality change confirmation
+	response := Message{
+		Type:      "quality_changed",
+		StreamID:  c.streamID,
+		UserID:    c.userID,
+		Data:      map[string]interface{}{"quality": quality},
+		Timestamp: time.Now(),
+	}
+
+	responseData, _ := json.Marshal(response)
+	select {
+	case c.send <- responseData:
+	default:
+		// Client channel is full, don't block
+	}
+
 	c.hub.logger.Info("Quality change requested",
 		slog.String("user_id", c.userID),
 		slog.String("stream_id", c.streamID),
 		slog.Any("data", msg.Data),
+		slog.String("quality", quality),
 	)
+}
+
+// sendModerationError sends a moderation error message to the client
+func (c *Client) sendModerationError(message string) {
+	errorMsg := Message{
+		Type:      "moderation_error",
+		StreamID:  c.streamID,
+		UserID:    c.userID,
+		Data:      map[string]interface{}{"error": message},
+		Timestamp: time.Now(),
+	}
+
+	errorData, _ := json.Marshal(errorMsg)
+	select {
+	case c.send <- errorData:
+	default:
+		// Client channel is full, don't block
+	}
+}
+
+// sendError sends a general error message to the client
+func (c *Client) sendError(message string) {
+	errorMsg := Message{
+		Type:      "error",
+		StreamID:  c.streamID,
+		UserID:    c.userID,
+		Data:      map[string]interface{}{"error": message},
+		Timestamp: time.Now(),
+	}
+
+	errorData, _ := json.Marshal(errorMsg)
+	select {
+	case c.send <- errorData:
+	default:
+		// Client channel is full, don't block
+	}
 }

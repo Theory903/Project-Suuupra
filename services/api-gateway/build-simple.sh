@@ -8,7 +8,7 @@ echo "🚀 Building API Gateway (Simple Mode)"
 # Create dist directory
 mkdir -p dist
 
-# Copy the working simple server
+# Copy the enhanced proxy server
 cp src/simple-server.js dist/server.js
 
 # Copy essential files

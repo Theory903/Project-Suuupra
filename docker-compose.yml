@@ -32,7 +32,8 @@ services:
   api-gateway:
     build:
       context: ./services/api-gateway
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
+      target: production
     container_name: suuupra-api-gateway
     restart: unless-stopped
     ports:
@@ -158,7 +159,7 @@ services:
       REDIS_SESSION_TTL: 3600
       
       # Security - Per TODO-005
-      JWT_SECRET_KEY_ID: identity-service-key
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_key_change_in_production}
       JWT_ISSUER: https://auth.suuupra.com
       JWT_AUDIENCE: https://api.suuupra.com
       JWT_EXPIRY: 3600

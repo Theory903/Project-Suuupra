@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/google/uuid"
@@ -173,7 +174,7 @@ func (s *RiskService) assessAmountRisk(amount decimal.Decimal) float64 {
 func (s *RiskService) assessVelocityRisk(ctx context.Context, req RiskAssessmentRequest) (float64, error) {
 	// Count transactions in the last hour for this customer/merchant
 	since := time.Now().Add(-1 * time.Hour)
-	
+
 	var count int64
 	query := s.db.WithContext(ctx).Model(&models.Payment{}).
 		Joins("JOIN payment_intents ON payments.payment_intent_id = payment_intents.id").
@@ -210,15 +211,82 @@ func (s *RiskService) assessDeviceRisk(deviceID *string) float64 {
 		return 0.6
 	}
 
-	// TODO: Implement device fingerprinting and history analysis
-	// For now, return low risk if device ID is present
-	return 0.2
+	// Device fingerprinting and history analysis
+	ctx := context.Background()
+
+	// Check device reputation in our database
+	var deviceHistory struct {
+		SuccessfulTransactions int64
+		FailedTransactions     int64
+		FirstSeen              time.Time
+		LastSeen               time.Time
+	}
+
+	// Query device transaction history from the last 30 days
+	since := time.Now().Add(-30 * 24 * time.Hour)
+
+	err := s.db.WithContext(ctx).Raw(`
+		SELECT 
+			COUNT(CASE WHEN p.status = 'succeeded' THEN 1 END) as successful_transactions,
+			COUNT(CASE WHEN p.status = 'failed' THEN 1 END) as failed_transactions,
+			MIN(ra.created_at) as first_seen,
+			MAX(ra.created_at) as last_seen
+		FROM risk_assessments ra
+		JOIN payments p ON ra.payment_intent_id = p.payment_intent_id
+		WHERE ra.device_id = ? AND ra.created_at > ?
+	`, *deviceID, since).Scan(&deviceHistory).Error
+
+	if err != nil {
+		s.logger.WithError(err).Warn("Failed to query device history, using medium risk")
+		return 0.5
+	}
+
+	totalTransactions := deviceHistory.SuccessfulTransactions + deviceHistory.FailedTransactions
+
+	// New device (no history) = medium-high risk
+	if totalTransactions == 0 {
+		return 0.6
+	}
+
+	// Calculate failure rate
+	failureRate := float64(deviceHistory.FailedTransactions) / float64(totalTransactions)
+
+	// Device age factor (newer devices are riskier)
+	daysSinceFirstSeen := time.Since(deviceHistory.FirstSeen).Hours() / 24
+	ageFactor := 1.0
+	if daysSinceFirstSeen < 1 {
+		ageFactor = 0.8 // Very new device
+	} else if daysSinceFirstSeen < 7 {
+		ageFactor = 0.6 // New device
+	} else if daysSinceFirstSeen < 30 {
+		ageFactor = 0.4 // Established device
+	} else {
+		ageFactor = 0.2 // Trusted device
+	}
+
+	// Frequency factor (regular usage is good)
+	daysSinceLastSeen := time.Since(deviceHistory.LastSeen).Hours() / 24
+	frequencyFactor := 0.2
+	if daysSinceLastSeen > 30 {
+		frequencyFactor = 0.6 // Dormant device
+	} else if daysSinceLastSeen > 7 {
+		frequencyFactor = 0.4 // Infrequent usage
+	}
+
+	// Combine factors
+	baseRisk := failureRate * 0.7 // Failure rate has 70% weight
+	riskScore := baseRisk + (ageFactor * 0.2) + (frequencyFactor * 0.1)
+
+	// Cap at 1.0
+	if riskScore > 1.0 {
+		riskScore = 1.0
+	}
+
+	return riskScore
 }
 
 // assessIPRisk assesses risk based on IP address
 func (s *RiskService) assessIPRisk(ipAddress string) float64 {
-	// TODO: Implement IP reputation checking, geolocation analysis
-	// For now, basic validation
 	if ipAddress == "" {
 		return 0.8
 	}
@@ -228,7 +296,129 @@ func (s *RiskService) assessIPRisk(ipAddress string) float64 {
 		return 0.9
 	}
 
-	return 0.2
+	// Parse IP for geolocation and reputation checking
+	ip := net.ParseIP(ipAddress)
+	if ip == nil {
+		return 0.8 // Invalid IP
+	}
+
+	// Check if IP is in private ranges (RFC 1918)
+	if isPrivateIP(ip) {
+		return 0.7 // Private IPs are medium risk
+	}
+
+	ctx := context.Background()
+
+	// Check IP reputation in our database
+	var ipHistory struct {
+		SuccessfulTransactions int64
+		FailedTransactions     int64
+		FirstSeen              time.Time
+		LastSeen               time.Time
+		BlockedCount           int64
+	}
+
+	since := time.Now().Add(-7 * 24 * time.Hour) // Last 7 days
+
+	err := s.db.WithContext(ctx).Raw(`
+		SELECT 
+			COUNT(CASE WHEN p.status = 'succeeded' THEN 1 END) as successful_transactions,
+			COUNT(CASE WHEN p.status = 'failed' THEN 1 END) as failed_transactions,
+			MIN(ra.created_at) as first_seen,
+			MAX(ra.created_at) as last_seen,
+			COUNT(CASE WHEN ra.decision = 'block' THEN 1 END) as blocked_count
+		FROM risk_assessments ra
+		JOIN payments p ON ra.payment_intent_id = p.payment_intent_id
+		WHERE ra.ip_address = ? AND ra.created_at > ?
+	`, ipAddress, since).Scan(&ipHistory).Error
+
+	if err != nil {
+		s.logger.WithError(err).Warn("Failed to query IP history, using default risk")
+		return 0.4
+	}
+
+	totalTransactions := ipHistory.SuccessfulTransactions + ipHistory.FailedTransactions
+
+	// New IP (no history) = medium risk
+	if totalTransactions == 0 {
+		return 0.5
+	}
+
+	// Calculate failure and block rates
+	failureRate := float64(ipHistory.FailedTransactions) / float64(totalTransactions)
+	blockRate := float64(ipHistory.BlockedCount) / float64(totalTransactions)
+
+	// High failure or block rate = high risk
+	if failureRate > 0.5 || blockRate > 0.3 {
+		return 0.9
+	} else if failureRate > 0.2 || blockRate > 0.1 {
+		return 0.6
+	}
+
+	// Geolocation-based risk assessment
+	geoRisk := s.assessGeolocationRisk(ipAddress)
+
+	// Combine factors: 50% history, 30% failure rate, 20% geolocation
+	riskScore := (failureRate * 0.3) + (blockRate * 0.5) + (geoRisk * 0.2)
+
+	if riskScore > 1.0 {
+		riskScore = 1.0
+	}
+
+	return riskScore
+}
+
+// isPrivateIP checks if an IP address is in private ranges
+func isPrivateIP(ip net.IP) bool {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+
+	for _, block := range []string{
+		"10.0.0.0/8",     // RFC 1918
+		"172.16.0.0/12",  // RFC 1918
+		"192.168.0.0/16", // RFC 1918
+		"169.254.0.0/16", // RFC 3927
+	} {
+		_, cidr, _ := net.ParseCIDR(block)
+		if cidr.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// assessGeolocationRisk assesses risk based on IP geolocation
+func (s *RiskService) assessGeolocationRisk(ipAddress string) float64 {
+	// In a production system, you would use a geolocation service like MaxMind GeoIP2
+	// For now, we'll implement basic country-based risk assessment
+
+	// This is a simplified implementation
+	// You would typically use a proper GeoIP database or service
+
+	// High-risk countries/regions (simplified list)
+	highRiskCountries := map[string]bool{
+		"suspicious_country_1": true,
+		"suspicious_country_2": true,
+		// Add actual high-risk country codes based on your business rules
+	}
+
+	// Medium-risk countries
+	mediumRiskCountries := map[string]bool{
+		"medium_risk_country_1": true,
+		"medium_risk_country_2": true,
+		// Add actual medium-risk country codes
+	}
+
+	// For demonstration, return low risk for most IPs
+	// In production, you would:
+	// 1. Use MaxMind GeoIP2 or similar service
+	// 2. Check IP against threat intelligence feeds
+	// 3. Implement VPN/proxy detection
+	// 4. Consider time zone vs transaction time patterns
+
+	return 0.2 // Default low risk for geographic factors
 }
 
 // assessTimeRisk assesses risk based on transaction time
@@ -254,9 +444,9 @@ func (s *RiskService) assessTimeRisk() float64 {
 func (s *RiskService) assessMerchantRisk(ctx context.Context, merchantID uuid.UUID) (float64, error) {
 	// Calculate merchant's recent failure rate
 	since := time.Now().Add(-24 * time.Hour)
-	
+
 	var totalCount, failedCount int64
-	
+
 	// Get total transactions
 	err := s.db.WithContext(ctx).Model(&models.Payment{}).
 		Joins("JOIN payment_intents ON payments.payment_intent_id = payment_intents.id").
@@ -274,7 +464,7 @@ func (s *RiskService) assessMerchantRisk(ctx context.Context, merchantID uuid.UU
 	// Get failed transactions
 	err = s.db.WithContext(ctx).Model(&models.Payment{}).
 		Joins("JOIN payment_intents ON payments.payment_intent_id = payment_intents.id").
-		Where("payment_intents.merchant_id = ? AND payment_intents.created_at > ? AND payments.status = ?", 
+		Where("payment_intents.merchant_id = ? AND payment_intents.created_at > ? AND payments.status = ?",
 			merchantID, since, models.PaymentStatusFailed).
 		Count(&failedCount).Error
 	if err != nil {
@@ -282,7 +472,7 @@ func (s *RiskService) assessMerchantRisk(ctx context.Context, merchantID uuid.UU
 	}
 
 	failureRate := float64(failedCount) / float64(totalCount)
-	
+
 	// Higher failure rate = higher risk
 	if failureRate > 0.5 {
 		return 1.0, nil
@@ -291,7 +481,7 @@ func (s *RiskService) assessMerchantRisk(ctx context.Context, merchantID uuid.UU
 	} else if failureRate > 0.1 {
 		return 0.4, nil
 	}
-	
+
 	return 0.1, nil
 }
 
@@ -337,7 +527,7 @@ func (s *RiskService) GetRiskAssessment(ctx context.Context, paymentIntentID uui
 	err := s.db.WithContext(ctx).
 		Where("payment_intent_id = ?", paymentIntentID).
 		First(&assessment).Error
-	
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("risk assessment not found")

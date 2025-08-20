@@ -2,8 +2,38 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { redisClient } from '../config/redis';
 import { asyncHandler } from '../middleware/errorHandler';
+import { analyticsQueue, moderationQueue, thumbnailQueue, videoProcessingQueue } from '../config/queues';
+import * as os from 'os';
 
 const router = Router();
+
+// CPU usage tracking variables
+let lastCPUTime = process.cpuUsage();
+let lastCPUCheck = Date.now();
+
+// Function to calculate CPU usage percentage
+async function getCPUUsage(): Promise<number> {
+  return new Promise((resolve) => {
+    const startUsage = process.cpuUsage();
+    const startTime = process.hrtime();
+    
+    setTimeout(() => {
+      const endUsage = process.cpuUsage(startUsage);
+      const endTime = process.hrtime(startTime);
+      
+      // Calculate total time in microseconds
+      const totalTime = endTime[0] * 1000000 + endTime[1] / 1000;
+      
+      // Calculate CPU time in microseconds
+      const cpuTime = endUsage.user + endUsage.system;
+      
+      // Calculate CPU usage percentage
+      const cpuPercent = (cpuTime / totalTime) * 100;
+      
+      resolve(Math.round(cpuPercent * 100) / 100);
+    }, 100); // Sample over 100ms
+  });
+}
 
 interface HealthCheck {
   status: 'healthy' | 'unhealthy';
@@ -79,8 +109,83 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     overallStatus = 'unhealthy';
   }
 
-  // Check queue status (simplified)
-  const queueStatus = 'operational'; // TODO: Implement actual queue health check
+  // Check queue status with actual health checks
+  let queueStatus = 'operational';
+  let queueErrors: string[] = [];
+  
+  try {
+    // Check video processing queue
+    // Implement comprehensive queue health check
+    const videoQueueWaiting = await videoProcessingQueue.getWaiting();
+    const videoQueueActive = await videoProcessingQueue.getActive();
+    const videoQueueCompleted = await videoProcessingQueue.getCompleted();
+    const videoQueueFailed = await videoProcessingQueue.getFailed();
+    
+    // Health check based on queue metrics
+    const totalJobs = videoQueueWaiting.length + videoQueueActive.length;
+    const failureRate = videoQueueFailed.length / Math.max(videoQueueCompleted.length + videoQueueFailed.length, 1);
+    
+    // Determine queue health status
+    let queueHealthStatus = 'healthy';
+    if (failureRate > 0.1) { // >10% failure rate
+      queueHealthStatus = 'degraded';
+    }
+    if (failureRate > 0.25 || totalJobs > 100) { // >25% failure rate or high backlog
+      queueHealthStatus = 'unhealthy';
+    }
+    
+    const videoQueueHealth = {
+      status: queueHealthStatus,
+      waiting: videoQueueWaiting.length,
+      active: videoQueueActive.length,
+      completed: videoQueueCompleted.length,
+      failed: videoQueueFailed.length,
+      failure_rate: Math.round(failureRate * 10000) / 100, // Percentage with 2 decimals
+      total_backlog: totalJobs
+    };
+    
+    if (videoQueueHealth.failed > 10) {
+      queueErrors.push(`Video queue has ${videoQueueHealth.failed} failed jobs`);
+      queueStatus = 'degraded';
+    }
+    
+    if (videoQueueHealth.active > 50) {
+      queueErrors.push(`Video queue has ${videoQueueHealth.active} active jobs (high load)`);
+      if (queueStatus === 'operational') queueStatus = 'degraded';
+    }
+    
+    // Check other queues
+    const queues = [thumbnailQueue, analyticsQueue, moderationQueue];
+    const queueNames = ['thumbnail', 'analytics', 'moderation'];
+    
+    for (let i = 0; i < queues.length; i++) {
+      const queue = queues[i];
+      const queueName = queueNames[i];
+      
+      try {
+        const waiting = await queue.getWaiting();
+        const active = await queue.getActive();
+        const failed = await queue.getFailed();
+        
+        if (failed.length > 5) {
+          queueErrors.push(`${queueName} queue has ${failed.length} failed jobs`);
+          queueStatus = 'degraded';
+        }
+        
+        if (waiting.length > 100) {
+          queueErrors.push(`${queueName} queue has ${waiting.length} waiting jobs (backlog)`);
+          if (queueStatus === 'operational') queueStatus = 'degraded';
+        }
+      } catch (queueError) {
+        queueErrors.push(`${queueName} queue health check failed: ${queueError}`);
+        queueStatus = 'error';
+      }
+    }
+    
+  } catch (error) {
+    queueStatus = 'error';
+    queueErrors.push(`Queue health check failed: ${error}`);
+  }
 
   // Get system metrics
   const memUsage = process.memoryUsage();
@@ -114,7 +219,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
         percentage: Math.round(memoryPercentage * 100) / 100,
       },
       cpu: {
-        usage: 0, // TODO: Implement CPU usage monitoring
+        usage: await getCPUUsage(), // Implement CPU usage monitoring
       },
     },
   };
