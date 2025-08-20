@@ -1,0 +1,3363 @@
+openapi: 3.0.3
+info:
+  title: Suuupra Platform API
+  description: |
+    Comprehensive API specification for the Suuupra EdTech platform's microservices architecture.
+    
+    ## Overview
+    Suuupra is a comprehensive educational technology platform with 20+ microservices providing:
+    - User authentication and authorization
+    - E-commerce and payment processing  
+    - Content management and delivery
+    - Live and on-demand video streaming
+    - AI-powered tutoring and recommendations
+    - Real-time analytics and tracking
+    - Administrative tools and monitoring
+    
+    ## Architecture
+    All services are accessible through the API Gateway at port 8080, which routes requests to appropriate microservices.
+    
+    ## Authentication
+    Most endpoints require JWT authentication via the Authorization header:
+    ```
+    Authorization: Bearer <jwt_token>
+    ```
+    
+    Obtain tokens via the Identity Service (`/api/v1/auth/login`).
+    
+    ## Rate Limiting
+    - Authentication endpoints: 10 requests/minute
+    - General APIs: 100 requests/minute
+    - Admin operations: 50 requests/minute
+    
+    ## Service Ports
+    - API Gateway: 8080
+    - Identity: 8081
+    - Payments: 8082
+    - Commerce: 8083
+    - Content Delivery: 8084
+    - Notifications: 8085
+    - Ledger: 8086
+    - UPI Core: 8087
+    - Bank Simulator: 8088
+    - Content: 8089
+    - Live Classes: 8090
+    - VOD: 8091
+    - Mass Live: 8092
+    - Creator Studio: 8093
+    - Search Crawler: 8094
+    - Recommendations: 8095
+    - LLM Tutor: 8096
+    - Analytics: 8097
+    - Counters: 8098
+    - Live Tracking: 8099
+    - Admin: 8100
+    
+  version: 1.0.0
+  contact:
+    name: Suuupra Platform Team
+    email: api-team@suuupra.com
+    url: https://suuupra.com
+  license:
+    name: Proprietary
+    url: https://suuupra.com/license
+
+servers:
+  - url: http://localhost:8080
+    description: API Gateway (Development)
+  - url: https://api.suuupra.com
+    description: API Gateway (Production)
+
+tags:
+  - name: Gateway
+    description: API Gateway operations
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management operations
+  - name: Commerce
+    description: E-commerce and shopping operations
+  - name: Payments
+    description: Payment processing and financial operations
+  - name: Content
+    description: Content management and publishing
+  - name: Media
+    description: Video and media operations
+  - name: Live Streaming
+    description: Live classes and streaming
+  - name: AI & ML
+    description: AI tutoring and recommendations
+  - name: Analytics
+    description: Data analytics and tracking
+  - name: Notifications
+    description: Multi-channel notifications
+  - name: Admin
+    description: Administrative operations
+  - name: Health
+    description: Service health and monitoring
+
+paths:
+  # API Gateway Routes
+  /health:
+    get:
+      tags: [Gateway, Health]
+      summary: API Gateway health check
+      description: Check the health status of the API Gateway
+      responses:
+        '200':
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # Identity Service Routes (via Gateway)
+  /identity/api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      description: Create a new user account with email verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  minLength: 8
+                  example: "SecurePass123!"
+                firstName:
+                  type: string
+                  example: "John"
+                lastName:
+                  type: string
+                  example: "Doe"
+                phoneNumber:
+                  type: string
+                  example: "+91-9876543210"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                          refreshToken:
+                            type: string
+                          user:
+                            $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /identity/api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  example: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                          refreshToken:
+                            type: string
+                          expiresIn:
+                            type: integer
+                            example: 3600
+                          user:
+                            $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /identity/api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Logout user and invalidate tokens
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /identity/api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh JWT token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                          expiresIn:
+                            type: integer
+
+  /identity/api/v1/users/profile:
+    get:
+      tags: [Users]
+      summary: Get user profile
+      description: Retrieve current user's profile information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+    put:
+      tags: [Users]
+      summary: Update user profile
+      description: Update current user's profile information
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                phoneNumber:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  # Commerce Service Routes
+  /commerce/api/v1/cart:
+    post:
+      tags: [Commerce]
+      summary: Create shopping cart
+      description: Create a new shopping cart for the user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currency:
+                  type: string
+                  default: "INR"
+                  example: "INR"
+      responses:
+        '201':
+          description: Cart created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+
+    get:
+      tags: [Commerce]
+      summary: Get active cart
+      description: Retrieve user's active shopping cart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active cart retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+
+  /commerce/api/v1/cart/{id}/items:
+    post:
+      tags: [Commerce]
+      summary: Add item to cart
+      description: Add a product item to the shopping cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId:
+                  type: string
+                  format: uuid
+                quantity:
+                  type: integer
+                  minimum: 1
+                price:
+                  type: number
+                  format: decimal
+      responses:
+        '200':
+          description: Item added to cart
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+
+  /commerce/api/v1/orders:
+    post:
+      tags: [Commerce]
+      summary: Create order
+      description: Create order from cart using Saga pattern
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cartId]
+              properties:
+                cartId:
+                  type: string
+                  format: uuid
+                shippingAddress:
+                  $ref: '#/components/schemas/Address'
+                paymentMethodId:
+                  type: string
+                idempotencyKey:
+                  type: string
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Order'
+
+    get:
+      tags: [Commerce]
+      summary: List user orders
+      description: Get paginated list of user's orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          orders:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Order'
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+
+  # Payment Service Routes
+  /payments/api/v1/intents:
+    post:
+      tags: [Payments]
+      summary: Create payment intent
+      description: Create a payment intent for processing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:
+                  type: integer
+                  description: Amount in smallest currency unit (paisa for INR)
+                  example: 100000
+                currency:
+                  type: string
+                  example: "INR"
+                description:
+                  type: string
+                  example: "Payment for order #123"
+                orderId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentIntent'
+
+  /payments/api/v1/intents/{id}:
+    get:
+      tags: [Payments]
+      summary: Get payment intent
+      description: Retrieve payment intent details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment intent retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentIntent'
+
+  /payments/api/v1/payments:
+    post:
+      tags: [Payments]
+      summary: Process payment
+      description: Process a payment transaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentIntentId, paymentMethod]
+              properties:
+                paymentIntentId:
+                  type: string
+                  format: uuid
+                paymentMethod:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [card, upi, netbanking, wallet]
+                    details:
+                      type: object
+      responses:
+        '200':
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Payment'
+
+  # Content Service Routes
+  /content/api/v1/content:
+    post:
+      tags: [Content]
+      summary: Create content
+      description: Create new content item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentCreateRequest'
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Content'
+
+    get:
+      tags: [Content]
+      summary: List content
+      description: Get paginated list of content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content list retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          content:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Content'
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+
+  /content/api/v1/content/{id}:
+    get:
+      tags: [Content]
+      summary: Get content by ID
+      description: Retrieve specific content item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Content retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Content'
+
+    put:
+      tags: [Content]
+      summary: Update content
+      description: Update existing content item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentUpdateRequest'
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Content'
+
+  /content/api/v1/search:
+    get:
+      tags: [Content]
+      summary: Search content
+      description: Full-text search across content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          results:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/SearchResult'
+                          total:
+                            type: integer
+                          searchTime:
+                            type: string
+
+  # Live Classes Routes
+  /live-classes/api/v1/rooms:
+    post:
+      tags: [Live Streaming]
+      summary: Create live room
+      description: Create a new live class room
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  example: "Advanced Mathematics Class"
+                description:
+                  type: string
+                maxParticipants:
+                  type: integer
+                  default: 100
+                isPublic:
+                  type: boolean
+                  default: false
+                scheduledStartTime:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LiveRoom'
+
+    get:
+      tags: [Live Streaming]
+      summary: List live rooms
+      description: Get list of available live rooms
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, live, ended]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Rooms retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rooms:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LiveRoom'
+
+  # VOD Service Routes
+  /vod/api/v1/videos:
+    get:
+      tags: [Media]
+      summary: List videos
+      description: Get paginated list of videos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [processing, ready, failed]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Videos retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          videos:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Video'
+                          total:
+                            type: integer
+
+  /vod/api/v1/upload:
+    post:
+      tags: [Media]
+      summary: Upload video
+      description: Upload a new video for processing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, title]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                description:
+                  type: string
+                isPublic:
+                  type: boolean
+                  default: true
+                enableDrm:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Video uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Video'
+
+  # LLM Tutor Routes
+  /llm-tutor/api/v1/conversations:
+    post:
+      tags: [AI & ML]
+      summary: Start conversation
+      description: Start a new tutoring conversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                  example: "Mathematics"
+                level:
+                  type: string
+                  enum: [beginner, intermediate, advanced]
+                language:
+                  type: string
+                  default: "en"
+      responses:
+        '201':
+          description: Conversation started
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Conversation'
+
+  /llm-tutor/api/v1/conversations/{id}/messages:
+    post:
+      tags: [AI & ML]
+      summary: Send message
+      description: Send a message in the conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  example: "Can you explain calculus derivatives?"
+                type:
+                  type: string
+                  enum: [text, voice]
+                  default: text
+      responses:
+        '200':
+          description: Message sent and response received
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TutorResponse'
+
+  # Notifications Service Routes
+  /notifications/api/v1/notifications/send:
+    post:
+      tags: [Notifications]
+      summary: Send notification
+      description: Send notification via multiple channels
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, recipient, message]
+              properties:
+                type:
+                  type: string
+                  enum: [email, sms, push, whatsapp]
+                recipient:
+                  type: string
+                  example: "user@example.com"
+                message:
+                  type: string
+                template:
+                  type: string
+                variables:
+                  type: object
+      responses:
+        '200':
+          description: Notification sent successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          notificationId:
+                            type: string
+                          status:
+                            type: string
+
+  # Analytics Service Routes
+  /analytics/api/v1/events/track:
+    post:
+      tags: [Analytics]
+      summary: Track event
+      description: Track user analytics event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event, userId]
+              properties:
+                event:
+                  type: string
+                  example: "course_completed"
+                userId:
+                  type: string
+                  format: uuid
+                properties:
+                  type: object
+                timestamp:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Event tracked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Bank Simulator Routes
+  /bank-simulator/api/banks:
+    get:
+      tags: [Payments]
+      summary: List supported banks
+      description: Get list of supported banks for payment processing
+      responses:
+        '200':
+          description: Banks list retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Bank'
+
+  /bank-simulator/api/transactions:
+    post:
+      tags: [Payments]
+      summary: Process bank transaction
+      description: Simulate bank transaction processing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankTransactionRequest'
+      responses:
+        '200':
+          description: Transaction processed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BankTransaction'
+
+  # UPI Core Routes  
+  /upi-core/upi/transactions:
+    post:
+      tags: [Payments]
+      summary: Process UPI transaction
+      description: Process UPI payment transaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UPITransactionRequest'
+      responses:
+        '200':
+          description: UPI transaction processed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UPITransaction'
+
+  # Recommendations Routes
+  /recommendations/api/v1/recommendations/{userId}:
+    get:
+      tags: [AI & ML]
+      summary: Get user recommendations
+      description: Get personalized recommendations for user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [courses, content, products]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Recommendations retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          recommendations:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Recommendation'
+
+  # Mass Live Streaming Routes
+  /mass-live/api/v1/streams:
+    post:
+      tags: [Live Streaming]
+      summary: Create live stream
+      description: Create a new mass live streaming event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, scheduledStartTime]
+              properties:
+                title:
+                  type: string
+                  example: "Global Conference 2024"
+                description:
+                  type: string
+                scheduledStartTime:
+                  type: string
+                  format: date-time
+                maxViewers:
+                  type: integer
+                  default: 10000
+                enableChat:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Stream created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MassLiveStream'
+
+  /mass-live/api/v1/streams/{streamId}/start:
+    post:
+      tags: [Live Streaming]
+      summary: Start live stream
+      description: Start broadcasting the live stream
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: streamId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [streamKey]
+              properties:
+                streamKey:
+                  type: string
+      responses:
+        '200':
+          description: Stream started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Admin Routes
+  /admin/api/v1/system/status:
+    get:
+      tags: [Admin]
+      summary: Get system status
+      description: Get overall system health and status
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System status retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SystemStatus'
+
+  /admin/api/v1/users:
+    get:
+      tags: [Admin, Users]
+      summary: List all users (Admin)
+      description: Get paginated list of all users (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [USER, ADMIN, CREATOR, INSTRUCTOR]
+      responses:
+        '200':
+          description: Users list retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          users:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/User'
+                          total:
+                            type: integer
+
+# Common Schemas and Components
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Common Response Schemas
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          format: uuid
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Validation failed"
+            details:
+              type: object
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          format: uuid
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        service:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        uptime:
+          type: number
+        checks:
+          type: object
+
+    # User Management Schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN, CREATOR, INSTRUCTOR]
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    # Commerce Schemas
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        totalAmount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          default: "INR"
+        status:
+          type: string
+          enum: [active, checkout, completed, abandoned]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CartItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: decimal
+        productName:
+          type: string
+        productImage:
+          type: string
+          format: uri
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        totalAmount:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        paymentStatus:
+          type: string
+          enum: [pending, paid, failed, refunded]
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: decimal
+        productName:
+          type: string
+
+    Address:
+      type: object
+      properties:
+        line1:
+          type: string
+        line2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+          default: "IN"
+
+    # Payment Schemas
+    PaymentIntent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          description: Amount in smallest currency unit
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, failed, cancelled]
+        orderId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        paymentIntentId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+        paymentMethod:
+          type: object
+        transactionId:
+          type: string
+        processedAt:
+          type: string
+          format: date-time
+
+    BankTransactionRequest:
+      type: object
+      required: [fromAccount, toAccount, amount, currency]
+      properties:
+        fromAccount:
+          type: string
+        toAccount:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          default: "INR"
+        reference:
+          type: string
+        description:
+          type: string
+
+    BankTransaction:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        fromAccount:
+          type: string
+        toAccount:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    UPITransactionRequest:
+      type: object
+      required: [payerVPA, payeeVPA, amount]
+      properties:
+        payerVPA:
+          type: string
+          example: "user@paytm"
+        payeeVPA:
+          type: string
+          example: "merchant@googlepay"
+        amount:
+          type: integer
+          description: Amount in paisa
+        currency:
+          type: string
+          default: "INR"
+        reference:
+          type: string
+        note:
+          type: string
+
+    UPITransaction:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        rrn:
+          type: string
+        status:
+          type: string
+          enum: [pending, success, failed]
+        payerVPA:
+          type: string
+        payeeVPA:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+        processedAt:
+          type: string
+          format: date-time
+
+    Bank:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "HDFC"
+        name:
+          type: string
+          example: "HDFC Bank"
+        ifscPrefix:
+          type: string
+          example: "HDFC0"
+        features:
+          type: array
+          items:
+            type: string
+        dailyLimitPaisa:
+          type: integer
+        minBalancePaisa:
+          type: integer
+
+    # Content Schemas
+    Content:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [course, lesson, article, video, document]
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        authorId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [draft, published, archived]
+        url:
+          type: string
+          format: uri
+        thumbnailUrl:
+          type: string
+          format: uri
+        duration:
+          type: integer
+          description: Duration in seconds
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ContentCreateRequest:
+      type: object
+      required: [title, type]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [course, lesson, article, video, document]
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        isPublic:
+          type: boolean
+          default: true
+
+    ContentUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        score:
+          type: number
+          format: float
+        highlights:
+          type: object
+
+    # Media Schemas
+    Video:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        duration:
+          type: integer
+          description: Duration in seconds
+        status:
+          type: string
+          enum: [processing, ready, failed]
+        url:
+          type: string
+          format: uri
+        thumbnailUrl:
+          type: string
+          format: uri
+        creatorId:
+          type: string
+          format: uuid
+        isPublic:
+          type: boolean
+        enableDrm:
+          type: boolean
+        transcodeProgress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        createdAt:
+          type: string
+          format: date-time
+
+    LiveRoom:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, live, ended]
+        maxParticipants:
+          type: integer
+        currentParticipants:
+          type: integer
+        hostId:
+          type: string
+          format: uuid
+        isPublic:
+          type: boolean
+        streamUrl:
+          type: string
+          format: uri
+        scheduledStartTime:
+          type: string
+          format: date-time
+        actualStartTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+
+    MassLiveStream:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, live, ended]
+        streamKey:
+          type: string
+        playlistUrl:
+          type: string
+          format: uri
+        maxViewers:
+          type: integer
+        currentViewers:
+          type: integer
+        enableChat:
+          type: boolean
+        scheduledStartTime:
+          type: string
+          format: date-time
+
+    # AI & ML Schemas
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        language:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, paused]
+        messageCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        lastMessageAt:
+          type: string
+          format: date-time
+
+    TutorResponse:
+      type: object
+      properties:
+        messageId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        type:
+          type: string
+          enum: [text, voice, image]
+        confidence:
+          type: number
+          format: float
+        sources:
+          type: array
+          items:
+            type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    Recommendation:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [course, content, product]
+        title:
+          type: string
+        description:
+          type: string
+        score:
+          type: number
+          format: float
+        reason:
+          type: string
+        url:
+          type: string
+          format: uri
+        imageUrl:
+          type: string
+          format: uri
+
+    # System Schemas
+    SystemStatus:
+      type: object
+      properties:
+        overallStatus:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [healthy, unhealthy]
+              responseTime:
+                type: number
+              lastChecked:
+                type: string
+                format: date-time
+        infrastructure:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [healthy, unhealthy]
+            redis:
+              type: string
+              enum: [healthy, unhealthy]
+            kafka:
+              type: string
+              enum: [healthy, unhealthy]
+        metrics:
+          type: object
+          properties:
+            totalUsers:
+              type: integer
+            activeUsers:
+              type: integer
+            totalOrders:
+              type: integer
+            totalRevenue:
+              type: number
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "VALIDATION_ERROR"
+                      message:
+                        type: string
+                        example: "Validation failed"
+
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "UNAUTHORIZED"
+                      message:
+                        type: string
+                        example: "Authentication required"
+
+    ForbiddenError:
+      description: Insufficient privileges
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "FORBIDDEN"
+                      message:
+                        type: string
+                        example: "Insufficient privileges"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "NOT_FOUND"
+                      message:
+                        type: string
+                        example: "Resource not found"
+
+    ConflictError:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "CONFLICT"
+                      message:
+                        type: string
+                        example: "Resource already exists"
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "RATE_LIMIT_EXCEEDED"
+                      message:
+                        type: string
+                        example: "Rate limit exceeded"
+
+  # Extended Service Routes
+
+  # Content Delivery Routes
+  /content-delivery/api/v1/content/{contentId}:
+    get:
+      tags: [Media]
+      summary: Serve content by ID
+      description: Serve static or media content from CDN
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content served successfully
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /content-delivery/api/v1/upload:
+    post:
+      tags: [Media]
+      summary: Upload content to CDN
+      description: Upload static content to the CDN
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Content uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          contentId:
+                            type: string
+                          url:
+                            type: string
+                            format: uri
+                          size:
+                            type: integer
+
+  # Search Crawler Routes
+  /search-crawler/search:
+    get:
+      tags: [Content]
+      summary: Search indexed content
+      description: Search through crawled and indexed content
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+                  total:
+                    type: integer
+                  searchTime:
+                    type: string
+                  generatedAt:
+                    type: string
+                    format: date-time
+
+  # Ledger Service Routes
+  /ledger/api/v1/accounts:
+    post:
+      tags: [Payments]
+      summary: Create ledger account
+      description: Create a new account in the ledger system
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountName, accountType]
+              properties:
+                accountName:
+                  type: string
+                accountType:
+                  type: string
+                  enum: [asset, liability, equity, revenue, expense]
+                currency:
+                  type: string
+                  default: "INR"
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LedgerAccount'
+
+  /ledger/api/v1/transactions:
+    post:
+      tags: [Payments]
+      summary: Create ledger transaction
+      description: Record a double-entry transaction in the ledger
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LedgerTransactionRequest'
+      responses:
+        '201':
+          description: Transaction recorded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LedgerTransaction'
+
+  # Creator Studio Routes
+  /creator-studio/api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register creator
+      description: Register a new content creator account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                displayName:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '201':
+          description: Creator registered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Creator'
+
+  /creator-studio/api/content:
+    post:
+      tags: [Content]
+      summary: Create creator content
+      description: Create new content as a creator
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, type]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                type:
+                  type: string
+                  enum: [video, article, course, live_stream]
+                category:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                monetizationSettings:
+                  type: object
+                  properties:
+                    isPaid:
+                      type: boolean
+                    price:
+                      type: number
+                    currency:
+                      type: string
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CreatorContent'
+
+      LedgerAccount:
+        type: object
+        properties:
+          id:
+            type: string
+            format: uuid
+          accountName:
+            type: string
+          accountType:
+            type: string
+            enum: [asset, liability, equity, revenue, expense]
+          accountCode:
+            type: string
+          currency:
+            type: string
+          balance:
+            type: number
+            format: decimal
+          createdAt:
+            type: string
+            format: date-time
+
+      LedgerTransactionRequest:
+        type: object
+        required: [description, entries]
+        properties:
+          description:
+            type: string
+          reference:
+            type: string
+          entries:
+            type: array
+            items:
+              type: object
+              required: [accountId, amount, type]
+              properties:
+                accountId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+                  format: decimal
+                type:
+                  type: string
+                  enum: [debit, credit]
+                description:
+                  type: string
+
+      LedgerTransaction:
+        type: object
+        properties:
+          id:
+            type: string
+            format: uuid
+          description:
+            type: string
+          reference:
+            type: string
+          totalAmount:
+            type: number
+            format: decimal
+          entries:
+            type: array
+            items:
+              type: object
+              properties:
+                accountId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+                  format: decimal
+                type:
+                  type: string
+                  enum: [debit, credit]
+                runningBalance:
+                  type: number
+                  format: decimal
+          createdAt:
+            type: string
+            format: date-time
+
+      Creator:
+        type: object
+        properties:
+          id:
+            type: string
+            format: uuid
+          username:
+            type: string
+          email:
+            type: string
+            format: email
+          displayName:
+            type: string
+          bio:
+            type: string
+          avatarUrl:
+            type: string
+            format: uri
+          bannerUrl:
+            type: string
+            format: uri
+          website:
+            type: string
+            format: uri
+          socialLinks:
+            type: object
+          verification:
+            type: object
+            properties:
+              isVerified:
+                type: boolean
+              verifiedAt:
+                type: string
+                format: date-time
+          analytics:
+            type: object
+            properties:
+              followerCount:
+                type: integer
+              totalViews:
+                type: integer
+              totalContent:
+                type: integer
+          subscription:
+            type: object
+            properties:
+              tier:
+                type: string
+                enum: [free, premium, pro]
+              expiresAt:
+                type: string
+                format: date-time
+          createdAt:
+            type: string
+            format: date-time
+
+      CreatorContent:
+        type: object
+        properties:
+          id:
+            type: string
+            format: uuid
+          title:
+            type: string
+          description:
+            type: string
+          type:
+            type: string
+            enum: [video, article, course, live_stream]
+          category:
+            type: string
+          tags:
+            type: array
+            items:
+              type: string
+          creatorId:
+            type: string
+            format: uuid
+          status:
+            type: string
+            enum: [draft, published, archived, monetized]
+          monetizationSettings:
+            type: object
+            properties:
+              isPaid:
+                type: boolean
+              price:
+                type: number
+              currency:
+                type: string
+              subscriptionTier:
+                type: string
+          analytics:
+            type: object
+            properties:
+              views:
+                type: integer
+              likes:
+                type: integer
+              shares:
+                type: integer
+              revenue:
+                type: number
+          createdAt:
+            type: string
+            format: date-time
+          publishedAt:
+            type: string
+            format: date-time
+
+  # Live Tracking Routes
+  /live-tracking/api/v1/events:
+    post:
+      tags: [Analytics]
+      summary: Track live event
+      description: Track real-time user events and interactions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventType, userId]
+              properties:
+                eventType:
+                  type: string
+                  example: "page_view"
+                userId:
+                  type: string
+                  format: uuid
+                sessionId:
+                  type: string
+                metadata:
+                  type: object
+                timestamp:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Event tracked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Counters Service Routes
+  /counters/api/v1/counters/{name}:
+    post:
+      tags: [Analytics]
+      summary: Increment counter
+      description: Increment a named counter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "course_views"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                increment:
+                  type: integer
+                  default: 1
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Counter incremented
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          value:
+                            type: integer
+                          lastUpdated:
+                            type: string
+                            format: date-time
+
+    get:
+      tags: [Analytics]
+      summary: Get counter value
+      description: Retrieve current counter value
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Counter value retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          value:
+                            type: integer
+                          lastUpdated:
+                            type: string
+                            format: date-time
+
+  # Additional Admin Routes
+  /admin/api/v1/analytics/dashboard:
+    get:
+      tags: [Admin, Analytics]
+      summary: Get analytics dashboard data
+      description: Retrieve comprehensive analytics for admin dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, year]
+            default: "week"
+      responses:
+        '200':
+          description: Dashboard data retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardData'
+
+  # Additional Commerce Admin Routes
+  /commerce/api/v1/admin/sagas:
+    get:
+      tags: [Commerce, Admin]
+      summary: List saga instances
+      description: Get list of saga orchestration instances for monitoring
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed, compensating]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Saga instances retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          sagas:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/SagaInstance'
+
+  /commerce/api/v1/admin/sagas/{id}/retry:
+    post:
+      tags: [Commerce, Admin]
+      summary: Retry failed saga
+      description: Retry a failed saga orchestration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Saga retry initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # All Services Health Check (via Gateway)
+  /{service}/health:
+    get:
+      tags: [Health]
+      summary: Service health check
+      description: Check health of any individual service
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [
+              identity, commerce, payments, content, content-delivery,
+              notifications, ledger, upi-core, bank-simulator, live-classes,
+              vod, mass-live, creator-studio, search-crawler, recommendations,
+              llm-tutor, analytics, counters, live-tracking, admin
+            ]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # OIDC Discovery Endpoints (Identity Service)
+  /identity/.well-known/openid-configuration:
+    get:
+      tags: [Authentication]
+      summary: OIDC Discovery
+      description: OpenID Connect discovery endpoint
+      responses:
+        '200':
+          description: OIDC configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issuer:
+                    type: string
+                    format: uri
+                  authorization_endpoint:
+                    type: string
+                    format: uri
+                  token_endpoint:
+                    type: string
+                    format: uri
+                  userinfo_endpoint:
+                    type: string
+                    format: uri
+                  jwks_uri:
+                    type: string
+                    format: uri
+                  scopes_supported:
+                    type: array
+                    items:
+                      type: string
+                  response_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  grant_types_supported:
+                    type: array
+                    items:
+                      type: string
+
+  /identity/oauth2/jwks:
+    get:
+      tags: [Authentication]
+      summary: JSON Web Key Set
+      description: Public keys for JWT signature verification
+      responses:
+        '200':
+          description: JWKS retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+
+
+
+    SagaInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: "OrderProcessingSaga"
+        status:
+          type: string
+          enum: [pending, completed, failed, compensating]
+        orderId:
+          type: string
+          format: uuid
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [pending, completed, failed, compensated]
+              attempt:
+                type: integer
+              executedAt:
+                type: string
+                format: date-time
+        errorMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    DashboardData:
+      type: object
+      properties:
+        overview:
+          type: object
+          properties:
+            totalUsers:
+              type: integer
+            activeUsers:
+              type: integer
+            totalRevenue:
+              type: number
+            totalOrders:
+              type: integer
+            conversionRate:
+              type: number
+              format: float
+        metrics:
+          type: object
+          properties:
+            userGrowth:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  count:
+                    type: integer
+            revenueGrowth:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  amount:
+                    type: number
+        topContent:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              views:
+                type: integer
+              engagement:
+                type: number
+                format: float
+        systemHealth:
+          type: object
+          properties:
+            overall:
+              type: string
+              enum: [healthy, degraded, unhealthy]
+            services:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                  responseTime:
+                    type: number
+
+      WebhookEndpoint:
+        type: object
+        properties:
+          id:
+            type: string
+            format: uuid
+          url:
+            type: string
+            format: uri
+          events:
+            type: array
+            items:
+              type: string
+          description:
+            type: string
+          status:
+            type: string
+            enum: [active, inactive]
+          secret:
+            type: string
+          createdAt:
+            type: string
+            format: date-time
+          lastTriggered:
+            type: string
+            format: date-time
+
+      UserAnalytics:
+        type: object
+        properties:
+          userId:
+            type: string
+            format: uuid
+          period:
+            type: string
+          totalSessions:
+            type: integer
+          totalDuration:
+            type: integer
+            description: Total time in seconds
+          coursesStarted:
+            type: integer
+          coursesCompleted:
+            type: integer
+          averageEngagement:
+            type: number
+            format: float
+          topCategories:
+            type: array
+            items:
+              type: object
+              properties:
+                category:
+                  type: string
+                timeSpent:
+                  type: integer
+          learningStreak:
+            type: integer
+          achievements:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                earnedAt:
+                  type: string
+                  format: date-time
+
+      GatewayConfig:
+        type: object
+        properties:
+          features:
+            type: object
+            properties:
+              requestRouting:
+                type: boolean
+              rateLimiting:
+                type: boolean
+              authentication:
+                type: boolean
+              cors:
+                type: boolean
+              caching:
+                type: boolean
+          services:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                timeout:
+                  type: integer
+                retries:
+                  type: integer
+          rateLimiting:
+            type: object
+            properties:
+              default:
+                type: object
+                properties:
+                  requestsPerMinute:
+                    type: integer
+                  burst:
+                    type: integer
+          authentication:
+            type: object
+            properties:
+              jwtSecret:
+                type: string
+              tokenExpiry:
+                type: string
+              excludedPaths:
+                type: array
+                items:
+                  type: string
+
+      GatewayRoute:
+        type: object
+        properties:
+          id:
+            type: string
+          path:
+            type: string
+          method:
+            type: string
+            enum: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+          service:
+            type: string
+          targetPath:
+            type: string
+          timeout:
+            type: integer
+          retries:
+            type: integer
+          requireAuth:
+            type: boolean
+          rateLimit:
+            type: object
+            properties:
+              requestsPerMinute:
+                type: integer
+              burst:
+                type: integer
+          caching:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+              ttl:
+                type: integer
+          createdAt:
+            type: string
+            format: date-time
+
+  # Additional key endpoints for comprehensive coverage
+
+  # Webhook and Payment Gateway Extensions
+  /payments/api/v1/webhooks/endpoints:
+    post:
+      tags: [Payments]
+      summary: Create webhook endpoint
+      description: Create a new webhook endpoint for payment notifications
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: [payment.completed, payment.failed, refund.processed]
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Webhook endpoint created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/WebhookEndpoint'
+
+    get:
+      tags: [Payments]
+      summary: List webhook endpoints
+      description: Get list of configured webhook endpoints
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Webhook endpoints retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookEndpoint'
+
+  # Voice and AI Extensions (LLM Tutor)
+  /llm-tutor/api/v1/voice/voices:
+    get:
+      tags: [AI & ML]
+      summary: List available voices
+      description: Get list of available voices for text-to-speech
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Available voices retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            language:
+                              type: string
+                            gender:
+                              type: string
+                              enum: [male, female, neutral]
+
+  /llm-tutor/api/v1/voice/transcribe:
+    post:
+      tags: [AI & ML]
+      summary: Transcribe audio to text
+      description: Convert audio input to text for AI processing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                language:
+                  type: string
+                  default: "en"
+      responses:
+        '200':
+          description: Audio transcribed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          text:
+                            type: string
+                          confidence:
+                            type: number
+                            format: float
+                          duration:
+                            type: number
+                          language:
+                            type: string
+
+  # Live Classes Extended Routes
+  /live-classes/api/v1/rooms/{id}/join:
+    post:
+      tags: [Live Streaming]
+      summary: Join live room
+      description: Join a live class room as participant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully joined room
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          participantId:
+                            type: string
+                          webrtcConfig:
+                            type: object
+                          chatToken:
+                            type: string
+
+  # API Gateway Admin Routes
+  /admin/config:
+    get:
+      tags: [Gateway, Admin]
+      summary: Get gateway configuration
+      description: Retrieve current API gateway configuration
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Configuration retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          config:
+                            $ref: '#/components/schemas/GatewayConfig'
+                          version:
+                            type: string
+
+security:
+  - bearerAuth: []
