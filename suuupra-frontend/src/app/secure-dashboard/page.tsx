@@ -41,7 +41,7 @@ function SecureDashboard() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               Welcome back, {user?.name || user?.email}!
             </h1>
-            <p className="text-gray-400 mt-2">Here's what's happening with your learning journey</p>
+            <p className="text-gray-400 mt-2">Here&apos;s what&apos;s happening with your learning journey</p>
             <div className="flex items-center gap-2 mt-3">
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                 Account Active

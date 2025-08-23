@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthService, handleApiError } from '@/lib/api';
 import { toast } from 'sonner';
+import { Shield } from 'lucide-react';
 
 interface User {
   id: string;
