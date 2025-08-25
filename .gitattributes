@@ -1,0 +1,74 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Force batch files to CRLF
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+# Force bash scripts to LF  
+*.sh text eol=lf
+
+# Documents
+*.md text
+*.txt text
+*.xml text
+*.html text
+*.css text
+*.js text
+*.ts text
+*.json text
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Source code
+*.c text
+*.h text
+*.cpp text
+*.py text eol=lf
+*.go text eol=lf
+*.rs text eol=lf
+*.java text
+
+# These files are binary and should be left untouched
+# (binary is a macro for -text -diff)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.dmg binary
+*.iso binary
+*.jar binary
+*.war binary
+*.ear binary
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+.gitattributes text
+.gitignore text
+*.gitignore text
+
+# Declare files that will always have CRLF line endings on checkout.
+*.sln text eol=crlf
+*.csproj text eol=crlf
+*.vbproj text eol=crlf
+*.vcxproj text eol=crlf
+*.vcproj text eol=crlf
+
+# Declare files that will always have LF line endings on checkout.
+*.Dockerfile text eol=lf
+Dockerfile text eol=lf
+*Dockerfile* text eol=lf
+*dockerfile* text eol=lf
+*.dockerignore text eol=lf

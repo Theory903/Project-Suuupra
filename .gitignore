@@ -85,3 +85,22 @@ target/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Windows compatibility - ensure node_modules are ignored
+**/node_modules/
+**/node_modules/**/*
+node_modules/
+node_modules/**/*
+
+# Windows specific
+Thumbs.db
+Desktop.ini
+.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Long path prevention
+**/very/long/paths/**

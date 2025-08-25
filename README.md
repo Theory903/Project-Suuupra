@@ -98,6 +98,10 @@ graph TD
 
 ---
 
+## 🖥️ Windows Setup
+
+**Windows Contributors**: Please see [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) for detailed setup instructions to avoid common cloning issues like long file paths and line ending problems.
+
 ## 🏗️ Enterprise Microservices Architecture Matrix
 
 **🎯 100% PRODUCTION-READY STATUS ACHIEVED** ✅
