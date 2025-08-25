@@ -1,0 +1,51 @@
+# Multi-stage build for UPI Core Payment API
+FROM golang:1.21-alpine AS builder
+
+# Install dependencies
+RUN apk add --no-cache ca-certificates git
+
+# Set working directory
+WORKDIR /app
+
+# Copy Go module files
+COPY go_simple.mod go.mod
+
+# Copy source files
+COPY simple-payment-server.go .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o payment-server simple-payment-server.go
+
+# Final stage  
+FROM alpine:latest
+
+# Install ca-certificates and curl for health checks
+RUN apk --no-cache add ca-certificates curl && \
+    addgroup -g 1001 -S payments && \
+    adduser -u 1001 -S payments -G payments
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/payment-server .
+
+# Change ownership to non-root user
+RUN chown -R payments:payments /app
+
+# Switch to non-root user
+USER payments
+
+# Expose port 8080 (for payment API)
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Set environment variables
+ENV PORT=8080
+ENV GO_ENV=production
+
+# Run the application
+CMD ["./payment-server"]

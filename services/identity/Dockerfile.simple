@@ -1,31 +1,31 @@
-FROM eclipse-temurin:17-jdk AS builder
+# Simple Identity Service with Fixed SimpleServer
+FROM openjdk:17-jdk-slim
 
-WORKDIR /app
-COPY src/main/java/SimpleServer.java .
+# Install PostgreSQL client for runtime connectivity  
+RUN apt-get update && apt-get install -y postgresql-client curl && rm -rf /var/lib/apt/lists/*
 
-# Download PostgreSQL JDBC driver
-ADD https://jdbc.postgresql.org/download/postgresql-42.7.2.jar postgresql-42.7.2.jar
-
-# Compile with PostgreSQL driver in classpath
-RUN javac -cp postgresql-42.7.2.jar SimpleServer.java
-
-FROM eclipse-temurin:17-jre
-
-RUN apt-get update && apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/* && \
-    groupadd -r identity && useradd -r -g identity identity
-
+# Create user and app directory
+RUN useradd -r -u 1001 identity
 WORKDIR /app
 
-COPY --from=builder /app/*.class .
-COPY --from=builder /app/*.jar .
+# Copy PostgreSQL driver
+COPY --chown=identity:identity postgresql-42.7.2.jar .
 
-RUN chown -R identity:identity /app
+# Copy the fixed SimpleServer
+COPY --chown=identity:identity src/main/java/SimpleServer.java .
+
+# Compile the SimpleServer  
+RUN javac -cp .:postgresql-42.7.2.jar SimpleServer.java
+
+# Create logs directory
+RUN mkdir -p logs && chown -R identity:identity .
+
+# Switch to non-root user
 USER identity
 
-EXPOSE 8081
-
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8081/health || exit 1
 
+# Run the fixed SimpleServer
 CMD ["java", "-cp", ".:postgresql-42.7.2.jar", "SimpleServer"]

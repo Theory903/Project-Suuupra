@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Override the payments service to use UPI Core Payment API
+  suuupra-payments:
+    build:
+      context: services/upi-core
+      dockerfile: Dockerfile.payment-api
+    container_name: suuupra-upi-payments
+    ports:
+      - "8082:8080"  # Map container port 8080 to host port 8082
+    environment:
+      - PORT=8080
+      - GO_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - suuupra-network
+    labels:
+      - "com.suuupra.service=payments"
+      - "com.suuupra.version=1.0.0"
+      - "com.suuupra.api=true"
+
+networks:
+  suuupra-network:
+    external: true

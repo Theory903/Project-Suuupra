@@ -87,17 +87,33 @@ export class DatabaseManager {
       const { IdempotencyKey } = await import('./IdempotencyKey');
       const { AuditLog } = await import('./AuditLog');
 
-      // Create indexes
-      await Promise.all([
+      // Create indexes with error handling for conflicts
+      const indexPromises = [
         Content.createIndexes(),
         Category.createIndexes(),
         UploadSession.createIndexes(),
         MediaAsset.createIndexes(),
         IdempotencyKey.createIndexes(),
         AuditLog.createIndexes()
-      ]);
+      ];
 
-      logger.info('Database indexes created successfully');
+      const results = await Promise.allSettled(indexPromises);
+      
+      // Log any index creation failures but don't fail startup
+      results.forEach((result, index) => {
+        const modelNames = ['Content', 'Category', 'UploadSession', 'MediaAsset', 'IdempotencyKey', 'AuditLog'];
+        if (result.status === 'rejected') {
+          const error = result.reason as Error;
+          // Ignore index conflicts (code 85) but log other errors
+          if (error.message.includes('IndexOptionsConflict') || error.message.includes('code":85')) {
+            logger.warn(`Index conflict for ${modelNames[index]} (ignoring)`, { error: error.message });
+          } else {
+            logger.error(`Failed to create indexes for ${modelNames[index]}`, error);
+          }
+        }
+      });
+
+      logger.info('Database indexes processed successfully');
     } catch (error) {
       logger.error('Error creating database indexes', error as Error);
       throw error;

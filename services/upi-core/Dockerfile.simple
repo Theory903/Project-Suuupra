@@ -4,9 +4,9 @@ RUN apk add --no-cache ca-certificates git
 
 WORKDIR /app
 COPY go_simple.mod go.mod
-COPY simple_server.go .
+COPY simple-payment-server.go .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o upi-core simple_server.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o upi-core simple-payment-server.go
 
 FROM alpine:latest
 
@@ -21,9 +21,9 @@ COPY --from=builder /app/upi-core .
 RUN chown -R upi-core:upi-core /app
 USER upi-core
 
-EXPOSE 8087
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8087/health || exit 1
+  CMD curl -f http://localhost:8080/health || exit 1
 
 CMD ["./upi-core"]

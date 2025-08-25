@@ -99,8 +99,12 @@ public class SimpleServer {
                     stmt.setString(1, email);
                     ResultSet rs = stmt.executeQuery();
                     if (rs.next() && rs.getInt(1) > 0) {
-                        exchange.sendResponseHeaders(409, 0);
-                        return "{\"success\":false,\"message\":\"User already exists\"}";
+                        String errorResponse = "{\"success\":false,\"message\":\"Registration failed: Email already registered\"}";
+                        exchange.sendResponseHeaders(409, errorResponse.length());
+                        OutputStream os = exchange.getResponseBody();
+                        os.write(errorResponse.getBytes());
+                        os.close();
+                        return errorResponse;
                     }
                 }
                 

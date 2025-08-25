@@ -173,6 +173,7 @@ export class ElasticsearchService {
               type: 'dense_vector' as const,
               dims: 768,
               index: true,
+              similarity: 'cosine' as const
             },
             created_by: { type: 'keyword' as const },
             created_at: {

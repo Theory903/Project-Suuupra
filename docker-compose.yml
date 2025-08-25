@@ -690,7 +690,8 @@ services:
   content:
     build:
       context: ./services/content
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
+      target: production
     container_name: suuupra-content
     restart: unless-stopped
     ports:
@@ -700,6 +701,17 @@ services:
       NODE_ENV: production
       PORT: 8089
       METRICS_PORT: 9100
+      # Required by services/content/src/config/index.ts in production
+      MONGODB_URI: mongodb://root:root_password@mongodb:27017/content?authSource=admin
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      REDIS_URL: redis://redis:6379/2
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin123}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-content-assets}
+      S3_BUCKET_REGION: us-east-1
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_key_change_in_production}
+      JWKS_URI: http://jwks-server:3000/.well-known/jwks.json
       
       # Database for content metadata
       POSTGRES_HOST: postgres
@@ -740,6 +752,8 @@ services:
       - app_uploads:/app/uploads
     depends_on:
       postgres:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy

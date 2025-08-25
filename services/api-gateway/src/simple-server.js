@@ -35,14 +35,15 @@ function proxyRequest(req, res, targetUrl, remainingPath) {
   const parsedTarget = url.parse(targetUrl);
   
   // Build the target URL with remaining path and query string
-  const targetPath = remainingPath + (req.url.includes('?') ? req.url.split('?')[1] : '');
+  const targetPath = remainingPath + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');
   
   const options = {
     hostname: parsedTarget.hostname,
     port: parsedTarget.port,
     path: targetPath.startsWith('?') ? `/${targetPath}` : targetPath,
     method: req.method,
-    headers: { ...req.headers }
+    headers: { ...req.headers },
+    timeout: 10000 // 10 second timeout
   };
   
   // Remove host header to avoid conflicts
@@ -51,26 +52,84 @@ function proxyRequest(req, res, targetUrl, remainingPath) {
   console.log(`🔄 Proxying ${req.method} ${req.url} → ${targetUrl}${targetPath}`);
   
   const proxyReq = http.request(options, (proxyRes) => {
-    // Copy status code and headers
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    console.log(`✅ Received response ${proxyRes.statusCode} for ${req.method} ${req.url}`);
     
-    // Pipe the response
-    proxyRes.pipe(res, { end: true });
+    // Set CORS headers first
+    const responseHeaders = { ...proxyRes.headers };
+    responseHeaders['Access-Control-Allow-Origin'] = '*';
+    responseHeaders['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    responseHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    
+    // Copy status code and headers
+    res.writeHead(proxyRes.statusCode, responseHeaders);
+    
+    // Collect response data
+    let responseBody = '';
+    proxyRes.on('data', (chunk) => {
+      responseBody += chunk;
+      res.write(chunk);
+    });
+    
+    proxyRes.on('end', () => {
+      console.log(`📤 Response completed for ${req.method} ${req.url}`);
+      res.end();
+    });
+    
+    proxyRes.on('error', (err) => {
+      console.error(`❌ Response error for ${req.url}:`, err.message);
+      if (!res.headersSent) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+      }
+      res.end(JSON.stringify({
+        error: 'Response Error',
+        message: `Response error: ${err.message}`,
+        service: 'api-gateway',
+        timestamp: new Date().toISOString()
+      }));
+    });
+  });
+  
+  // Handle request timeout
+  proxyReq.on('timeout', () => {
+    console.error(`⏰ Request timeout for ${req.url}`);
+    proxyReq.destroy();
+    if (!res.headersSent) {
+      res.writeHead(504, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: 'Gateway Timeout',
+        message: 'Request timed out after 10 seconds',
+        service: 'api-gateway',
+        timestamp: new Date().toISOString()
+      }));
+    }
   });
   
   proxyReq.on('error', (err) => {
     console.error(`❌ Proxy error for ${req.url}:`, err.message);
-    res.writeHead(502, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      error: 'Bad Gateway',
-      message: `Service unavailable: ${err.message}`,
-      service: 'api-gateway',
-      timestamp: new Date().toISOString()
-    }));
+    if (!res.headersSent) {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: 'Bad Gateway',
+        message: `Service unavailable: ${err.message}`,
+        service: 'api-gateway',
+        timestamp: new Date().toISOString()
+      }));
+    }
   });
   
-  // Pipe request body to target service
-  req.pipe(proxyReq, { end: true });
+  // Handle request body
+  req.on('data', (chunk) => {
+    proxyReq.write(chunk);
+  });
+  
+  req.on('end', () => {
+    proxyReq.end();
+  });
+  
+  req.on('error', (err) => {
+    console.error(`❌ Request error for ${req.url}:`, err.message);
+    proxyReq.destroy();
+  });
 }
 
 const server = http.createServer((req, res) => {

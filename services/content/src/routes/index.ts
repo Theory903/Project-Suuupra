@@ -71,6 +71,17 @@ export function createRoutes(
     });
   });
 
+  // Public content routes (no authentication required)
+  router.get('/content/public',
+    validationMiddleware('query.pagination', 'query'),
+    contentController.listPublicContent
+  );
+
+  router.get('/content/public/:id',
+    validationMiddleware('query.idParam', 'params'),
+    contentController.getPublicContent
+  );
+
   // Content routes
   router.post('/content',
     authenticate,

@@ -8,12 +8,15 @@ import com.suuupra.identity.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Authentication", description = "User authentication and authorization endpoints")
 public class AuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
@@ -26,14 +29,27 @@ public class AuthController {
     @ApiResponse(responseCode = "400", description = "Invalid request data")
     @ApiResponse(responseCode = "409", description = "User already exists")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+        logger.info("Registration attempt for email: {}", request.getEmail());
         try {
             AuthResponse response = authService.register(request);
+            logger.info("Registration successful for email: {}", request.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+        } catch (IllegalArgumentException e) {
+            // Handle specific cases like "Email already registered" or "Password found in breach list"
+            HttpStatus status = e.getMessage().contains("already registered") ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+            logger.warn("Registration failed for email: {} - Reason: {}", request.getEmail(), e.getMessage());
+            return ResponseEntity.status(status).body(
                 AuthResponse.builder()
                     .success(false)
                     .message("Registration failed: " + e.getMessage())
+                    .build()
+            );
+        } catch (Exception e) {
+            logger.error("Registration failed for email: {} - Unexpected error: {}", request.getEmail(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                AuthResponse.builder()
+                    .success(false)
+                    .message("Registration failed: Internal server error")
                     .build()
             );
         }

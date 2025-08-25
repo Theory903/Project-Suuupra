@@ -132,8 +132,8 @@ func runServer(cmd *cobra.Command, args []string) error {
 	upiCoreService := server.NewUpiCoreService(db, redisClient, kafkaProducer, log)
 	server.RegisterUpiCoreServer(grpcServer, upiCoreService)
 
-	// Create HTTP server for REST API
-	httpServer := http.NewHTTPServer(transactionService, log, "8081")
+	// Create HTTP server for REST API (matching frontend expectations)
+	httpServer := http.NewHTTPServer(transactionService, log, "8080")
 
 	// Enable reflection in development
 	if cfg.App.Environment == "development" {
@@ -161,7 +161,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// Start HTTP server in goroutine
 	go func() {
-		log.Info("Starting HTTP server on :8081")
+		log.Info("Starting HTTP server on :8080 (Payment API)")
 		if err := httpServer.Start(); err != nil {
 			log.WithError(err).Fatal("Failed to serve HTTP server")
 		}

@@ -59,6 +59,28 @@ services:
       - "prometheus.port=9187"
 
   # ===================================================================
+  # DOCUMENT DATABASE - MongoDB for Content Service
+  # ===================================================================
+  mongodb:
+    image: mongo:6.0
+    container_name: suuupra-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root_password
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - suuupra-network
+
+  # ===================================================================
   # REDIS CACHE - Performance Optimized with Monitoring
   # ===================================================================
   redis:
@@ -613,6 +635,8 @@ volumes:
   postgres_wal:
     driver: local
   redis_data:
+    driver: local
+  mongodb_data:
     driver: local
     
   # ===================================================================

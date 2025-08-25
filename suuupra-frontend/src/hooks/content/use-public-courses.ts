@@ -1,9 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { PublicApi } from '@/lib/api-client';
+import { ContentApi } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-client';
-import { get } from '@/lib/http';
+import { LucideIcon } from 'lucide-react';
+
 
 export interface PublicCourse {
   id: string;
@@ -25,7 +26,7 @@ export interface CourseCategory {
   name: string;
   count: number;
   color: string;
-  icon: any;
+  icon: LucideIcon;
 }
 
 // This hook fetches public courses without requiring authentication
@@ -40,22 +41,30 @@ export function usePublicCourses(params?: {
     queryKey: queryKeys.courses({ ...params, public: true }),
     queryFn: async (): Promise<{ courses: PublicCourse[]; total: number; page: number }> => {
       try {
-        // Try to fetch real courses from the content API (without auth)
-        const response = await get<{ content: any[]; total: number; page: number }>(
-          '/content/api/v1/content', 
-          { 
-            params: {
-              page: params?.page || 0,
-              limit: params?.limit || 20,
-              search: params?.search,
-              category: params?.category,
-              type: 'course',
-              status: 'published' // Only get published courses for public view
-            }
-          }
-        );
+        // Fetch courses using ContentApi public method
+        const response = await ContentApi.listPublicContent({
+          page: params?.page || 1,
+          limit: params?.limit || 20,
+          search: params?.search,
+          category: params?.category,
+        });
 
-        const courses = (response.content || []).map((item: any, index: number) => ({
+        const courses = (response.data || []).map((item: {
+          id: string;
+          title: string;
+          description?: string;
+          instructor?: string;
+          authorName?: string;
+          rating?: number;
+          enrollmentCount?: number;
+          duration?: number;
+          price?: number;
+          originalPrice?: number;
+          tags?: string[];
+          level?: string;
+          thumbnailUrl?: string;
+          category?: string;
+        }, index: number) => ({
           id: item.id,
           title: item.title,
           instructor: item.authorName || item.instructor || 'Instructor',
@@ -65,7 +74,7 @@ export function usePublicCourses(params?: {
           price: item.price || [89, 149, 199][index % 3] || 99,
           originalPrice: item.originalPrice,
           tags: item.tags || ['Popular'],
-          level: (item.level || ['Beginner', 'Intermediate', 'Advanced'][index % 3]) as any,
+          level: (item.level || ['Beginner', 'Intermediate', 'Advanced'][index % 3]) as 'Beginner' | 'Intermediate' | 'Advanced',
           thumbnail: item.thumbnailUrl,
           description: item.description,
           category: item.category,
@@ -73,8 +82,8 @@ export function usePublicCourses(params?: {
 
         return {
           courses,
-          total: response.total || courses.length,
-          page: response.page || (params?.page ?? 0)
+          total: response.meta?.pagination?.total || courses.length,
+          page: response.meta?.pagination?.page || (params?.page ?? 1)
         };
       } catch (error) {
         console.error('Failed to fetch public courses:', error);

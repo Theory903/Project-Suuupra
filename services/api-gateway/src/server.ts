@@ -7,18 +7,24 @@
 import fastify from 'fastify';
 import jwt from '@fastify/jwt';
 import { randomUUID } from 'crypto';
-import { createLogger, LogLevel } from '../../../shared/libs/logging/node';
-import { OpenTelemetryManager, SpanStatusCode } from '../../../shared/libs/logging/observability/opentelemetry';
+import { createLogger, LogLevel } from './stubs/logger';
+import { OpenTelemetryManager, SpanStatusCode, exposeMetricsRoute, httpRequestDuration, httpRequestsTotal, httpServerErrorsTotal } from './stubs/observability';
 // Type extensions are loaded automatically via tsconfig
-
-declare const require: any;
-let obs: any = {};
-try { obs = require('../../../shared/libs/node/observability'); } catch {}
-const { exposeMetricsRoute, httpRequestDuration, httpRequestsTotal, httpServerErrorsTotal } = obs;
 import type { IncomingMessage } from 'http';
-import { handleGatewayProxy } from './services';
-import { registerAdminRoutes, initializeConfigManager } from './admin/api';
-import { gatewayConfig } from './config/gatewayConfig';
+// Import gateway functions (create stubs if missing)
+let handleGatewayProxy: any;
+let registerAdminRoutes: any = () => {};
+let initializeConfigManager: any = () => {};
+let gatewayConfig: any = { routes: [] };
+
+try {
+  ({ handleGatewayProxy } = require('./services'));
+  ({ registerAdminRoutes, initializeConfigManager } = require('./admin/api'));
+  ({ gatewayConfig } = require('./config/gatewayConfig'));
+} catch (error) {
+  console.warn('[Gateway] Using stub implementations for missing modules');
+  ({ handleGatewayProxy } = require('./services-stub'));
+}
 
 // Initialize world-class logger with best practices
 const logger = createLogger({

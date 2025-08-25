@@ -135,7 +135,7 @@ const UploadSessionSchema = new Schema<IUploadSession>({
 
 // Additional indexes
 UploadSessionSchema.index({ status: 1, expiresAt: 1 });
-UploadSessionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 * 7 }); // Auto-delete after 7 days
+// Note: TTL index on createdAt removed to avoid conflicts - using expiresAt field instead
 
 // Virtual for id field
 UploadSessionSchema.virtual('id').get(function() {

@@ -1,7 +1,8 @@
 FROM node:20-alpine
 
+# Install build dependencies and security updates
 RUN apk update && apk upgrade && \
-    apk add --no-cache curl && \
+    apk add --no-cache curl dumb-init tini python3 make g++ && \
     rm -rf /var/cache/apk/*
 
 RUN addgroup -g 1001 -S nodejs && \
@@ -9,14 +10,32 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-COPY src/simple-server.js ./simple-server.js
+# Copy package files first for better caching
+COPY package*.json tsconfig.json ./
 
+# Install dependencies (including dev dependencies for build)
+RUN npm ci --legacy-peer-deps && \
+    npm cache clean --force
+
+# Copy shared dependencies
+COPY ../../shared/ ./shared/
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the TypeScript application
+RUN npm run build:full
+
+# Change ownership
 RUN chown -R api-gateway:nodejs /app
 USER api-gateway
 
+# Expose port (keeping 8080 for compatibility with docker-compose)
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
-CMD ["node", "simple-server.js"]
+# Start the full TypeScript server with port override
+ENV PORT=8080
+CMD ["dumb-init", "node", "dist/server.js"]

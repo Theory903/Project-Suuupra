@@ -28,7 +28,7 @@ RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
 COPY . .
 RUN chown -R contentservice:nodejs /app
 USER contentservice
-EXPOSE 8082
+EXPOSE 8089
 CMD ["npm", "run", "dev"]
 
 # Build stage
@@ -69,15 +69,15 @@ COPY --chown=contentservice:nodejs start-production.js ./
 # Create logs directory
 RUN mkdir -p logs && chown -R contentservice:nodejs logs
 
-# Health check
+# Health check (use PORT env var with fallback)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8082/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8089}/health || exit 1
 
 # Switch to non-root user
 USER contentservice
 
-# Expose port
-EXPOSE 8082
+# Expose port (configurable via ENV)
+EXPOSE 8089
 
 # Use tini as init system for proper signal handling
 ENTRYPOINT ["/sbin/tini", "--"]

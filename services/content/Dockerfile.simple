@@ -9,7 +9,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-COPY src/simple-server.js ./simple-server.js
+COPY src/api-server.js ./api-server.js
 
 RUN chown -R content:nodejs /app
 USER content
@@ -19,4 +19,4 @@ EXPOSE 8089
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8089/health || exit 1
 
-CMD ["node", "simple-server.js"]
+CMD ["node", "api-server.js"]

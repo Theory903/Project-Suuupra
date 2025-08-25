@@ -22,15 +22,8 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("type", "https://example.com/conflict");
-        body.put("title", "Conflict");
-        body.put("status", HttpStatus.CONFLICT.value());
-        body.put("detail", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
-    }
+    // Removed IllegalArgumentException handler to avoid conflict with AuthController
+    // AuthController handles IllegalArgumentException for registration/login specifically
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {

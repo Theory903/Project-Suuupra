@@ -491,6 +491,106 @@ export class ContentController {
     }
   };
 
+  // List public content (no authentication required)
+  public listPublicContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { page = 1, limit = 20, search, category, status = 'published', sort = 'createdAt', order = 'desc' } = req.query;
+
+      // Build query for public content (published only, no tenant restriction)
+      const query: any = {
+        deleted: false,
+        status: 'published' // Only show published content publicly
+      };
+
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { tags: { $in: [new RegExp(search as string, 'i')] } }
+        ];
+      }
+
+      if (category) {
+        query['category.name'] = { $regex: category, $options: 'i' };
+      }
+
+      // Calculate pagination
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+      const skip = (pageNum - 1) * limitNum;
+      const sortOptions: any = {};
+      sortOptions[sort as string] = order === 'desc' ? -1 : 1;
+
+      // Execute query with pagination
+      const [content, total] = await Promise.all([
+        Content.find(query)
+          .sort(sortOptions)
+          .skip(skip)
+          .limit(limitNum)
+          .select('-tenantId -createdBy -updatedBy -etag -__v') // Remove sensitive fields
+          .lean(),
+        Content.countDocuments(query)
+      ]);
+
+      const totalPages = Math.ceil(total / limitNum);
+
+      const response: ApiResponse = {
+        success: true,
+        data: content,
+        meta: {
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages,
+            hasNext: pageNum < totalPages,
+            hasPrev: pageNum > 1
+          },
+          requestId: 'public-request',
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Get public content by ID (no authentication required)
+  public getPublicContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError('Content ID is required');
+      }
+
+      const content = await Content.findOne({
+        _id: id,
+        deleted: false,
+        status: 'published' // Only show published content publicly
+      }).select('-tenantId -createdBy -updatedBy -etag -__v').lean(); // Remove sensitive fields
+
+      if (!content) {
+        throw new NotFoundError('Content', id);
+      }
+
+      const response: ApiResponse = {
+        success: true,
+        data: content,
+        meta: {
+          requestId: 'public-request',
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // List content with pagination and filtering
   public listContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
