@@ -16,7 +16,6 @@ import {
   Mic,
   MicOff,
   Share,
-  ShareOff,
   Hand,
   HandMetal,
   Phone,
@@ -26,7 +25,7 @@ import {
   VolumeX,
   Users,
   MessageCircle,
-  RecordIcon as Record,
+  Circle as Record,
   StopCircle,
   Palette,
   MoreHorizontal,
@@ -293,7 +292,7 @@ export function StreamingControls({ roomId, room, compact = false }: StreamingCo
           size="sm"
           onClick={toggleScreenShare}
         >
-          {mediaState.isScreenSharing ? <ShareOff className="h-4 w-4" /> : <Share className="h-4 w-4" />}
+          {mediaState.isScreenSharing ? <Share className="h-4 w-4" /> : <Share className="h-4 w-4" />}
         </Button>
 
         {/* Raise Hand */}
